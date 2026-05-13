@@ -40,13 +40,15 @@ module.exports = async function handler(req, res) {
     }
 
     // A chave SEMPRE vem do ambiente do servidor. Nunca do cliente.
-    const asaasKey = process.env.ASAAS_API_KEY;
+    // .trim() defende contra espacos/quebras coladas no painel da Vercel.
+    const asaasKey = (process.env.ASAAS_API_KEY || '').trim();
     if (!asaasKey) {
       res.status(503).json({ error: 'Asaas API Key not configured on server' });
       return;
     }
 
-    const baseUrl = BASE_URLS[environment || 'sandbox'] || BASE_URLS.sandbox;
+    const env = environment || 'sandbox';
+    const baseUrl = BASE_URLS[env] || BASE_URLS.sandbox;
     const url = baseUrl + endpoint;
 
     const fetchOptions = {
@@ -62,11 +64,28 @@ module.exports = async function handler(req, res) {
     }
 
     const response = await fetch(url, fetchOptions);
-    const data = await response.json();
+    const rawText = await response.text();
+    let data;
+    try { data = JSON.parse(rawText); } catch { data = { raw: rawText }; }
+
+    // Log no servidor (aparece em Vercel -> Logs) sem vazar a chave.
+    console.log('[asaas-proxy]', {
+      env: env,
+      endpoint: endpoint,
+      method: method || 'GET',
+      status: response.status,
+      keyPrefix: asaasKey.slice(0, 12),
+      keyLen: asaasKey.length
+    });
 
     if (!response.ok) {
       res.status(response.status).json({
-        error: data.errors?.[0]?.description || 'Asaas API error',
+        error: data.errors?.[0]?.description || data.error || 'Asaas API error',
+        status: response.status,
+        env: env,
+        endpoint: endpoint,
+        keyPrefix: asaasKey.slice(0, 8),
+        keyLen: asaasKey.length,
         details: data
       });
       return;
