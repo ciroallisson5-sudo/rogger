@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <title>Produto - Conforta Colchoes</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; background: #0f172a; line-height: 1.6; }
+    .main { background: #ffffff; }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+    img { max-width: 100%; display: block; }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input { font-family: inherit; border: none; outline: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+    .header { position: fixed; top: 0; left: 0; right: 0; background: #0f172a; border-bottom: 1px solid #1e293b; z-index: 1000; }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 20px; }
+    .logo { display: flex; align-items: center; gap: 8px; color: #ffffff; }
+    .logo img { height: 36px; width: auto; display: block; }
+    .search-bar { flex: 1; max-width: 480px; display: flex; align-items: center; background: #1e293b; border-radius: 6px; overflow: hidden; border: 1px solid transparent; transition: border-color 0.2s; }
+    .search-bar:focus-within { border-color: #1a56db; background: #1e293b; }
+    .search-bar input { flex: 1; padding: 10px 16px; background: transparent; font-size: 0.9rem; color: #e2e8f0; }
+    .search-bar input::placeholder { color: #64748b; }
+    .search-bar button { padding: 10px 16px; background: transparent; display: flex; align-items: center; justify-content: center; color: #64748b; transition: color 0.2s; }
+    .search-bar button:hover { color: #ffffff; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .header-actions button { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: #cbd5e1; transition: background 0.2s, color 0.2s; }
+    .header-actions button:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
+    .header-actions a { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: #cbd5e1; transition: background 0.2s, color 0.2s; }
+    .header-actions a:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
+    .cart-count { position: absolute; top: 2px; right: 2px; background: #dc2626; color: #ffffff; font-size: 0.65rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; display: none; }
+    .cart-count.visible { display: flex; }
+    .mobile-menu-btn { display: none; }
+    .mobile-menu { display: none; position: fixed; top: 56px; left: 0; right: 0; background: #0f172a; border-bottom: 1px solid #1e293b; padding: 12px 20px; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .mobile-menu.open { display: block; }
+    .mobile-menu a { display: block; padding: 10px 0; font-size: 0.95rem; font-weight: 500; color: #cbd5e1; border-bottom: 1px solid #1e293b; }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a:hover { color: #ffffff; }
+    .main { margin-top: 56px; min-height: calc(100vh - 56px); }
+
+    .breadcrumb { display: flex; align-items: center; gap: 8px; padding: 16px 0; font-size: 0.85rem; color: #94a3b8; flex-wrap: wrap; }
+    .breadcrumb a { color: #64748b; transition: color 0.2s; }
+    .breadcrumb a:hover { color: #1a56db; }
+    .breadcrumb span { color: #1e293b; font-weight: 500; }
+    .breadcrumb-sep { color: #cbd5e1; }
+    .breadcrumb .current { color: #1e293b; font-weight: 500; }
+
+    .loading-spinner { display: flex; align-items: center; justify-content: center; padding: 60px 20px; color: #94a3b8; gap: 8px; font-size: 0.9rem; }
+    .loading-spinner::before { content: ''; width: 22px; height: 22px; border: 2.5px solid #e2e8f0; border-top-color: #1a56db; border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-inline { display: flex; align-items: center; justify-content: center; padding: 20px; color: #94a3b8; gap: 8px; font-size: 0.85rem; }
+    .loading-inline::before { content: ''; width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: #1a56db; border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
+
+    .product-page { padding: 0 0 48px; }
+
+    .product-main { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 48px; align-items: start; }
+
+    .product-gallery { position: sticky; top: 88px; }
+    .main-image-wrap { position: relative; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; cursor: crosshair; aspect-ratio: 1 / 1; max-height: 520px; }
+    .main-image-wrap:has(video), .main-image-wrap:has(iframe) { cursor: default; background: #000; }
+    .main-image-wrap img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; }
+    .main-image-wrap.zoomed img { transform: scale(2); }
+    .main-image-wrap .video-indicator-main { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.6); color: #ffffff; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px; display: flex; align-items: center; gap: 4px; pointer-events: none; }
+    .main-image-wrap .placeholder-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #94a3b8; flex-direction: column; gap: 8px; }
+
+    .thumb-gallery { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x mandatory; }
+    .thumb-gallery::-webkit-scrollbar { height: 4px; }
+    .thumb-gallery::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .thumb-gallery::-webkit-scrollbar-track { background: transparent; }
+    .thumb-item { flex-shrink: 0; width: 72px; height: 72px; border: 2px solid #e2e8f0; border-radius: 6px; overflow: hidden; cursor: pointer; transition: border-color 0.2s; scroll-snap-align: start; position: relative; background: #f8fafc; }
+    .thumb-item:hover { border-color: #94a3b8; }
+    .thumb-item.active { border-color: #1a56db; }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-item .video-badge { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #ffffff; font-size: 0.55rem; padding: 1px 4px; border-radius: 3px; }
+    .thumb-item .thumb-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.5); color: #ffffff; font-size: 0.55rem; text-align: center; padding: 1px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .product-info { min-width: 0; }
+    .product-category-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #1a56db; margin-bottom: 6px; display: block; }
+    .product-info h1 { font-size: 1.6rem; font-weight: 700; color: #0f172a; line-height: 1.25; margin-bottom: 8px; letter-spacing: -0.3px; }
+    .product-rating { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; font-size: 0.85rem; color: #64748b; }
+    .product-rating .stars { display: flex; gap: 1px; color: #f59e0b; }
+    .product-rating .stars svg { width: 16px; height: 16px; }
+
+    .product-price-section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
+    .price-old { font-size: 1rem; color: #94a3b8; text-decoration: line-through; display: none; }
+    .price-old.visible { display: block; }
+    .price-current-wrap { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .price-current { font-size: 2rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .price-discount-badge { font-size: 0.75rem; font-weight: 700; color: #ffffff; background: #dc2626; padding: 3px 8px; border-radius: 4px; }
+    .price-installments { font-size: 0.9rem; color: #16a34a; font-weight: 600; margin-top: 6px; }
+    .flash-timer-wrap { display: none; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; font-size: 0.82rem; color: #dc2626; font-weight: 600; }
+    .flash-timer-wrap.visible { display: flex; }
+    .flash-timer-wrap .flash-timer { font-family: 'Inter', monospace; background: #dc2626; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; letter-spacing: 1px; }
+
+    .product-variants { margin-bottom: 20px; }
+    .variant-label { font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .variant-label .variant-value { font-weight: 400; color: #64748b; }
+    .color-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-swatch { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #e2e8f0; cursor: pointer; transition: border-color 0.2s, transform 0.15s; position: relative; flex-shrink: 0; }
+    .color-swatch:hover { transform: scale(1.1); }
+    .color-swatch.active { border-color: #1a56db; box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #1a56db; }
+    .color-swatch .swatch-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1e293b; color: #ffffff; font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; white-space: nowrap; z-index: 5; }
+    .color-swatch:hover .swatch-tooltip { display: block; }
+
+    .size-options { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .size-option { padding: 8px 16px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem; font-weight: 500; color: #475569; cursor: pointer; transition: all 0.2s; background: #ffffff; }
+    .size-option:hover { border-color: #94a3b8; }
+    .size-option.active { border-color: #1a56db; color: #1a56db; background: #eff6ff; }
+
+    .product-qty { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .product-qty label { font-size: 0.82rem; font-weight: 600; color: #475569; }
+    .qty-control { display: flex; align-items: center; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+    .qty-control button { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #475569; transition: background 0.2s; font-size: 1.1rem; }
+    .qty-control button:hover { background: #f1f5f9; }
+    .qty-control button:disabled { opacity: 0.3; cursor: not-allowed; }
+    .qty-control input { width: 48px; height: 40px; text-align: center; font-size: 0.95rem; font-weight: 600; color: #0f172a; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; background: #ffffff; }
+
+    .product-actions { display: flex; gap: 12px; margin-bottom: 16px; }
+    .product-actions .btn { flex: 1; padding: 14px 24px; font-size: 0.95rem; }
+    .btn-primary { background: #1a56db; color: #ffffff; border-radius: 6px; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary:hover { background: #0f3a8e; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline { background: transparent; color: #1a56db; border: 1.5px solid #1a56db; border-radius: 6px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-outline:hover { background: #eff6ff; }
+
+    .trust-badges { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 0; border-top: 1px solid #f1f5f9; }
+    .trust-badge { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b; }
+    .trust-badge svg { flex-shrink: 0; color: #16a34a; }
+
+    .product-details-tabs { margin-bottom: 48px; }
+    .tabs-header { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 24px; }
+    .tab-btn { padding: 12px 24px; font-size: 0.9rem; font-weight: 600; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab-btn:hover { color: #334155; }
+    .tab-btn.active { color: #1a56db; border-bottom-color: #1a56db; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-content p { font-size: 0.9rem; color: #475569; line-height: 1.7; }
+    .details-table { width: 100%; border-collapse: collapse; }
+    .details-table tr { border-bottom: 1px solid #f1f5f9; }
+    .details-table td { padding: 10px 16px; font-size: 0.88rem; }
+    .details-table td:first-child { font-weight: 600; color: #475569; width: 140px; }
+    .details-table td:last-child { color: #0f172a; }
+
+    .similar-products { margin-bottom: 48px; }
+    .similar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .similar-header h2 { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
+    .similar-header a { font-size: 0.85rem; color: #1a56db; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+    .similar-header a:hover { text-decoration: underline; }
+
+    .sim-prod-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .sim-prod-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; }
+    .sim-prod-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .sim-prod-card .sim-img { width: 100%; aspect-ratio: 1 / 1; background: #f1f5f9; overflow: hidden; }
+    .sim-prod-card .sim-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+    .sim-prod-card:hover .sim-img img { transform: scale(1.06); }
+    .sim-prod-card .sim-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .sim-prod-card .sim-cat { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #1a56db; }
+    .sim-prod-card .sim-name { font-size: 0.85rem; font-weight: 600; color: #0f172a; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+    .sim-prod-card .sim-old-price { font-size: 0.78rem; color: #94a3b8; text-decoration: line-through; }
+    .sim-prod-card .sim-price-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+    .sim-prod-card .sim-price { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+    .sim-prod-card .sim-installment { font-size: 0.72rem; color: #16a34a; font-weight: 500; }
+
+    .sim-prod-card .sim-placeholder { width: 100%; aspect-ratio: 1 / 1; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #cbd5e1; }
+
+    .not-found { text-align: center; padding: 80px 20px; }
+    .not-found h2 { font-size: 1.4rem; color: #334155; margin-bottom: 8px; }
+    .not-found p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
+    .not-found a { color: #1a56db; font-weight: 600; }
+
+    .footer { background: #0f172a; color: #cbd5e1; padding: 24px 0 18px; margin-top: 24px; }
+    .footer-compact { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
+    .footer-brand-mini { display: inline-flex; align-items: center; }
+    .footer-brand-mini img { height: 34px; width: auto; display: block; }
+    .footer-contacts { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+    .footer-contact-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #cbd5e1; transition: color 0.2s; }
+    a.footer-contact-item:hover { color: #fff; }
+    .footer-contact-item svg { flex-shrink: 0; color: #94a3b8; }
+    .footer-bottom-mini { font-size: 0.75rem; color: #64748b; padding-top: 12px; border-top: 1px solid #1e293b; width: 100%; }
+
+    @media (max-width: 1024px) {
+      .product-main { gap: 28px; }
+      .sim-prod-grid { grid-template-columns: repeat(3, 1fr); }
+      .price-current { font-size: 1.7rem; }
+    }
+
+    @media (max-width: 768px) {
+      .search-bar { display: none; }
+      .mobile-menu-btn { display: flex; }
+      .product-main { grid-template-columns: 1fr; gap: 20px; }
+      .product-gallery { position: static; }
+      .main-image-wrap { max-height: 320px; }
+      .product-info h1 { font-size: 1.15rem; }
+      .price-current { font-size: 1.4rem; }
+      .product-actions { flex-direction: column; }
+      .sim-prod-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .breadcrumb { font-size: 0.75rem; padding: 10px 0; }
+      .tabs-header { overflow-x: auto; }
+      .tab-btn { padding: 9px 14px; font-size: 0.8rem; white-space: nowrap; }
+      .footer { padding: 18px 0 14px; }
+      .footer-contacts { gap: 10px; flex-direction: column; }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 0 12px; }
+      .header-inner { gap: 8px; height: 52px; }
+      .main { margin-top: 52px; }
+      .mobile-menu { top: 52px; }
+      .logo img { height: 28px; }
+      .logo .logo-text { display: none; }
+      .header-actions button, .header-actions a { width: 36px; height: 36px; }
+      .main-image-wrap { max-height: 260px; }
+      .thumb-item { width: 50px; height: 50px; }
+      .trust-badges { gap: 8px; }
+      .trust-badge { font-size: 0.72rem; }
+      .sim-prod-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .product-info h1 { font-size: 1rem; }
+      .price-current { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="Conforta Colchoes">
+        <img src="assets/logo.png" alt="">
+        <span class="logo-text">Conforta<small>COLCHOES</small></span>
+      </a>
+      <form class="search-bar" id="searchForm" action="produtos.html" method="GET">
+        <input type="text" name="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
+        <button type="submit" aria-label="Buscar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </button>
+      </form>
+      <div class="header-actions">
+        <button id="cartBtn" aria-label="Carrinho">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+        <a href="perfil.html" id="authBtn" aria-label="Perfil">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </a>
+        <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">
+          <svg id="menuIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+          </svg>
+          <svg id="closeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="index.html">Inicio</a>
+      <a href="produtos.html">Produtos</a>
+      <a href="perfil.html">Meu Perfil</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <div id="productApp">
+      <div class="container">
+        <nav class="breadcrumb" id="breadcrumb">
+          <a href="index.html">Home</a>
+          <span class="breadcrumb-sep">&gt;</span>
+          <a href="produtos.html">Produtos</a>
+          <span class="breadcrumb-sep">&gt;</span>
+          <span id="breadcrumbCategory"></span>
+          <span class="breadcrumb-sep" id="breadcrumbSepCat" style="display:none">&gt;</span>
+          <span class="current" id="breadcrumbProduct">Produto</span>
+        </nav>
+      </div>
+
+      <div id="productContent">
+        <div class="loading-spinner">Carregando produto...</div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer" id="siteFooter"></footer>
+
+  <script src="js/supabase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cart.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var sb = null;
+      var productData = null;
+      var photos = [];
+      var selectedPhotoId = null;
+      var categories = [];
+      var photoMap = {};
+      var flashInterval = null;
+      var productId = null;
+
+      var FALLBACK_PRODUCT = {
+        id: 'fb-prod-1',
+        name: 'Colchao King Size Conforta Ortopedico',
+        slug: 'colchao-king-size-conforta-ortopedico',
+        description: '<p>O Colchao King Size Conforta Ortopedico oferece o maximo em conforto e suporte para suas noites de sono. Desenvolvido com tecnologia de ponta, proporciona alivio de pressao e alinhamento adequado da coluna.</p><p>Camadas de espuma D33 de alta densidade garantem durabilidade e conforto excepcionais. Capa em malha premium com tratamento antialergico e antiacaro.</p>',
+        category_id: 'cat-1',
+        base_price: 4999.00,
+        discount_price: 3999.00,
+        flash_offer_ends: new Date(Date.now() + 86400000 * 2).toISOString(),
+        stock: 15,
+        weight: 35.5,
+        dimensions: '193 x 203 x 35 cm',
+        material: 'Espuma D33 Ortopedica, Capa em Malha Premium',
+        warranty: '10 anos contra defeitos de fabricacao',
+        tags: ['colchao', 'king', 'ortopedico', 'casal'],
+        product_photos: [
+          {
+            id: 'fb-photo-1',
+            product_id: 'fb-prod-1',
+            url: 'https://placehold.co/600x600/1a56db/ffffff?text=King+Azul',
+            thumb_url: 'https://placehold.co/120x120/1a56db/ffffff?text=King+Azul',
+            sort_order: 0,
+            is_video: false,
+            video_url: null,
+            price: 4999.00,
+            discount_price: 3999.00,
+            color_name: 'Azul Marinho',
+            color_hex: '#1e3a5f',
+            size: 'King 193x203',
+            custom_label: 'Ortopedico',
+            stock_override: null,
+            same_as_photo_id: null
+          },
+          {
+            id: 'fb-photo-2',
+            product_id: 'fb-prod-1',
+            url: 'https://placehold.co/600x600/0f3a8e/ffffff?text=King+Escuro',
+            thumb_url: 'https://placehold.co/120x120/0f3a8e/ffffff?text=King+Escuro',
+            sort_order: 1,
+            is_video: false,
+            video_url: null,
+            price: 5199.00,
+            discount_price: 4199.00,
+            color_name: 'Preto',
+            color_hex: '#1a1a2e',
+            size: 'King 193x203',
+            custom_label: 'Premium',
+            stock_override: null,
+            same_as_photo_id: null
+          },
+          {
+            id: 'fb-photo-3',
+            product_id: 'fb-prod-1',
+            url: 'https://placehold.co/600x600/64748b/ffffff?text=King+Cinza',
+            thumb_url: 'https://placehold.co/120x120/64748b/ffffff?text=King+Cinza',
+            sort_order: 2,
+            is_video: false,
+            video_url: null,
+            price: 4799.00,
+            discount_price: null,
+            color_name: 'Cinza Chumbo',
+            color_hex: '#475569',
+            size: 'King 193x203',
+            custom_label: 'Conforto',
+            stock_override: null,
+            same_as_photo_id: null
+          },
+          {
+            id: 'fb-photo-4',
+            product_id: 'fb-prod-1',
+            url: 'https://placehold.co/600x600/ffffff/1e293b?text=Video+Tour',
+            thumb_url: 'https://placehold.co/120x120/ffffff/1e293b?text=Video',
+            sort_order: 3,
+            is_video: true,
+            video_url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+            price: null,
+            discount_price: null,
+            color_name: null,
+            color_hex: null,
+            size: null,
+            custom_label: 'Video Tour',
+            stock_override: null,
+            same_as_photo_id: 'fb-photo-1'
+          }
+        ]
+      };
+
+      function getUrlParams() {
+        try {
+          var params = new URLSearchParams(window.location.search || '');
+          productId = params.get('id');
+        } catch (e) {
+          productId = null;
+        }
+        if (!productId && window.location.hash) {
+          var m = window.location.hash.match(/id=([^&]+)/);
+          if (m) productId = decodeURIComponent(m[1]);
+        }
+      }
+
+      function escHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      }
+
+      function formatPrice(value) {
+        if (value === null || value === undefined) return 'R$ 0,00';
+        return 'R$ ' + parseFloat(value).toFixed(2).replace('.', ',');
+      }
+
+      function calcInstallments(price, maxParcelas, minValor) {
+        maxParcelas = maxParcelas || 12;
+        minValor = minValor || 20;
+        var parcelas = [];
+        for (var i = 1; i <= maxParcelas; i++) {
+          var valor = price / i;
+          if (valor >= minValor) {
+            parcelas.push({ qtd: i, valor: valor });
+          }
+        }
+        return parcelas;
+      }
+
+      function getPhotoConfig(photo) {
+        if (!photo) return null;
+        if (photo.same_as_photo_id && photoMap[photo.same_as_photo_id]) {
+          return getPhotoConfig(photoMap[photo.same_as_photo_id]);
+        }
+        return photo;
+      }
+
+      function getPhotoDisplayPrice(photo, product) {
+        var config = getPhotoConfig(photo);
+        if (!config) return parseFloat(product.base_price) || 0;
+        return parseFloat(config.discount_price ?? config.price ?? product.discount_price ?? product.base_price) || 0;
+      }
+
+      function getPhotoOriginalPrice(photo, product) {
+        var config = getPhotoConfig(photo);
+        if (!config) return parseFloat(product.base_price) || 0;
+        return parseFloat(config.price ?? product.base_price) || 0;
+      }
+
+      function getPhotoHasDiscount(photo, product) {
+        var config = getPhotoConfig(photo);
+        if (!config) return !!(product.discount_price && product.discount_price < product.base_price);
+        var display = getPhotoDisplayPrice(photo, product);
+        var original = getPhotoOriginalPrice(photo, product);
+        return display < original;
+      }
+
+      function getPhotoColor(photo) {
+        var config = getPhotoConfig(photo);
+        return config ? { name: config.color_name, hex: config.color_hex } : null;
+      }
+
+      function getPhotoSize(photo) {
+        var config = getPhotoConfig(photo);
+        return config ? config.size : null;
+      }
+
+      function getPhotoStock(photo, product) {
+        var config = getPhotoConfig(photo);
+        if (config && config.stock_override !== null && config.stock_override !== undefined) return config.stock_override;
+        return product.stock;
+      }
+
+      function getPhotoLabel(photo) {
+        var config = getPhotoConfig(photo);
+        return config ? config.custom_label : null;
+      }
+
+      function renderProduct() {
+        var container = document.getElementById('productContent');
+
+        if (!productData) {
+          container.innerHTML =
+            '<div class="not-found">' +
+            '<h2>Produto nao encontrado</h2>' +
+            '<p>O produto que voce esta procurando nao existe ou foi removido.</p>' +
+            '<a href="produtos.html">Ver todos os produtos</a>' +
+            '</div>';
+          return;
+        }
+
+        var p = productData;
+
+        if (!photos || photos.length === 0) {
+          photos = p.product_photos || [];
+        }
+
+        photos.sort(function(a, b) { return (a.sort_order || 0) - (b.sort_order || 0); });
+
+        photoMap = {};
+        photos.forEach(function(ph) { photoMap[ph.id] = ph; });
+
+        var initialPhoto = photos.length > 0 ? photos[0] : null;
+        if (initialPhoto) {
+          selectedPhotoId = initialPhoto.id;
+        }
+
+        var displayPrice = initialPhoto ? getPhotoDisplayPrice(initialPhoto, p) : parseFloat(p.discount_price ?? p.base_price) || 0;
+        var originalPrice = initialPhoto ? getPhotoOriginalPrice(initialPhoto, p) : parseFloat(p.base_price) || 0;
+        var hasDiscount = getPhotoHasDiscount(initialPhoto, p);
+        var discountPercent = hasDiscount ? Math.round((1 - displayPrice / originalPrice) * 100) : 0;
+
+        var installments = calcInstallments(displayPrice, 12, 20);
+        var installmentHtml = '';
+        if (installments && installments.length > 0) {
+          var best = installments[installments.length - 1];
+          installmentHtml = 'ou <strong>' + best.qtd + 'x de ' + formatPrice(best.valor) + '</strong> sem juros';
+        }
+
+        var colors = [];
+        var seenColors = {};
+        photos.forEach(function(ph) {
+          var config = getPhotoConfig(ph);
+          if (config && config.color_name && config.color_hex && !seenColors[config.color_name]) {
+            seenColors[config.color_name] = true;
+            colors.push({ photoId: ph.id, name: config.color_name, hex: config.color_hex });
+          }
+        });
+
+        var sizes = [];
+        var seenSizes = {};
+        photos.forEach(function(ph) {
+          var config = getPhotoConfig(ph);
+          if (config && config.size && !seenSizes[config.size]) {
+            seenSizes[config.size] = true;
+            sizes.push({ photoId: ph.id, size: config.size });
+          }
+        });
+
+        var initialPhotoUrl = initialPhoto ? (initialPhoto.url || '') : '';
+        var categoryName = '';
+        if (p.category_id && categories.length > 0) {
+          var cat = categories.find(function(c) { return c.id === p.category_id; });
+          categoryName = cat ? cat.name : '';
+        }
+
+        var flashEnd = p.flash_offer_ends ? new Date(p.flash_offer_ends) : null;
+        var hasFlash = flashEnd && flashEnd > new Date();
+
+        var initialMediaHtml = '';
+        if (initialPhoto && initialPhoto.is_video) {
+          var iv = initialPhoto.video_url || initialPhoto.url || '';
+          var ivEmbed = /youtube\.com|youtu\.be|vimeo\.com/i.test(iv);
+          if (ivEmbed) {
+            initialMediaHtml = '<iframe id="mainVideo" src="' + escHtml(iv) + '" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:0;"></iframe>';
+          } else if (iv) {
+            initialMediaHtml = '<video id="mainVideo" src="' + escHtml(iv) + '" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000;"></video>';
+          } else {
+            initialMediaHtml = '<div class="placeholder-img"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
+          }
+        } else if (initialPhotoUrl) {
+          initialMediaHtml = '<img src="' + initialPhotoUrl + '" alt="' + escHtml(p.name) + '" id="mainImage">';
+        } else {
+          initialMediaHtml = '<div class="placeholder-img"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>';
+        }
+
+        container.innerHTML =
+          '<div class="container product-page">' +
+          '<div class="product-main">' +
+          '<div class="product-gallery">' +
+          '<div class="main-image-wrap" id="mainImageWrap">' +
+          initialMediaHtml +
+          (initialPhoto && initialPhoto.is_video ? '<span class="video-indicator-main"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Video</span>' : '') +
+          '</div>' +
+          '<div class="thumb-gallery" id="thumbGallery">' +
+          photos.map(function(ph) {
+            var config = getPhotoConfig(ph);
+            var isActive = ph.id === selectedPhotoId;
+            var thumbSrc = ph.thumb_url || ph.url || '';
+            var label = getPhotoLabel(ph) || '';
+            return '<div class="thumb-item' + (isActive ? ' active' : '') + '" data-photo-id="' + ph.id + '" onclick="window.selectPhoto(\'' + ph.id + '\')">' +
+              (thumbSrc ? '<img src="' + thumbSrc + '" alt="">' : '') +
+              (ph.is_video ? '<span class="video-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>' : '') +
+              (label ? '<span class="thumb-label">' + escHtml(label) + '</span>' : '') +
+              '</div>';
+          }).join('') +
+          '</div>' +
+          '</div>' +
+          '<div class="product-info">' +
+          (categoryName ? '<span class="product-category-label">' + escHtml(categoryName) + '</span>' : '') +
+          '<h1>' + escHtml(p.name) + '</h1>' +
+          '<div class="product-rating">' +
+          '<span class="stars">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '</span>' +
+          '<span>4.8 (42 avaliacoes)</span>' +
+          '</div>' +
+          '<div class="product-price-section">' +
+          '<div class="price-old' + (hasDiscount ? ' visible' : '') + '" id="oldPrice">' + formatPrice(originalPrice) + '</div>' +
+          '<div class="price-current-wrap">' +
+          '<span class="price-current" id="currentPrice">' + formatPrice(displayPrice) + '</span>' +
+          (hasDiscount ? '<span class="price-discount-badge">-' + discountPercent + '%</span>' : '') +
+          '</div>' +
+          '<div class="price-installments" id="installmentsInfo">' + installmentHtml + '</div>' +
+          '<div class="flash-timer-wrap' + (hasFlash ? ' visible' : '') + '" id="flashTimerWrap">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>' +
+          'Oferta relampago termina em <span class="flash-timer" id="flashTimer"></span>' +
+          '</div>' +
+          '</div>' +
+          (colors.length > 0 ?
+          '<div class="product-variants">' +
+          '<div class="variant-label">Cor: <span class="variant-value" id="selectedColorName">' + (initialPhoto ? (getPhotoColor(initialPhoto)?.name || '') : '') + '</span></div>' +
+          '<div class="color-swatches" id="colorSwatches">' +
+          colors.map(function(c) {
+            var isActive = c.photoId === selectedPhotoId;
+            return '<div class="color-swatch' + (isActive ? ' active' : '') + '" data-photo-id="' + c.photoId + '" style="background:' + c.hex + '" title="' + escHtml(c.name) + '" onclick="window.selectPhoto(\'' + c.photoId + '\')"><span class="swatch-tooltip">' + escHtml(c.name) + '</span></div>';
+          }).join('') +
+          '</div>' +
+          '</div>' : '') +
+          (sizes.length > 0 ?
+          '<div class="product-variants">' +
+          '<div class="variant-label">Tamanho: <span class="variant-value" id="selectedSizeName">' + (initialPhoto ? (getPhotoSize(initialPhoto) || '') : '') + '</span></div>' +
+          '<div class="size-options" id="sizeOptions">' +
+          sizes.map(function(s) {
+            var isActive = s.photoId === selectedPhotoId;
+            return '<button class="size-option' + (isActive ? ' active' : '') + '" data-photo-id="' + s.photoId + '" onclick="window.selectPhoto(\'' + s.photoId + '\')">' + escHtml(s.size) + '</button>';
+          }).join('') +
+          '</div>' +
+          '</div>' : '') +
+          '<div class="product-qty">' +
+          '<label>Quantidade:</label>' +
+          '<div class="qty-control">' +
+          '<button onclick="window.changeQuantity(-1)" id="qtyMinus" aria-label="Diminuir">-</button>' +
+          '<input type="text" id="qtyInput" value="1" readonly aria-label="Quantidade">' +
+          '<button onclick="window.changeQuantity(1)" id="qtyPlus" aria-label="Aumentar">+</button>' +
+          '</div>' +
+          '</div>' +
+          '<div class="product-actions">' +
+          '<button class="btn btn-primary" id="addToCartBtn" onclick="window.addToCart()">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' +
+          'Adicionar ao carrinho' +
+          '</button>' +
+          '<button class="btn btn-outline" id="buyNowBtn" onclick="window.buyNow()">' +
+          'Comprar agora' +
+          '</button>' +
+          '</div>' +
+          '<div class="trust-badges">' +
+          '<span class="trust-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Entrega rapida</span>' +
+          '<span class="trust-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> 12x sem juros</span>' +
+          '<span class="trust-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Atendimento especializado</span>' +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="product-details-tabs">' +
+          '<div class="tabs-header">' +
+          '<button class="tab-btn active" data-tab="descricao" onclick="window.switchTab(\'descricao\')">Descricao</button>' +
+          '<button class="tab-btn" data-tab="detalhes" onclick="window.switchTab(\'detalhes\')">Detalhes</button>' +
+          '</div>' +
+          '<div class="tab-content active" id="tab-descricao">' +
+          (p.description || '<p style="color:#94a3b8;">Descricao indisponivel para este produto.</p>') +
+          '</div>' +
+          '<div class="tab-content" id="tab-detalhes">' +
+          '<table class="details-table">' +
+          (p.material ? '<tr><td>Material</td><td>' + escHtml(p.material) + '</td></tr>' : '') +
+          (p.weight ? '<tr><td>Peso</td><td>' + escHtml(p.weight) + (typeof p.weight === 'number' ? ' kg' : '') + '</td></tr>' : '') +
+          (p.dimensions ? '<tr><td>Dimensoes</td><td>' + escHtml(p.dimensions) + '</td></tr>' : '') +
+          (p.warranty ? '<tr><td>Garantia</td><td>' + escHtml(p.warranty) + '</td></tr>' : '') +
+          (p.stock !== undefined && p.stock !== null ? '<tr><td>Estoque</td><td>' + p.stock + ' unidades</td></tr>' : '') +
+          '</table>' +
+          '</div>' +
+          '</div>' +
+          '<div class="similar-products" id="similarSection">' +
+          '<div class="similar-header">' +
+          '<h2>Produtos similares</h2>' +
+          '<a href="produtos.html' + (p.category_id ? '?categoria=' + p.category_id : '') + '">Ver todos <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></a>' +
+          '</div>' +
+          '<div class="sim-prod-grid" id="similarGrid">' +
+          '<div class="loading-inline">Carregando...</div>' +
+          '</div>' +
+          '</div>' +
+          '</div>';
+
+        if (hasFlash && flashEnd) {
+          startFlashCountdown(flashEnd);
+        }
+
+        if (window.innerWidth >= 768) {
+          setupZoom();
+        }
+      }
+
+      function setupZoom() {
+        var wrap = document.getElementById('mainImageWrap');
+        if (!wrap) return;
+        wrap.addEventListener('mousemove', function(e) {
+          var rect = wrap.getBoundingClientRect();
+          var x = ((e.clientX - rect.left) / rect.width) * 100;
+          var y = ((e.clientY - rect.top) / rect.height) * 100;
+          var img = wrap.querySelector('img');
+          if (img) {
+            img.style.transformOrigin = x + '% ' + y + '%';
+          }
+        });
+        wrap.addEventListener('mouseenter', function() {
+          if (wrap.querySelector('img')) wrap.classList.add('zoomed');
+        });
+        wrap.addEventListener('mouseleave', function() {
+          wrap.classList.remove('zoomed');
+        });
+      }
+
+      function startFlashCountdown(endDate) {
+        var el = document.getElementById('flashTimer');
+        if (!el) return;
+        if (flashInterval) clearInterval(flashInterval);
+
+        function update() {
+          var now = new Date().getTime();
+          var diff = endDate.getTime() - now;
+          if (diff <= 0) {
+            el.textContent = 'Encerrada';
+            var wrap = document.getElementById('flashTimerWrap');
+            if (wrap) wrap.classList.remove('visible');
+            if (flashInterval) clearInterval(flashInterval);
+            return;
+          }
+          var h = Math.floor(diff / (1000 * 60 * 60));
+          var m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          var s = Math.floor((diff % (1000 * 60)) / 1000);
+          el.textContent = h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+        }
+        update();
+        flashInterval = setInterval(update, 1000);
+      }
+
+      window.selectPhoto = function(photoId) {
+        if (!photoId || !photoMap[photoId]) return;
+
+        var photo = photoMap[photoId];
+        var config = getPhotoConfig(photo);
+        if (!config) return;
+
+        selectedPhotoId = config.id;
+
+        var mainWrap = document.getElementById('mainImageWrap');
+        if (mainWrap) {
+          var ind = mainWrap.querySelector('.video-indicator-main');
+          var newHtml = '';
+          if (config.is_video) {
+            var src = config.video_url || config.url || '';
+            var isEmbed = /youtube\.com|youtu\.be|vimeo\.com/i.test(src);
+            if (isEmbed) {
+              newHtml = '<iframe id="mainVideo" src="' + escHtml(src) + '" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:0;"></iframe>';
+            } else if (src) {
+              newHtml = '<video id="mainVideo" src="' + escHtml(src) + '" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000;"></video>';
+            } else {
+              newHtml = '<div class="placeholder-img"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
+            }
+          } else if (config.url) {
+            newHtml = '<img src="' + escHtml(config.url) + '" alt="' + escHtml(productData ? productData.name : '') + '" id="mainImage">';
+          }
+          mainWrap.innerHTML = newHtml + (ind ? ind.outerHTML : '');
+        }
+
+        var videoIndicator = mainWrap ? mainWrap.querySelector('.video-indicator-main') : null;
+        if (config.is_video) {
+          if (!videoIndicator && mainWrap) {
+            var ind = document.createElement('span');
+            ind.className = 'video-indicator-main';
+            ind.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Video';
+            mainWrap.appendChild(ind);
+          }
+        } else {
+          if (videoIndicator) videoIndicator.remove();
+        }
+
+        var thumbs = document.querySelectorAll('.thumb-item');
+        thumbs.forEach(function(t) {
+          t.classList.toggle('active', t.getAttribute('data-photo-id') === photoId || t.getAttribute('data-photo-id') === config.id);
+        });
+
+        var swatches = document.querySelectorAll('.color-swatch');
+        swatches.forEach(function(s) {
+          s.classList.toggle('active', s.getAttribute('data-photo-id') === photoId || s.getAttribute('data-photo-id') === config.id);
+        });
+
+        var sizeOpts = document.querySelectorAll('.size-option');
+        sizeOpts.forEach(function(s) {
+          s.classList.toggle('active', s.getAttribute('data-photo-id') === photoId || s.getAttribute('data-photo-id') === config.id);
+        });
+
+        if (productData) {
+          var displayPrice = getPhotoDisplayPrice(photo, productData);
+          var originalPrice = getPhotoOriginalPrice(photo, productData);
+          var hasDiscount = getPhotoHasDiscount(photo, productData);
+          var discountPercent = hasDiscount ? Math.round((1 - displayPrice / originalPrice) * 100) : 0;
+
+          var oldPriceEl = document.getElementById('oldPrice');
+          if (oldPriceEl) {
+            oldPriceEl.textContent = formatPrice(originalPrice);
+            oldPriceEl.classList.toggle('visible', hasDiscount);
+          }
+
+          var currentPriceEl = document.getElementById('currentPrice');
+          if (currentPriceEl) currentPriceEl.textContent = formatPrice(displayPrice);
+
+          var badge = document.querySelector('.price-discount-badge');
+          if (hasDiscount) {
+            if (badge) {
+              badge.textContent = '-' + discountPercent + '%';
+            } else {
+              var wrap2 = document.querySelector('.price-current-wrap');
+              if (wrap2) {
+                var newBadge = document.createElement('span');
+                newBadge.className = 'price-discount-badge';
+                newBadge.textContent = '-' + discountPercent + '%';
+                wrap2.appendChild(newBadge);
+              }
+            }
+          } else {
+            if (badge) badge.remove();
+          }
+
+          var installments = calcInstallments(displayPrice, 12, 20);
+          var instEl = document.getElementById('installmentsInfo');
+          if (instEl) {
+            if (installments && installments.length > 0) {
+              var best = installments[installments.length - 1];
+              instEl.innerHTML = 'ou <strong>' + best.qtd + 'x de ' + formatPrice(best.valor) + '</strong> sem juros';
+            } else {
+              instEl.innerHTML = '';
+            }
+          }
+
+          var colorInfo = getPhotoColor(photo);
+          var colorNameEl = document.getElementById('selectedColorName');
+          if (colorNameEl && colorInfo) {
+            colorNameEl.textContent = colorInfo.name || '';
+          }
+
+          var sizeInfo = getPhotoSize(photo);
+          var sizeNameEl = document.getElementById('selectedSizeName');
+          if (sizeNameEl && sizeInfo) {
+            sizeNameEl.textContent = sizeInfo;
+          }
+        }
+      };
+
+      window.changeQuantity = function(delta) {
+        var input = document.getElementById('qtyInput');
+        if (!input) return;
+        var val = parseInt(input.value) || 1;
+        val += delta;
+        if (val < 1) val = 1;
+        input.value = val;
+      };
+
+      window.addToCart = async function() {
+        if (!productId) return;
+        var qty = parseInt(document.getElementById('qtyInput')?.value) || 1;
+
+        try {
+          if (typeof addProductToCart === 'function') {
+            var price = 0;
+            if (selectedPhotoId && photoMap[selectedPhotoId]) {
+              var photo = photoMap[selectedPhotoId];
+              price = getPhotoDisplayPrice(photo, productData);
+            } else {
+              price = parseFloat(productData.discount_price ?? productData.base_price) || 0;
+            }
+            await addProductToCart(productId, selectedPhotoId, qty, price);
+          } else {
+            var msg = 'Produto adicionado ao carrinho!';
+            if (typeof showToast === 'function') showToast(msg, 'success');
+            else alert(msg);
+          }
+        } catch (e) {
+          if (typeof showToast === 'function') showToast('Erro ao adicionar ao carrinho', 'error');
+        }
+      };
+
+      window.buyNow = async function() {
+        if (!productId) return;
+        var qty = parseInt(document.getElementById('qtyInput')?.value) || 1;
+
+        try {
+          if (typeof addProductToCart === 'function') {
+            var price = 0;
+            if (selectedPhotoId && photoMap[selectedPhotoId]) {
+              var photo = photoMap[selectedPhotoId];
+              price = getPhotoDisplayPrice(photo, productData);
+            } else {
+              price = parseFloat(productData.discount_price ?? productData.base_price) || 0;
+            }
+            await addProductToCart(productId, selectedPhotoId, qty, price);
+            if (typeof siteNavigate === 'function') siteNavigate('checkout.html');
+            else window.location.href = 'checkout.html';
+          } else {
+            if (typeof siteNavigate === 'function') siteNavigate('checkout.html');
+            else window.location.href = 'checkout.html';
+          }
+        } catch (e) {
+          if (typeof showToast === 'function') showToast('Erro ao processar compra', 'error');
+        }
+      };
+
+      window.switchTab = function(tab) {
+        var btns = document.querySelectorAll('.tab-btn');
+        btns.forEach(function(b) { b.classList.remove('active'); });
+        var activeBtn = document.querySelector('.tab-btn[data-tab="' + tab + '"]');
+        if (activeBtn) activeBtn.classList.add('active');
+
+        var contents = document.querySelectorAll('.tab-content');
+        contents.forEach(function(c) { c.classList.remove('active'); });
+        var activeContent = document.getElementById('tab-' + tab);
+        if (activeContent) activeContent.classList.add('active');
+      };
+
+      function renderSimilarProducts(products) {
+        var grid = document.getElementById('similarGrid');
+        if (!grid) return;
+
+        if (!products || products.length === 0) {
+          var section = document.getElementById('similarSection');
+          if (section) section.style.display = 'none';
+          return;
+        }
+
+        grid.innerHTML = products.map(function(p) {
+          var photo = p.product_photos && p.product_photos.length > 0 ? p.product_photos[0] : null;
+          var imgHtml = photo && photo.url
+            ? '<img src="' + photo.url + '" alt="' + escHtml(p.name) + '" loading="lazy">'
+            : '<div class="sim-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>';
+
+          var basePrice = parseFloat(p.base_price) || 0;
+          var salePrice = p.discount_price ? parseFloat(p.discount_price) : null;
+          var hasDiscount = salePrice !== null && salePrice < basePrice;
+          var displayPrice = hasDiscount ? salePrice : basePrice;
+
+          var installments = calcInstallments(displayPrice, 12, 20);
+          var installmentHtml = '';
+          if (installments && installments.length > 0) {
+            var best = installments[installments.length - 1];
+            installmentHtml = '<span class="sim-installment">' + best.qtd + 'x de ' + formatPrice(best.valor) + ' sem juros</span>';
+          }
+
+          var catName = '';
+          if (p.category_id && categories.length > 0) {
+            var cat = categories.find(function(c) { return c.id === p.category_id; });
+            catName = cat ? cat.name : '';
+          }
+
+          return '<a href="produto.html?id=' + p.id + '" class="sim-prod-card">' +
+            '<div class="sim-img">' + imgHtml + '</div>' +
+            '<div class="sim-body">' +
+            (catName ? '<span class="sim-cat">' + escHtml(catName) + '</span>' : '') +
+            '<h3 class="sim-name">' + escHtml(p.name) + '</h3>' +
+            (hasDiscount ? '<span class="sim-old-price">' + formatPrice(basePrice) + '</span>' : '') +
+            '<div class="sim-price-row">' +
+            '<span class="sim-price">' + formatPrice(displayPrice) + '</span>' +
+            '</div>' +
+            installmentHtml +
+            '</div></a>';
+        }).join('');
+      }
+
+      async function loadSimilarProducts() {
+        if (!productData) {
+          renderSimilarProducts([]);
+          return;
+        }
+
+        try {
+          sb = getSupabase();
+          if (!sb) {
+            renderSimilarProducts([]);
+            return;
+          }
+
+          var query = sb.from('products')
+            .select('*, product_photos(*)')
+            .eq('active', true)
+            .neq('id', productData.id);
+
+          if (productData.category_id) {
+            query = query.eq('category_id', productData.category_id);
+          }
+
+          query = query.order('featured', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(4);
+
+          var resp = await query;
+          var data = resp.data;
+          var error = resp.error;
+
+          if (error || !data || data.length === 0) {
+            renderSimilarProducts([]);
+            return;
+          }
+
+          renderSimilarProducts(data);
+        } catch (e) {
+          renderSimilarProducts([]);
+        }
+      }
+
+      async function loadProduct() {
+        var container = document.getElementById('productContent');
+        if (!productId) {
+          container.innerHTML =
+            '<div class="not-found">' +
+            '<h2>Produto nao encontrado</h2>' +
+            '<p>ID do produto nao informado.</p>' +
+            '<a href="produtos.html">Ver todos os produtos</a>' +
+            '</div>';
+          return;
+        }
+
+        try {
+          sb = getSupabase();
+          if (!sb) {
+            loadFallback();
+            return;
+          }
+
+          var prodResp = await sb.from('products')
+            .select('*, category:categories(*), product_photos(*)')
+            .eq('id', productId)
+            .single();
+
+          var prodData = prodResp.data;
+          var prodError = prodResp.error;
+
+          if (prodError || !prodData) {
+            loadFallback();
+            return;
+          }
+
+          var catResp = await sb.from('categories')
+            .select('id, name, slug')
+            .eq('active', true)
+            .order('sort_order', { ascending: true });
+
+          if (catResp.data) {
+            categories = catResp.data;
+          }
+
+          productData = prodData;
+          if (prodData.product_photos) {
+            photos = prodData.product_photos;
+          }
+
+          var catName = '';
+          if (prodData.category && prodData.category.name) {
+            catName = prodData.category.name;
+          } else if (prodData.category_id && categories.length > 0) {
+            var cat = categories.find(function(c) { return c.id === prodData.category_id; });
+            catName = cat ? cat.name : '';
+          }
+
+          var breadcrumbCat = document.getElementById('breadcrumbCategory');
+          var breadcrumbSep = document.getElementById('breadcrumbSepCat');
+          if (breadcrumbCat && catName) {
+            breadcrumbCat.textContent = catName;
+            breadcrumbSep.style.display = 'inline';
+          }
+          var breadcrumbProd = document.getElementById('breadcrumbProduct');
+          if (breadcrumbProd) breadcrumbProd.textContent = prodData.name;
+
+          var titleEl = document.querySelector('title');
+          if (titleEl) titleEl.textContent = prodData.name + ' - Conforta Colchoes';
+
+          var metaDesc = document.querySelector('meta[name="description"]');
+          if (metaDesc && prodData.seo_description) metaDesc.content = prodData.seo_description;
+
+          renderProduct();
+          loadSimilarProducts();
+
+        } catch (e) {
+          loadFallback();
+        }
+      }
+
+      function loadFallback() {
+        productData = FALLBACK_PRODUCT;
+        photos = FALLBACK_PRODUCT.product_photos || [];
+
+        categories = [
+          { id: 'cat-1', name: 'Colchoes', slug: 'colchoes' },
+          { id: 'cat-2', name: 'Sofas', slug: 'sofas' },
+          { id: 'cat-3', name: 'Box Bau', slug: 'box-bau' },
+          { id: 'cat-4', name: 'Cabeceiras', slug: 'cabeceiras' },
+          { id: 'cat-5', name: 'Kits', slug: 'kits' }
+        ];
+
+        var breadcrumbCat = document.getElementById('breadcrumbCategory');
+        var breadcrumbSep = document.getElementById('breadcrumbSepCat');
+        if (breadcrumbCat) {
+          breadcrumbCat.textContent = 'Colchoes';
+          breadcrumbSep.style.display = 'inline';
+        }
+        var breadcrumbProd = document.getElementById('breadcrumbProduct');
+        if (breadcrumbProd) breadcrumbProd.textContent = FALLBACK_PRODUCT.name;
+
+        var titleEl = document.querySelector('title');
+        if (titleEl) titleEl.textContent = FALLBACK_PRODUCT.name + ' - Conforta Colchoes';
+
+        renderProduct();
+        renderSimilarProducts([]);
+      }
+
+      // Capturar ID antes mesmo do DOMContentLoaded
+      getUrlParams();
+
+      document.addEventListener('DOMContentLoaded', function() {
+        try { if (typeof initSupabase === 'function') initSupabase(); } catch(e) { console.error(e); }
+
+        try {
+          if (typeof renderCompactFooter === 'function') renderCompactFooter('#siteFooter');
+        } catch(e) { console.error(e); }
+
+        if (!productId) getUrlParams();
+
+        var cartCountEl = document.getElementById('cartCount');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        var menuIcon = document.getElementById('menuIcon');
+        var closeIcon = document.getElementById('closeIcon');
+
+        if (mobileMenuBtn && mobileMenu) {
+          mobileMenuBtn.addEventListener('click', function() {
+            var isOpen = mobileMenu.classList.toggle('open');
+            if (menuIcon) menuIcon.style.display = isOpen ? 'none' : 'block';
+            if (closeIcon) closeIcon.style.display = isOpen ? 'block' : 'none';
+          });
+        }
+
+        document.addEventListener('click', function(e) {
+          if (mobileMenu && mobileMenuBtn && !mobileMenu.contains(e.target) && e.target !== mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+            mobileMenu.classList.remove('open');
+            if (menuIcon) menuIcon.style.display = 'block';
+            if (closeIcon) closeIcon.style.display = 'none';
+          }
+        });
+
+        loadProduct();
+
+        var cartBtn = document.getElementById('cartBtn');
+        if (cartBtn) {
+          cartBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof openCartSidebar === 'function') openCartSidebar();
+          });
+        }
+
+        if (typeof updateCartCount === 'function') updateCartCount();
+      });
+
+    })();
+  </script>
+</body>
+</html>

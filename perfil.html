@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Meu perfil - Conforta Colchoes. Gerencie seus dados, enderecos, pedidos e configuracoes.">
+  <title>Meu Perfil - Conforta Colchoes</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; background: #0f172a; line-height: 1.6; }
+    .main { background: #f8fafc; }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+    img { max-width: 100%; display: block; }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input { font-family: inherit; border: none; outline: none; }
+    select { font-family: inherit; outline: none; }
+    textarea { font-family: inherit; outline: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+    .header { position: fixed; top: 0; left: 0; right: 0; background: #0f172a; border-bottom: 1px solid #1e293b; z-index: 1000; }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 20px; }
+    .logo { display: flex; align-items: center; gap: 8px; color: #ffffff; }
+    .logo img { height: 36px; width: auto; display: block; }
+    .search-bar { flex: 1; max-width: 480px; display: flex; align-items: center; background: #1e293b; border-radius: 6px; overflow: hidden; border: 1px solid transparent; transition: border-color 0.2s; }
+    .search-bar:focus-within { border-color: #1a56db; background: #1e293b; }
+    .search-bar input { flex: 1; padding: 10px 16px; background: transparent; font-size: 0.9rem; color: #e2e8f0; }
+    .search-bar input::placeholder { color: #64748b; }
+    .search-bar button { padding: 10px 16px; background: transparent; display: flex; align-items: center; justify-content: center; color: #64748b; transition: color 0.2s; }
+    .search-bar button:hover { color: #ffffff; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .header-actions button { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: #cbd5e1; transition: background 0.2s, color 0.2s; }
+    .header-actions button:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
+    .header-actions a { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: #cbd5e1; transition: background 0.2s, color 0.2s; }
+    .header-actions a:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
+    .cart-count { position: absolute; top: 2px; right: 2px; background: #dc2626; color: #ffffff; font-size: 0.65rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; display: none; }
+    .cart-count.visible { display: flex; }
+    .mobile-menu-btn { display: none; }
+    .mobile-menu { display: none; position: fixed; top: 56px; left: 0; right: 0; background: #0f172a; border-bottom: 1px solid #1e293b; padding: 12px 20px; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .mobile-menu.open { display: block; }
+    .mobile-menu a { display: block; padding: 10px 0; font-size: 0.95rem; font-weight: 500; color: #cbd5e1; border-bottom: 1px solid #1e293b; }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a:hover { color: #ffffff; }
+    .main { margin-top: 56px; min-height: calc(100vh - 56px); }
+
+    .profile-page { padding: 32px 0 48px; }
+
+    /* Login gate */
+    .auth-gate { max-width: 420px; margin: 40px auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 28px 26px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .auth-gate h2 { font-size: 1.25rem; font-weight: 700; color: #0f172a; text-align: center; margin-bottom: 4px; }
+    .auth-gate p.sub { font-size: 0.85rem; color: #64748b; text-align: center; margin-bottom: 22px; }
+    .auth-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 6px; margin-bottom: 18px; }
+    .auth-tab { flex: 1; padding: 8px 12px; text-align: center; border-radius: 4px; font-size: 0.85rem; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.15s; background: transparent; }
+    .auth-tab.active { background: #ffffff; color: #1a56db; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .auth-gate .form-group { margin-bottom: 14px; }
+    .auth-gate .form-input { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem; color: #1e293b; background: #ffffff; }
+    .auth-gate .form-input:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+    .auth-gate label { display: block; font-size: 0.78rem; font-weight: 600; color: #475569; margin-bottom: 4px; }
+    .auth-gate .btn { display: block; width: 100%; padding: 11px 18px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; background: #1a56db; color: #ffffff; border: none; cursor: pointer; margin-top: 6px; transition: background 0.2s; }
+    .auth-gate .btn:hover { background: #0f3a8e; }
+    .auth-gate .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .auth-gate .forgot { display: block; text-align: center; margin-top: 14px; font-size: 0.8rem; color: #1a56db; font-weight: 500; }
+    .auth-gate .auth-error { background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; margin-bottom: 14px; display: none; }
+    .auth-gate .auth-error.visible { display: block; }
+
+    .profile-header-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .profile-header-bar h1 { font-size: 1.5rem; font-weight: 700; color: #0f172a; }
+
+    .profile-layout { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start; }
+
+    .profile-sidebar { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+
+    .profile-summary { padding: 24px 20px; text-align: center; border-bottom: 1px solid #f1f5f9; }
+    .profile-banner-wrap { height: 80px; background: linear-gradient(135deg, #1a56db, #0f3a8e); border-radius: 6px 6px 0 0; margin: -24px -20px 16px; overflow: hidden; }
+    .profile-banner-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-avatar-wrap { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: -40px auto 12px; overflow: hidden; background: #e2e8f0; display: flex; align-items: center; justify-content: center; position: relative; }
+    .profile-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-avatar-wrap .avatar-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #94a3b8; }
+    .profile-name { font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
+    .profile-email { font-size: 0.82rem; color: #64748b; }
+
+    .profile-nav { padding: 8px; }
+    .profile-nav-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border-radius: 6px; font-size: 0.88rem; font-weight: 500; color: #475569; transition: all 0.15s; text-align: left; }
+    .profile-nav-item:hover { background: #f1f5f9; color: #1e293b; }
+    .profile-nav-item.active { background: #eff6ff; color: #1a56db; font-weight: 600; }
+    .profile-nav-item svg { flex-shrink: 0; }
+    .profile-nav-item.logout { margin-top: 8px; border-top: 1px solid #f1f5f9; padding-top: 16px; border-radius: 0; color: #dc2626; }
+    .profile-nav-item.logout:hover { background: #fef2f2; }
+    .profile-nav-item.logout.active { background: #fef2f2; color: #dc2626; }
+
+    .profile-content { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 28px; min-height: 400px; }
+
+    .profile-section { display: none; }
+    .profile-section.active { display: block; }
+    .profile-section h2 { font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .profile-section .section-desc { font-size: 0.85rem; color: #64748b; margin-bottom: 24px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    .form-input, .form-select { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem; color: #1e293b; background: #ffffff; transition: border-color 0.2s; }
+    .form-input:focus, .form-select:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+    .form-input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 0.88rem; transition: all 0.2s; }
+    .btn-primary { background: #1a56db; color: #ffffff; }
+    .btn-primary:hover { background: #0f3a8e; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline { background: transparent; color: #1a56db; border: 1.5px solid #1a56db; }
+    .btn-outline:hover { background: #eff6ff; }
+    .btn-danger { background: #dc2626; color: #ffffff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-danger-outline { background: transparent; color: #dc2626; border: 1.5px solid #dc2626; }
+    .btn-danger-outline:hover { background: #fef2f2; }
+    .btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+    .btn-block { width: 100%; }
+
+    .upload-area { border: 2px dashed #e2e8f0; border-radius: 6px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+    .upload-area:hover { border-color: #1a56db; background: #f8fafc; }
+    .upload-area svg { color: #94a3b8; margin-bottom: 8px; }
+    .upload-area p { font-size: 0.82rem; color: #64748b; }
+    .upload-area input { display: none; }
+    .upload-preview { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+    .upload-preview img { width: 60px; height: 60px; border-radius: 6px; object-fit: cover; border: 1px solid #e2e8f0; }
+    .upload-preview.banner-preview img { width: 120px; height: 60px; }
+    .upload-preview .upload-name { font-size: 0.82rem; color: #475569; }
+    .upload-preview button { color: #dc2626; font-size: 0.78rem; font-weight: 600; }
+
+    .address-list { display: flex; flex-direction: column; gap: 12px; }
+    .address-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .address-card .address-info { flex: 1; }
+    .address-card .address-label { font-size: 0.85rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .address-card .address-label .default-badge { font-size: 0.65rem; font-weight: 700; background: #eff6ff; color: #1a56db; padding: 2px 8px; border-radius: 4px; }
+    .address-card .address-text { font-size: 0.85rem; color: #475569; line-height: 1.5; }
+    .address-card .address-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .order-list { display: flex; flex-direction: column; gap: 12px; }
+    .order-card { border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+    .order-card-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.15s; gap: 12px; flex-wrap: wrap; }
+    .order-card-header:hover { background: #f8fafc; }
+    .order-card-header .order-number { font-size: 0.85rem; font-weight: 700; color: #0f172a; }
+    .order-card-header .order-date { font-size: 0.8rem; color: #64748b; }
+    .order-card-header .order-status { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; }
+    .order-status-pending { background: #fef3c7; color: #92400e; }
+    .order-status-confirmed { background: #dbeafe; color: #1e40af; }
+    .order-status-preparing { background: #e0e7ff; color: #3730a3; }
+    .order-status-shipped { background: #e0f2fe; color: #075985; }
+    .order-status-delivered { background: #dcfce7; color: #166534; }
+    .order-status-cancelled { background: #fee2e2; color: #991b1b; }
+    .order-payment-pending { background: #fef3c7; color: #92400e; }
+    .order-payment-paid { background: #dcfce7; color: #166534; }
+    .order-payment-refunded { background: #e0e7ff; color: #3730a3; }
+    .order-payment-cancelled { background: #fee2e2; color: #991b1b; }
+    .order-card-header .order-total { font-size: 0.9rem; font-weight: 700; color: #0f172a; }
+    .order-card-body { display: none; border-top: 1px solid #e2e8f0; padding: 16px; background: #f8fafc; }
+    .order-card-body.open { display: block; }
+    .order-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+    .order-item:last-child { border-bottom: none; }
+    .order-item img { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; background: #e2e8f0; flex-shrink: 0; }
+    .order-item .oi-info { flex: 1; }
+    .order-item .oi-name { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
+    .order-item .oi-qty { font-size: 0.78rem; color: #64748b; }
+    .order-item .oi-price { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
+
+    .empty-state { text-align: center; padding: 48px 20px; }
+    .empty-state svg { margin: 0 auto 12px; color: #cbd5e1; display: block; }
+    .empty-state h3 { font-size: 1rem; color: #334155; margin-bottom: 4px; }
+    .empty-state p { font-size: 0.85rem; color: #94a3b8; }
+
+    .files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .file-card { border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; position: relative; }
+    .file-card .file-thumb { width: 100%; aspect-ratio: 1; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .file-card .file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .file-card .file-thumb .file-icon { color: #94a3b8; }
+    .file-card .file-name { padding: 8px 10px; font-size: 0.75rem; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-card .file-delete { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; color: #dc2626; transition: background 0.2s; opacity: 0; }
+    .file-card:hover .file-delete { opacity: 1; }
+    .file-card .file-delete:hover { background: #fee2e2; }
+
+    .upload-file-btn { width: 100%; aspect-ratio: 1; border: 2px dashed #e2e8f0; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #94a3b8; transition: all 0.2s; cursor: pointer; }
+    .upload-file-btn:hover { border-color: #1a56db; color: #1a56db; background: #f8fafc; }
+    .upload-file-btn svg { }
+    .upload-file-btn span { font-size: 0.78rem; font-weight: 500; }
+
+    .config-section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #f1f5f9; }
+    .config-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .config-section h3 { font-size: 0.95rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .config-section p { font-size: 0.85rem; color: #64748b; margin-bottom: 12px; }
+    .config-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+    .config-toggle .toggle-label { font-size: 0.88rem; color: #475569; }
+    .config-toggle .toggle-switch { position: relative; width: 44px; height: 24px; border-radius: 12px; background: #cbd5e1; cursor: pointer; transition: background 0.2s; }
+    .config-toggle .toggle-switch.active { background: #1a56db; }
+    .config-toggle .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #ffffff; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+    .config-toggle .toggle-switch.active::after { transform: translateX(20px); }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #ffffff; border-radius: 6px; width: 100%; max-width: 520px; max-height: calc(100vh - 40px); overflow-y: auto; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 0; }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+    .modal-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: #94a3b8; transition: background 0.2s; }
+    .modal-close:hover { background: #f1f5f9; color: #475569; }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 0 24px 20px; }
+
+    .status-badge { display: inline-flex; align-items: center; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; }
+
+    .loading-spinner { display: flex; align-items: center; justify-content: center; padding: 40px; color: #94a3b8; gap: 8px; }
+    .loading-spinner::before { content: ''; width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: #1a56db; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer { background: #0f172a; color: #cbd5e1; padding: 24px 0 18px; margin-top: 24px; }
+    .footer-compact { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
+    .footer-brand-mini { display: inline-flex; align-items: center; }
+    .footer-brand-mini img { height: 34px; width: auto; display: block; }
+    .footer-contacts { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+    .footer-contact-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #cbd5e1; transition: color 0.2s; }
+    a.footer-contact-item:hover { color: #fff; }
+    .footer-contact-item svg { flex-shrink: 0; color: #94a3b8; }
+    .footer-bottom-mini { font-size: 0.75rem; color: #64748b; padding-top: 12px; border-top: 1px solid #1e293b; width: 100%; }
+
+    .checkbox-wrap { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: #475569; cursor: pointer; }
+    .checkbox-wrap input { width: 18px; height: 18px; accent-color: #1a56db; cursor: pointer; }
+
+    @media (max-width: 1024px) {
+      .profile-layout { grid-template-columns: 1fr; gap: 20px; }
+      .profile-sidebar { max-width: 100%; }
+      .profile-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 12px 16px; overflow-x: auto; }
+      .profile-nav-item { white-space: nowrap; font-size: 0.82rem; padding: 8px 12px; }
+      .profile-nav-item.logout { margin-top: 0; border-top: none; padding-top: 8px; }
+    }
+
+    @media (max-width: 768px) {
+      .search-bar { display: none; }
+      .mobile-menu-btn { display: flex; }
+      .profile-content { padding: 16px; }
+      .form-row { grid-template-columns: 1fr; }
+      .form-row-3 { grid-template-columns: 1fr; }
+      .order-card-header { flex-direction: column; align-items: flex-start; }
+      .files-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+      .profile-page { padding: 20px 0 24px; }
+      .footer { padding: 18px 0 14px; }
+      .footer-contacts { gap: 10px; flex-direction: column; }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 0 12px; }
+      .header-inner { gap: 8px; height: 52px; }
+      .main { margin-top: 52px; }
+      .mobile-menu { top: 52px; }
+      .logo img { height: 28px; }
+      .logo .logo-text { display: none; }
+      .header-actions button, .header-actions a { width: 36px; height: 36px; }
+      .profile-page { padding: 12px 0 20px; }
+      .profile-content { padding: 14px; }
+      .address-card { flex-direction: column; }
+      .address-card .address-actions { align-self: flex-end; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="Conforta Colchoes">
+        <img src="assets/logo.png" alt="">
+        <span class="logo-text">Conforta<small>COLCHOES</small></span>
+      </a>
+      <form class="search-bar" id="searchForm" action="produtos.html" method="GET">
+        <input type="text" name="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
+        <button type="submit" aria-label="Buscar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </button>
+      </form>
+      <div class="header-actions">
+        <button id="cartBtn" aria-label="Carrinho">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+        <a href="perfil.html" id="authBtn" aria-label="Perfil">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </a>
+        <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">
+          <svg id="menuIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+          </svg>
+          <svg id="closeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="index.html">Inicio</a>
+      <a href="produtos.html">Produtos</a>
+      <a href="perfil.html">Meu Perfil</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="container profile-page">
+      <div class="profile-header-bar">
+        <h1>Minha Conta</h1>
+      </div>
+
+      <div class="profile-layout">
+        <aside class="profile-sidebar">
+          <div class="profile-summary" id="profileSummary">
+            <div class="profile-banner-wrap" id="profileBanner">
+              <div style="width:100%;height:100%;background:linear-gradient(135deg,#1a56db,#0f3a8e)"></div>
+            </div>
+            <div class="profile-avatar-wrap" id="profileAvatarWrap">
+              <div class="avatar-placeholder">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+            </div>
+            <div class="profile-name" id="sidebarName">Carregando...</div>
+            <div class="profile-email" id="sidebarEmail"></div>
+          </div>
+          <nav class="profile-nav" id="profileNav">
+            <button class="profile-nav-item active" data-section="dados" onclick="navigateProfile('dados')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Meus Dados
+            </button>
+            <button class="profile-nav-item" data-section="enderecos" onclick="navigateProfile('enderecos')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Enderecos
+            </button>
+            <button class="profile-nav-item" data-section="pedidos" onclick="navigateProfile('pedidos')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"/><path d="M16.5 7.5 21 12l-4.5 4.5"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Meus Pedidos
+            </button>
+            <button class="profile-nav-item" data-section="config" onclick="navigateProfile('config')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Configuracoes
+            </button>
+            <button class="profile-nav-item logout" onclick="handleLogout()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sair
+            </button>
+          </nav>
+        </aside>
+
+        <div class="profile-content">
+          <div class="profile-section active" id="section-dados">
+            <h2>Meus Dados</h2>
+            <p class="section-desc">Gerencie suas informacoes pessoais</p>
+            <form id="profileForm">
+              <div class="form-group">
+                <label for="fullName">Nome completo</label>
+                <input class="form-input" type="text" id="fullName" placeholder="Seu nome completo">
+              </div>
+              <div class="form-group">
+                <label for="profileEmail">Email</label>
+                <input class="form-input" type="email" id="profileEmail" disabled>
+              </div>
+              <div class="form-group">
+                <label for="profilePhone">Telefone</label>
+                <input class="form-input" type="tel" id="profilePhone" placeholder="(27) 99999-9999">
+              </div>
+              <div class="form-group">
+                <label>Foto do perfil</label>
+                <div class="upload-area" id="avatarUploadArea">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                  <p>Clique para fazer upload da foto</p>
+                  <input type="file" id="avatarInput" accept="image/*">
+                </div>
+                <div class="upload-preview" id="avatarPreview" style="display:none">
+                  <img src="" alt="Preview avatar">
+                  <span class="upload-name" id="avatarFileName"></span>
+                  <button type="button" onclick="clearAvatarUpload()">Remover</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Banner do perfil</label>
+                <div class="upload-area" id="bannerUploadArea">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                  <p>Clique para fazer upload do banner</p>
+                  <input type="file" id="bannerInput" accept="image/*">
+                </div>
+                <div class="upload-preview banner-preview" id="bannerPreview" style="display:none">
+                  <img src="" alt="Preview banner">
+                  <span class="upload-name" id="bannerFileName"></span>
+                  <button type="button" onclick="clearBannerUpload()">Remover</button>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Salvar alteracoes</button>
+            </form>
+          </div>
+
+          <div class="profile-section" id="section-enderecos">
+            <h2>Enderecos</h2>
+            <p class="section-desc">Gerencie seus enderecos de entrega</p>
+            <div id="addressesContainer">
+              <div class="loading-spinner">Carregando...</div>
+            </div>
+            <button class="btn btn-outline" style="margin-top:16px" onclick="openAddressModal()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Adicionar endereco
+            </button>
+          </div>
+
+          <div class="profile-section" id="section-pedidos">
+            <h2>Meus Pedidos</h2>
+            <p class="section-desc">Acompanhe o historico dos seus pedidos</p>
+            <div id="ordersContainer">
+              <div class="loading-spinner">Carregando...</div>
+            </div>
+          </div>
+
+          <div class="profile-section" id="section-config">
+            <h2>Configuracoes</h2>
+            <p class="section-desc">Preferencias da sua conta</p>
+            <div class="config-section">
+              <h3>Notificacoes</h3>
+              <p>Gerencie suas preferencias de notificacao</p>
+              <div class="config-toggle">
+                <span class="toggle-label">Receber atualizacoes de pedidos por email</span>
+                <div class="toggle-switch active" id="toggleOrderEmail" onclick="this.classList.toggle('active')"></div>
+              </div>
+              <div class="config-toggle">
+                <span class="toggle-label">Receber ofertas e promocoes</span>
+                <div class="toggle-switch" id="toggleOffers" onclick="this.classList.toggle('active')"></div>
+              </div>
+            </div>
+            <div class="config-section">
+              <h3>Tema</h3>
+              <p>O tema claro e aplicado por padrao. O modo escuro estara disponivel em breve.</p>
+              <div style="font-size:0.85rem;color:#94a3b8;font-style:italic">Tema claro ativo</div>
+            </div>
+            <div class="config-section" style="border-bottom:none;padding-bottom:0">
+              <h3>Zona de perigo</h3>
+              <p>Esta acao e irreversivel. Todos os seus dados serao permanentemente removidos.</p>
+              <button class="btn btn-danger-outline btn-sm" onclick="confirmDeleteAccount()">Excluir minha conta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="addressModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 id="addressModalTitle">Adicionar endereco</h3>
+          <button class="modal-close" onclick="closeAddressModal()" aria-label="Fechar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="addressForm">
+            <input type="hidden" id="addressId">
+            <div class="form-group">
+              <label for="addressLabel">Identificacao</label>
+              <input class="form-input" type="text" id="addressLabel" placeholder="Ex: Casa, Trabalho">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="addressCep">CEP</label>
+                <input class="form-input" type="text" id="addressCep" placeholder="29100-000" maxlength="9">
+              </div>
+              <div class="form-group">
+                <label for="addressNumber">Numero</label>
+                <input class="form-input" type="text" id="addressNumber" placeholder="123">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="addressStreet">Rua</label>
+              <input class="form-input" type="text" id="addressStreet" placeholder="Nome da rua">
+            </div>
+            <div class="form-group">
+              <label for="addressComplement">Complemento</label>
+              <input class="form-input" type="text" id="addressComplement" placeholder="Apto, Bloco, etc (opcional)">
+            </div>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label for="addressNeighborhood">Bairro</label>
+                <input class="form-input" type="text" id="addressNeighborhood" placeholder="Bairro">
+              </div>
+              <div class="form-group">
+                <label for="addressCity">Cidade</label>
+                <input class="form-input" type="text" id="addressCity" placeholder="Cidade">
+              </div>
+              <div class="form-group">
+                <label for="addressState">Estado</label>
+                <select class="form-select" id="addressState">
+                  <option value="">Selecione</option>
+                  <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option><option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option><option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-wrap">
+                <input type="checkbox" id="addressDefault">
+                Definir como endereco padrao
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeAddressModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveAddress()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal">
+      <div class="modal" style="max-width:400px">
+        <div class="modal-header">
+          <h3 id="confirmModalTitle">Confirmar</h3>
+          <button class="modal-close" onclick="closeModal('confirmModal')" aria-label="Fechar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="confirmModalText" style="font-size:0.9rem;color:#475569">Tem certeza que deseja realizar esta acao?</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('confirmModal')">Cancelar</button>
+          <button class="btn btn-danger" id="confirmModalBtn">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer" id="siteFooter"></footer>
+
+  <script src="js/supabase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cart.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var currentUser = null;
+      var currentProfile = null;
+      var avatarFile = null;
+      var bannerFile = null;
+      var editingAddressId = null;
+
+      function escHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      }
+
+      function getStatusClass(status) {
+        var map = {
+          'pending': 'order-status-pending',
+          'confirmed': 'order-status-confirmed',
+          'preparing': 'order-status-preparing',
+          'shipped': 'order-status-shipped',
+          'delivered': 'order-status-delivered',
+          'cancelled': 'order-status-cancelled'
+        };
+        return map[status] || 'order-status-pending';
+      }
+
+      function getPaymentStatusClass(status) {
+        var map = {
+          'pending': 'order-payment-pending',
+          'paid': 'order-payment-paid',
+          'refunded': 'order-payment-refunded',
+          'cancelled': 'order-payment-cancelled'
+        };
+        return map[status] || 'order-payment-pending';
+      }
+
+      function getStatusLabel(status) {
+        var map = {
+          'pending': 'Pendente',
+          'confirmed': 'Confirmado',
+          'preparing': 'Preparando',
+          'shipped': 'Enviado',
+          'delivered': 'Entregue',
+          'cancelled': 'Cancelado'
+        };
+        return map[status] || status;
+      }
+
+      function getPaymentStatusLabel(status) {
+        var map = {
+          'pending': 'Pendente',
+          'paid': 'Pago',
+          'refunded': 'Reembolsado',
+          'cancelled': 'Cancelado'
+        };
+        return map[status] || status;
+      }
+
+      function openModal(modalId) {
+        var modal = document.getElementById(modalId);
+        if (modal) modal.classList.add('open');
+      }
+
+      function closeModal(modalId) {
+        var modal = document.getElementById(modalId);
+        if (modal) modal.classList.remove('open');
+      }
+
+      window.navigateProfile = function(section) {
+        var navItems = document.querySelectorAll('.profile-nav-item');
+        navItems.forEach(function(item) {
+          item.classList.toggle('active', item.getAttribute('data-section') === section);
+        });
+
+        var sections = document.querySelectorAll('.profile-section');
+        sections.forEach(function(s) {
+          s.classList.toggle('active', s.id === 'section-' + section);
+        });
+      };
+
+      async function initProfile() {
+        try {
+          if (typeof initSupabase === 'function') initSupabase();
+          currentUser = await checkAuth();
+          if (!currentUser) {
+            renderAuthGate();
+            return;
+          }
+          hideAuthGate();
+          var profile = await getProfile(currentUser.id);
+          if (!profile) {
+            profile = {
+              id: currentUser.id,
+              email: currentUser.email || '',
+              full_name: (currentUser.user_metadata && currentUser.user_metadata.full_name) || '',
+              phone: (currentUser.user_metadata && currentUser.user_metadata.phone) || ''
+            };
+          }
+          currentProfile = profile;
+          loadProfile(profile);
+          loadAddresses(currentUser.id);
+          loadOrders(currentUser.id);
+        } catch (e) {
+          renderAuthGate();
+        }
+      }
+
+      function hideAuthGate() {
+        var gate = document.getElementById('authGate');
+        if (gate) gate.style.display = 'none';
+        var layout = document.querySelector('.profile-layout');
+        if (layout) layout.style.display = '';
+        var headerBar = document.querySelector('.profile-header-bar h1');
+        if (headerBar) headerBar.textContent = 'Minha Conta';
+      }
+
+      function renderAuthGate() {
+        var layout = document.querySelector('.profile-layout');
+        if (layout) layout.style.display = 'none';
+        var headerBar = document.querySelector('.profile-header-bar h1');
+        if (headerBar) headerBar.textContent = 'Entrar / Cadastrar';
+
+        var page = document.querySelector('.profile-page');
+        if (!page) return;
+        var existing = document.getElementById('authGate');
+        if (existing) { existing.style.display = ''; return; }
+
+        var html =
+          '<div class="auth-gate" id="authGate">' +
+            '<h2>Acesse sua conta</h2>' +
+            '<p class="sub">Entre para finalizar pedidos e acompanhar a entrega.</p>' +
+            '<div class="auth-tabs">' +
+              '<button type="button" class="auth-tab active" data-tab="login" onclick="window.switchAuthTab(\'login\')">Entrar</button>' +
+              '<button type="button" class="auth-tab" data-tab="signup" onclick="window.switchAuthTab(\'signup\')">Cadastrar</button>' +
+            '</div>' +
+            '<div class="auth-error" id="authError"></div>' +
+            '<form class="auth-form active" id="loginForm" onsubmit="window.submitLogin(event)">' +
+              '<div class="form-group"><label>Email</label><input class="form-input" type="email" id="loginEmail" required autocomplete="email"></div>' +
+              '<div class="form-group"><label>Senha</label><input class="form-input" type="password" id="loginPassword" required autocomplete="current-password"></div>' +
+              '<button type="submit" class="btn" id="loginBtn">Entrar</button>' +
+              '<a class="forgot" href="#" onclick="window.requestPasswordReset(event)">Esqueci minha senha</a>' +
+            '</form>' +
+            '<form class="auth-form" id="signupForm" onsubmit="window.submitSignup(event)">' +
+              '<div class="form-group"><label>Nome completo</label><input class="form-input" type="text" id="signupName" required></div>' +
+              '<div class="form-group"><label>Email</label><input class="form-input" type="email" id="signupEmail" required autocomplete="email"></div>' +
+              '<div class="form-group"><label>Telefone</label><input class="form-input" type="tel" id="signupPhone" placeholder="(27) 99999-9999"></div>' +
+              '<div class="form-group"><label>Senha (mín. 6 caracteres)</label><input class="form-input" type="password" id="signupPassword" minlength="6" required autocomplete="new-password"></div>' +
+              '<button type="submit" class="btn" id="signupBtn">Criar conta</button>' +
+            '</form>' +
+          '</div>';
+        page.insertAdjacentHTML('beforeend', html);
+      }
+
+      window.switchAuthTab = function(tab) {
+        document.querySelectorAll('.auth-tab').forEach(function(b) { b.classList.toggle('active', b.getAttribute('data-tab') === tab); });
+        document.querySelectorAll('.auth-form').forEach(function(f) { f.classList.remove('active'); });
+        var target = tab === 'signup' ? 'signupForm' : 'loginForm';
+        var el = document.getElementById(target);
+        if (el) el.classList.add('active');
+        var err = document.getElementById('authError');
+        if (err) { err.classList.remove('visible'); err.textContent = ''; }
+      };
+
+      function showAuthError(msg) {
+        var err = document.getElementById('authError');
+        if (!err) { showToast(msg, 'error'); return; }
+        err.textContent = msg;
+        err.classList.add('visible');
+      }
+
+      window.submitLogin = async function(ev) {
+        ev.preventDefault();
+        var email = document.getElementById('loginEmail').value.trim();
+        var password = document.getElementById('loginPassword').value;
+        if (!email || !password) { showAuthError('Preencha email e senha'); return; }
+        var btn = document.getElementById('loginBtn');
+        btn.disabled = true; btn.textContent = 'Entrando...';
+        try {
+          await signIn(email, password);
+          showToast('Login realizado!', 'success');
+          setTimeout(function(){ window.location.reload(); }, 400);
+        } catch (e) {
+          var msg = (e && e.message) || 'Falha no login';
+          if (/invalid login|invalid credentials/i.test(msg)) msg = 'Email ou senha incorretos';
+          showAuthError(msg);
+          btn.disabled = false; btn.textContent = 'Entrar';
+        }
+      };
+
+      window.submitSignup = async function(ev) {
+        ev.preventDefault();
+        var name = document.getElementById('signupName').value.trim();
+        var email = document.getElementById('signupEmail').value.trim();
+        var phone = document.getElementById('signupPhone').value.trim();
+        var password = document.getElementById('signupPassword').value;
+        if (!name || !email || !password) { showAuthError('Preencha todos os campos obrigatorios'); return; }
+        if (password.length < 6) { showAuthError('Senha deve ter no minimo 6 caracteres'); return; }
+        var btn = document.getElementById('signupBtn');
+        btn.disabled = true; btn.textContent = 'Criando conta...';
+        try {
+          await signUp(email, password, name, phone);
+          showToast('Conta criada! Voce ja pode entrar.', 'success');
+          window.switchAuthTab('login');
+          var loginEmail = document.getElementById('loginEmail');
+          if (loginEmail) loginEmail.value = email;
+        } catch (e) {
+          showAuthError((e && e.message) || 'Erro ao criar conta');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Criar conta';
+        }
+      };
+
+      window.requestPasswordReset = async function(ev) {
+        ev.preventDefault();
+        var email = document.getElementById('loginEmail').value.trim();
+        if (!email) { showAuthError('Informe seu email no campo acima'); return; }
+        try {
+          var sb = getSupabase();
+          if (!sb) throw new Error('Servico indisponivel');
+          var redirectTo = new URL('perfil.html', window.location.href).href;
+          var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
+          if (res.error) throw res.error;
+          showToast('Email de recuperacao enviado!', 'success');
+        } catch (e) {
+          showAuthError((e && e.message) || 'Erro ao enviar email');
+        }
+      };
+
+      function loadProfile(profile) {
+        if (!profile) return;
+
+        var nameEl = document.getElementById('sidebarName');
+        var emailEl = document.getElementById('sidebarEmail');
+        var fullNameEl = document.getElementById('fullName');
+        var profileEmailEl = document.getElementById('profileEmail');
+        var phoneEl = document.getElementById('profilePhone');
+        var avatarWrap = document.getElementById('profileAvatarWrap');
+        var bannerWrap = document.getElementById('profileBanner');
+
+        if (nameEl) nameEl.textContent = profile.full_name || 'Usuario';
+        if (emailEl) emailEl.textContent = profile.email || '';
+        if (fullNameEl) fullNameEl.value = profile.full_name || '';
+        if (profileEmailEl) profileEmailEl.value = profile.email || '';
+        if (phoneEl) phoneEl.value = profile.phone || '';
+
+        if (profile.avatar_url && avatarWrap) {
+          var img = avatarWrap.querySelector('img');
+          if (!img) {
+            img = document.createElement('img');
+            avatarWrap.innerHTML = '';
+            avatarWrap.appendChild(img);
+          }
+          img.src = profile.avatar_url;
+          img.alt = 'Avatar';
+        }
+
+        if (profile.banner_url && bannerWrap) {
+          var img = bannerWrap.querySelector('img');
+          if (!img) {
+            img = document.createElement('img');
+            bannerWrap.innerHTML = '';
+            bannerWrap.appendChild(img);
+          }
+          img.src = profile.banner_url;
+          img.alt = 'Banner';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof initSupabase === 'function') initSupabase();
+
+        if (typeof renderCompactFooter === 'function') {
+          renderCompactFooter('#siteFooter');
+        }
+        initProfile();
+
+        var profileForm = document.getElementById('profileForm');
+        if (profileForm) {
+          profileForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveProfile();
+          });
+        }
+
+        var avatarArea = document.getElementById('avatarUploadArea');
+        var avatarInput = document.getElementById('avatarInput');
+        if (avatarArea && avatarInput) {
+          avatarArea.addEventListener('click', function() { avatarInput.click(); });
+          avatarInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+              avatarFile = e.target.files[0];
+              var preview = document.getElementById('avatarPreview');
+              var nameEl = document.getElementById('avatarFileName');
+              var img = preview.querySelector('img');
+              var reader = new FileReader();
+              reader.onload = function(ev) {
+                img.src = ev.target.result;
+                preview.style.display = 'flex';
+                if (nameEl) nameEl.textContent = avatarFile.name;
+              };
+              reader.readAsDataURL(avatarFile);
+            }
+          });
+        }
+
+        var bannerArea = document.getElementById('bannerUploadArea');
+        var bannerInput = document.getElementById('bannerInput');
+        if (bannerArea && bannerInput) {
+          bannerArea.addEventListener('click', function() { bannerInput.click(); });
+          bannerInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+              bannerFile = e.target.files[0];
+              var preview = document.getElementById('bannerPreview');
+              var nameEl = document.getElementById('bannerFileName');
+              var img = preview.querySelector('img');
+              var reader = new FileReader();
+              reader.onload = function(ev) {
+                img.src = ev.target.result;
+                preview.style.display = 'flex';
+                if (nameEl) nameEl.textContent = bannerFile.name;
+              };
+              reader.readAsDataURL(bannerFile);
+            }
+          });
+        }
+
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        var menuIcon = document.getElementById('menuIcon');
+        var closeIcon = document.getElementById('closeIcon');
+
+        if (mobileMenuBtn && mobileMenu) {
+          mobileMenuBtn.addEventListener('click', function() {
+            var isOpen = mobileMenu.classList.toggle('open');
+            if (menuIcon) menuIcon.style.display = isOpen ? 'none' : 'block';
+            if (closeIcon) closeIcon.style.display = isOpen ? 'block' : 'none';
+          });
+        }
+
+        document.addEventListener('click', function(e) {
+          if (mobileMenu && mobileMenuBtn && !mobileMenu.contains(e.target) && e.target !== mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+            mobileMenu.classList.remove('open');
+            if (menuIcon) menuIcon.style.display = 'block';
+            if (closeIcon) closeIcon.style.display = 'none';
+          }
+        });
+
+        if (typeof updateCartCount === 'function') updateCartCount();
+      });
+
+      window.clearAvatarUpload = function() {
+        avatarFile = null;
+        document.getElementById('avatarInput').value = '';
+        document.getElementById('avatarPreview').style.display = 'none';
+      };
+
+      window.clearBannerUpload = function() {
+        bannerFile = null;
+        document.getElementById('bannerInput').value = '';
+        document.getElementById('bannerPreview').style.display = 'none';
+      };
+
+      async function saveProfile() {
+        var name = document.getElementById('fullName').value.trim();
+        var phone = document.getElementById('profilePhone').value.trim();
+        if (!name) { showToast('Informe seu nome', 'error'); return; }
+
+        try {
+          showLoading(true);
+          var updates = { full_name: name, phone: phone };
+          await updateProfile(currentUser.id, updates);
+          currentProfile = { ...currentProfile, ...updates };
+
+          if (avatarFile) {
+            showToast('Enviando foto...', 'info');
+            await uploadAvatar(currentUser.id, avatarFile);
+            avatarFile = null;
+            document.getElementById('avatarPreview').style.display = 'none';
+          }
+
+          if (bannerFile) {
+            showToast('Enviando banner...', 'info');
+            await uploadBanner(currentUser.id, bannerFile);
+            bannerFile = null;
+            document.getElementById('bannerPreview').style.display = 'none';
+          }
+
+          var updated = await getProfile(currentUser.id);
+          currentProfile = updated;
+          loadProfile(updated);
+
+          showToast('Dados atualizados com sucesso!', 'success');
+        } catch (e) {
+          showToast('Erro ao salvar dados', 'error');
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      async function loadAddresses(userId) {
+        var container = document.getElementById('addressesContainer');
+        if (!container) return;
+
+        try {
+          var sb = getSupabase();
+          if (!sb) { container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar</h3></div>'; return; }
+
+          var resp = await sb.from('addresses').select('*').eq('user_id', userId).order('is_default', { ascending: false }).order('created_at', { ascending: false });
+          var data = resp.data;
+          var error = resp.error;
+
+          if (error) throw error;
+
+          if (!data || data.length === 0) {
+            container.innerHTML =
+              '<div class="empty-state">' +
+              '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+              '<h3>Nenhum endereco cadastrado</h3>' +
+              '<p>Adicione um endereco de entrega</p>' +
+              '</div>';
+            return;
+          }
+
+          container.innerHTML = '<div class="address-list">' +
+            data.map(function(a) {
+              var isDefault = a.is_default ? '<span class="default-badge">Padrao</span>' : '';
+              return '<div class="address-card" data-id="' + a.id + '">' +
+                '<div class="address-info">' +
+                '<div class="address-label">' + escHtml(a.label || 'Endereco') + ' ' + isDefault + '</div>' +
+                '<div class="address-text">' +
+                escHtml(a.street || '') + ', ' + escHtml(a.number || '') +
+                (a.complement ? ' - ' + escHtml(a.complement) : '') + '<br>' +
+                escHtml(a.neighborhood || '') +
+                (a.neighborhood && a.city ? ', ' : '') +
+                escHtml(a.city || '') + ' - ' + escHtml(a.state || '') +
+                (a.cep ? '<br>CEP: ' + escHtml(a.cep) : '') +
+                '</div>' +
+                '</div>' +
+                '<div class="address-actions">' +
+                '<button class="btn btn-outline btn-sm" onclick="editAddress(\'' + a.id + '\')">Editar</button>' +
+                '<button class="btn btn-danger-outline btn-sm" onclick="deleteAddress(\'' + a.id + '\')">Excluir</button>' +
+                '</div>' +
+                '</div>';
+            }).join('') +
+            '</div>';
+        } catch (e) {
+          container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar enderecos</h3></div>';
+        }
+      }
+
+      window.openAddressModal = function(address) {
+        editingAddressId = null;
+        document.getElementById('addressModalTitle').textContent = 'Adicionar endereco';
+        document.getElementById('addressForm').reset();
+        document.getElementById('addressId').value = '';
+        document.getElementById('addressDefault').checked = false;
+        openModal('addressModal');
+      };
+
+      window.closeAddressModal = function() {
+        closeModal('addressModal');
+        editingAddressId = null;
+      };
+
+      window.editAddress = async function(addressId) {
+        try {
+          showLoading(true);
+          var sb = getSupabase();
+          var resp = await sb.from('addresses').select('*').eq('id', addressId).single();
+          if (resp.error) throw resp.error;
+          var addr = resp.data;
+          if (!addr) { showToast('Endereco nao encontrado', 'error'); return; }
+
+          editingAddressId = addressId;
+          document.getElementById('addressModalTitle').textContent = 'Editar endereco';
+          document.getElementById('addressId').value = addr.id;
+          document.getElementById('addressLabel').value = addr.label || '';
+          document.getElementById('addressCep').value = addr.cep || '';
+          document.getElementById('addressStreet').value = addr.street || '';
+          document.getElementById('addressNumber').value = addr.number || '';
+          document.getElementById('addressComplement').value = addr.complement || '';
+          document.getElementById('addressNeighborhood').value = addr.neighborhood || '';
+          document.getElementById('addressCity').value = addr.city || '';
+          document.getElementById('addressState').value = addr.state || '';
+          document.getElementById('addressDefault').checked = addr.is_default || false;
+          openModal('addressModal');
+        } catch (e) {
+          showToast('Erro ao carregar endereco', 'error');
+        } finally {
+          showLoading(false);
+        }
+      };
+
+      window.saveAddress = async function() {
+        var label = document.getElementById('addressLabel').value.trim();
+        var cep = document.getElementById('addressCep').value.trim();
+        var street = document.getElementById('addressStreet').value.trim();
+        var number = document.getElementById('addressNumber').value.trim();
+        var complement = document.getElementById('addressComplement').value.trim();
+        var neighborhood = document.getElementById('addressNeighborhood').value.trim();
+        var city = document.getElementById('addressCity').value.trim();
+        var state = document.getElementById('addressState').value;
+        var isDefault = document.getElementById('addressDefault').checked;
+
+        if (!street || !city || !state) {
+          showToast('Preencha os campos obrigatorios', 'error');
+          return;
+        }
+
+        var addressData = {
+          user_id: currentUser.id,
+          label: label || 'Principal',
+          cep: cep,
+          street: street,
+          number: number,
+          complement: complement,
+          neighborhood: neighborhood,
+          city: city,
+          state: state,
+          is_default: isDefault
+        };
+
+        try {
+          showLoading(true);
+
+          if (isDefault) {
+            var sb = getSupabase();
+            await sb.from('addresses').update({ is_default: false }).eq('user_id', currentUser.id);
+          }
+
+          if (editingAddressId) {
+            await supabaseUpdate('addresses', addressData, { id: editingAddressId });
+          } else {
+            await supabaseInsert('addresses', addressData);
+          }
+
+          closeAddressModal();
+          loadAddresses(currentUser.id);
+          showToast('Endereco salvo com sucesso!', 'success');
+        } catch (e) {
+          showToast('Erro ao salvar endereco', 'error');
+        } finally {
+          showLoading(false);
+        }
+      };
+
+      window.deleteAddress = function(addressId) {
+        var modal = document.getElementById('confirmModal');
+        document.getElementById('confirmModalTitle').textContent = 'Excluir endereco';
+        document.getElementById('confirmModalText').textContent = 'Tem certeza que deseja excluir este endereco?';
+        document.getElementById('confirmModalBtn').onclick = async function() {
+          try {
+            showLoading(true);
+            await supabaseDelete('addresses', { id: addressId });
+            closeModal('confirmModal');
+            loadAddresses(currentUser.id);
+            showToast('Endereco excluido', 'success');
+          } catch (e) {
+            showToast('Erro ao excluir endereco', 'error');
+          } finally {
+            showLoading(false);
+          }
+        };
+        openModal('confirmModal');
+      };
+
+      async function loadOrders(userId) {
+        var container = document.getElementById('ordersContainer');
+        if (!container) return;
+
+        try {
+          var sb = getSupabase();
+          if (!sb) { container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar</h3></div>'; return; }
+
+          var resp = await sb.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+          var data = resp.data;
+          var error = resp.error;
+
+          if (error) throw error;
+
+          if (!data || data.length === 0) {
+            container.innerHTML =
+              '<div class="empty-state">' +
+              '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 16v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"/><path d="M16.5 7.5 21 12l-4.5 4.5"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
+              '<h3>Nenhum pedido ainda</h3>' +
+              '<p>Seus pedidos aparecerao aqui</p>' +
+              '</div>';
+            return;
+          }
+
+          container.innerHTML = '<div class="order-list">' +
+            data.map(function(o) {
+              var statusClass = getStatusClass(o.status);
+              var paymentClass = getPaymentStatusClass(o.payment_status);
+              var statusLabel = getStatusLabel(o.status);
+              var paymentLabel = getPaymentStatusLabel(o.payment_status);
+              return '<div class="order-card">' +
+                '<div class="order-card-header" onclick="toggleOrderItems(\'' + o.id + '\')">' +
+                '<div>' +
+                '<div class="order-number">Pedido #' + escHtml(o.order_number || o.id.slice(0, 8)) + '</div>' +
+                '<div class="order-date">' + (typeof formatDate === 'function' ? formatDate(o.created_at) : o.created_at ? o.created_at.slice(0, 10) : '') + '</div>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+                '<span class="status-badge ' + statusClass + '">' + statusLabel + '</span>' +
+                '<span class="status-badge ' + paymentClass + '">' + paymentLabel + '</span>' +
+                '<span class="order-total">' + (typeof formatPrice === 'function' ? formatPrice(o.total_amount) : 'R$ ' + (o.total_amount || 0).toFixed(2).replace('.', ',')) + '</span>' +
+                '</div>' +
+                '</div>' +
+                '<div class="order-card-body" id="orderItems-' + o.id + '">' +
+                '<div class="loading-inline" style="display:flex;align-items:center;gap:6px;padding:12px;color:#94a3b8;font-size:0.85rem">Carregando itens...</div>' +
+                '</div>' +
+                '</div>';
+            }).join('') +
+            '</div>';
+        } catch (e) {
+          container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar pedidos</h3></div>';
+        }
+      }
+
+      window.toggleOrderItems = async function(orderId) {
+        var body = document.getElementById('orderItems-' + orderId);
+        if (!body) return;
+
+        var isOpen = body.classList.toggle('open');
+
+        if (isOpen && (body.querySelector('.loading-inline') || body.innerHTML.trim() === '')) {
+          try {
+            var sb = getSupabase();
+            if (!sb) return;
+            var resp = await sb.from('order_items').select('*').eq('order_id', orderId);
+            var items = resp.data;
+            if (resp.error) throw resp.error;
+
+            if (!items || items.length === 0) {
+              body.innerHTML = '<div style="padding:12px;font-size:0.85rem;color:#94a3b8;text-align:center">Nenhum item</div>';
+              return;
+            }
+
+            body.innerHTML = items.map(function(item) {
+              var imgHtml = item.photo_url
+                ? '<img src="' + item.photo_url + '" alt="' + escHtml(item.product_name) + '">'
+                : '<div style="width:48px;height:48px;border-radius:6px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>';
+              var colorInfo = item.color_name ? ' - ' + item.color_name : '';
+              var sizeInfo = item.size ? ' (' + item.size + ')' : '';
+              return '<div class="order-item">' +
+                imgHtml +
+                '<div class="oi-info">' +
+                '<div class="oi-name">' + escHtml(item.product_name) + colorInfo + sizeInfo + '</div>' +
+                '<div class="oi-qty">Qtd: ' + item.quantity + '</div>' +
+                '</div>' +
+                '<div class="oi-price">' + (typeof formatPrice === 'function' ? formatPrice(item.unit_price) : 'R$ ' + item.unit_price.toFixed(2).replace('.', ',')) + '</div>' +
+                '</div>';
+            }).join('');
+          } catch (e) {
+            body.innerHTML = '<div style="padding:12px;font-size:0.85rem;color:#dc2626;text-align:center">Erro ao carregar itens</div>';
+          }
+        }
+      };
+
+      async function loadUserFiles(userId) {
+        var container = document.getElementById('filesContainer');
+        if (!container) return;
+
+        try {
+          var sb = getSupabase();
+          if (!sb) { container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar</h3></div>'; return; }
+
+          var resp = await sb.from('user_files').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+          var data = resp.data;
+          var error = resp.error;
+
+          if (error) throw error;
+
+          var html = '<div class="files-grid">';
+
+          html += '<div class="file-card" style="border:none;background:transparent">' +
+            '<div class="upload-file-btn" onclick="document.getElementById(\'fileUploadInput\').click()">' +
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+            '<span>Upload</span>' +
+            '</div>' +
+            '<input type="file" id="fileUploadInput" style="display:none" onchange="handleFileUpload(this)">' +
+            '</div>';
+
+          if (!data || data.length === 0) {
+            html += '</div>';
+            html += '<div class="empty-state" style="padding:32px 20px">' +
+              '<h3>Nenhum arquivo enviado</h3>' +
+              '<p>Clique em "Upload" para adicionar arquivos</p>' +
+              '</div>';
+            container.innerHTML = html;
+            return;
+          }
+
+          data.forEach(function(f) {
+            var isImage = f.file_type && f.file_type.startsWith('image/');
+            var thumbHtml = isImage
+              ? '<img src="' + f.url + '" alt="' + escHtml(f.original_name || '') + '" loading="lazy">'
+              : '<div class="file-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>';
+            html += '<div class="file-card">' +
+              '<div class="file-thumb">' + thumbHtml + '</div>' +
+              '<div class="file-name">' + escHtml(f.original_name || 'Arquivo') + '</div>' +
+              '<button class="file-delete" onclick="deleteFile(\'' + f.id + '\')" title="Excluir">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+              '</button>' +
+              '</div>';
+          });
+
+          html += '</div>';
+          container.innerHTML = html;
+        } catch (e) {
+          container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar arquivos</h3></div>';
+        }
+      }
+
+      window.handleFileUpload = async function(input) {
+        var file = input.files && input.files[0];
+        if (!file) return;
+
+        try {
+          showLoading(true);
+          var sb = getSupabase();
+          if (!sb) { showToast('Erro de conexao', 'error'); return; }
+
+          var ext = file.name.split('.').pop();
+          var path = 'user-files/' + currentUser.id + '/' + Date.now() + '.' + ext;
+          var url = await supabaseUpload('public', path, file);
+
+          await supabaseInsert('user_files', {
+            user_id: currentUser.id,
+            url: url,
+            file_type: file.type,
+            original_name: file.name,
+            size_bytes: file.size
+          });
+
+          input.value = '';
+          loadUserFiles(currentUser.id);
+          showToast('Arquivo enviado com sucesso!', 'success');
+        } catch (e) {
+          showToast('Erro ao enviar arquivo', 'error');
+        } finally {
+          showLoading(false);
+        }
+      };
+
+      window.deleteFile = function(fileId) {
+        var modal = document.getElementById('confirmModal');
+        document.getElementById('confirmModalTitle').textContent = 'Excluir arquivo';
+        document.getElementById('confirmModalText').textContent = 'Tem certeza que deseja excluir este arquivo?';
+        document.getElementById('confirmModalBtn').onclick = async function() {
+          try {
+            showLoading(true);
+            await supabaseDelete('user_files', { id: fileId });
+            closeModal('confirmModal');
+            loadUserFiles(currentUser.id);
+            showToast('Arquivo excluido', 'success');
+          } catch (e) {
+            showToast('Erro ao excluir arquivo', 'error');
+          } finally {
+            showLoading(false);
+          }
+        };
+        openModal('confirmModal');
+      };
+
+      window.handleLogout = function() {
+        var modal = document.getElementById('confirmModal');
+        document.getElementById('confirmModalTitle').textContent = 'Sair da conta';
+        document.getElementById('confirmModalText').textContent = 'Tem certeza que deseja sair?';
+        document.getElementById('confirmModalBtn').onclick = async function() {
+          try {
+            showLoading(true);
+            await signOut();
+          } catch (e) {
+            showToast('Erro ao sair', 'error');
+            showLoading(false);
+          }
+        };
+        openModal('confirmModal');
+      };
+
+      window.confirmDeleteAccount = function() {
+        var modal = document.getElementById('confirmModal');
+        document.getElementById('confirmModalTitle').textContent = 'Excluir conta';
+        document.getElementById('confirmModalText').innerHTML = 'Esta acao e irreversivel. Todos os seus dados serao permanentemente removidos.<br><br><strong>Tem certeza que deseja continuar?</strong>';
+        document.getElementById('confirmModalBtn').onclick = async function() {
+          try {
+            showLoading(true);
+            var sb = getSupabase();
+            if (sb) {
+              var resp = await sb.rpc('delete_user_account');
+              if (resp.error) {
+                showToast('Entre em contato com o suporte para excluir sua conta', 'error');
+              } else {
+                await signOut();
+              }
+            }
+          } catch (e) {
+            showToast('Entre em contato com o suporte', 'error');
+          } finally {
+            showLoading(false);
+            closeModal('confirmModal');
+          }
+        };
+        openModal('confirmModal');
+      };
+
+      window.addEventListener('click', function(e) {
+        var modals = document.querySelectorAll('.modal-overlay.open');
+        modals.forEach(function(overlay) {
+          if (e.target === overlay) {
+            overlay.classList.remove('open');
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

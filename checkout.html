@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Finalizar compra - Conforta Colchoes">
+  <title>Checkout - Conforta Colchoes</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; background: #0f172a; line-height: 1.6; }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+    img { max-width: 100%; display: block; }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input, select, textarea { font-family: inherit; outline: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+    .header { position: fixed; top: 0; left: 0; right: 0; background: #0f172a; border-bottom: 1px solid #1e293b; z-index: 1000; }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 20px; }
+    .logo { display: flex; align-items: center; gap: 8px; color: #ffffff; }
+    .logo img { height: 36px; width: auto; display: block; }
+    .main { margin-top: 56px; min-height: calc(100vh - 56px); background: #f8fafc; }
+
+    .checkout-page { padding: 32px 0 48px; }
+    .checkout-header-bar { margin-bottom: 28px; }
+    .checkout-header-bar h1 { font-size: 1.5rem; font-weight: 700; color: #0f172a; }
+    .checkout-header-bar p { font-size: 0.88rem; color: #64748b; margin-top: 4px; }
+
+    .checkout-layout { display: grid; grid-template-columns: 1fr 380px; gap: 28px; align-items: start; }
+
+    .checkout-section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 24px; margin-bottom: 20px; }
+    .checkout-section h2 { font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    .form-input, .form-select { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.88rem; color: #1e293b; background: #ffffff; transition: border-color 0.2s; }
+    .form-input:focus, .form-select:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 0.88rem; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: #1a56db; color: #ffffff; }
+    .btn-primary:hover { background: #0f3a8e; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-block { width: 100%; }
+    .btn-lg { padding: 14px 28px; font-size: 1rem; }
+
+    .order-summary-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; position: sticky; top: 88px; }
+    .order-summary-header { padding: 20px 24px; border-bottom: 1px solid #f1f5f9; }
+    .order-summary-header h3 { font-size: 1rem; font-weight: 700; color: #0f172a; }
+    .order-summary-items { padding: 16px 24px; max-height: 320px; overflow-y: auto; }
+    .order-summary-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f8fafc; }
+    .order-summary-item:last-child { border-bottom: none; }
+    .order-summary-item img { width: 56px; height: 56px; border-radius: 4px; object-fit: cover; background: #f1f5f9; flex-shrink: 0; }
+    .order-summary-item .osi-info { flex: 1; min-width: 0; }
+    .order-summary-item .osi-name { font-size: 0.82rem; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+    .order-summary-item .osi-desc { font-size: 0.75rem; color: #64748b; }
+    .order-summary-item .osi-price { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
+    .order-summary-totals { padding: 16px 24px 20px; border-top: 1px solid #f1f5f9; }
+    .order-summary-totals .total-line { display: flex; justify-content: space-between; font-size: 0.85rem; color: #475569; padding: 4px 0; }
+    .order-summary-totals .total-line.total { font-size: 1.1rem; font-weight: 700; color: #0f172a; padding-top: 8px; border-top: 1px solid #e2e8f0; margin-top: 8px; }
+
+    .payment-methods { display: flex; flex-direction: column; gap: 10px; }
+    .payment-method-option { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1.5px solid #e2e8f0; border-radius: 6px; background: #ffffff; cursor: pointer; transition: all 0.2s; text-align: left; }
+    .payment-method-option:hover { border-color: #94a3b8; }
+    .payment-method-option.active { border-color: #1a56db; background: #f8faff; }
+    .payment-method-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #1a56db; }
+    .payment-method-info { flex: 1; }
+    .payment-method-info strong { display: block; font-size: 0.85rem; color: #0f172a; }
+    .payment-method-info small { font-size: 0.75rem; color: #64748b; }
+    .payment-method-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #d1d5db; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; color: transparent; }
+    .payment-method-option.active .payment-method-check { border-color: #1a56db; background: #1a56db; color: #ffffff; }
+
+    .loading-spinner { display: flex; align-items: center; justify-content: center; padding: 40px; color: #94a3b8; gap: 8px; font-size: 0.9rem; }
+    .loading-spinner::before { content: ''; width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: #1a56db; border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast-container { position: fixed; top: 88px; right: 20px; z-index: 5000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 12px 20px; border-radius: 6px; font-size: 0.875rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: slideIn 300ms ease; min-width: 280px; }
+    .toast-success { background: #dcfce7; color: #166534; border-left: 4px solid #16a34a; }
+    .toast-error { background: #fef2f2; color: #991b1b; border-left: 4px solid #dc2626; }
+    .toast-info { background: #eff6ff; color: #1e40af; border-left: 4px solid #1a56db; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+    .empty-cart { text-align: center; padding: 80px 20px; }
+    .empty-cart svg { margin: 0 auto 16px; color: #cbd5e1; display: block; }
+    .empty-cart h2 { font-size: 1.15rem; color: #334155; margin-bottom: 6px; }
+    .empty-cart p { font-size: 0.88rem; color: #94a3b8; margin-bottom: 20px; }
+
+    .footer { background: #0f172a; color: #cbd5e1; padding: 32px 0; margin-top: 48px; }
+    .footer p { text-align: center; font-size: 0.85rem; color: #64748b; }
+
+    @media (max-width: 1024px) {
+      .checkout-layout { grid-template-columns: 1fr; }
+      .order-summary-card { position: static; }
+    }
+    @media (max-width: 768px) {
+      .checkout-page { padding: 20px 0 32px; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .checkout-section { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="Conforta Colchoes">
+        <img src="assets/logo.png" alt="">
+        <span class="logo-text">Conforta<small>COLCHOES</small></span>
+      </a>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="container checkout-page" id="checkoutApp">
+      <div class="checkout-header-bar">
+        <h1>Finalizar Compra</h1>
+        <p>Revise seu pedido e escolha a forma de pagamento</p>
+      </div>
+
+      <div id="checkoutContent">
+        <div class="loading-spinner">Carregando carrinho...</div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 Conforta Colchoes. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/supabase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/asaas-payment.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var sb = null;
+      var cartItems = [];
+      var selectedMethod = 'CREDIT_CARD';
+      var userAddresses = [];
+      var selectedAddressId = null;
+      var processingOrder = false;
+
+      var PAYMENT_FALLBACK = {
+        id: 'mock-payment-' + Date.now(),
+        status: 'pending',
+        pixQrCode: null,
+        pixKey: null,
+        invoiceUrl: null,
+        boletoUrl: null,
+        barCode: null
+      };
+
+      function lineQty(item) {
+        var q = parseInt(item && item.quantity, 10);
+        return (isFinite(q) && q > 0) ? q : 1;
+      }
+
+      document.addEventListener('DOMContentLoaded', async function() {
+        if (typeof initSupabase === 'function') initSupabase();
+        sb = getSupabase();
+        await loadCheckout();
+      });
+
+      async function loadCheckout() {
+        var container = document.getElementById('checkoutContent');
+        try {
+          var user = await checkAuth();
+          if (!user) {
+            container.innerHTML =
+              '<div class="empty-cart">' +
+              '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+              '<h2>Faca login para continuar</h2>' +
+              '<p>Você precisa estar logado para finalizar a compra.</p>' +
+              '<a href="perfil.html" class="btn btn-primary">Fazer login</a>' +
+              '</div>';
+            return;
+          }
+
+          var items = await getCartItems();
+          if (!items || items.length === 0) {
+            container.innerHTML =
+              '<div class="empty-cart">' +
+              '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>' +
+              '<h2>Seu carrinho esta vazio</h2>' +
+              '<p>Adicione produtos ao carrinho antes de finalizar a compra.</p>' +
+              '<a href="produtos.html" class="btn btn-primary">Ver produtos</a>' +
+              '</div>';
+            return;
+          }
+
+          cartItems = items;
+
+          var addresses = [];
+          try {
+            var addrResp = await sb.from('addresses').select('*').eq('user_id', user.id).order('is_default', { ascending: false });
+            addresses = addrResp.data || [];
+          } catch(e) {}
+          userAddresses = addresses;
+
+          var defaultAddr = addresses.find(function(a) { return a.is_default; }) || addresses[0] || null;
+          selectedAddressId = defaultAddr ? defaultAddr.id : null;
+
+          renderCheckout(items, addresses, defaultAddr);
+          renderPaymentMethods();
+          checkGatewayAvailability();
+        } catch(e) {
+          container.innerHTML = '<div class="empty-cart"><h2>Erro ao carregar checkout</h2><p>' + (e.message || 'Tente novamente') + '</p></div>';
+        }
+      }
+
+      function renderCheckout(items, addresses, defaultAddr) {
+        var container = document.getElementById('checkoutContent');
+
+        var total = items.reduce(function(acc, item) {
+          return acc + getItemPrice(item) * lineQty(item);
+        }, 0);
+
+        var addrOptions = addresses.map(function(a) {
+          var selected = a.id === selectedAddressId ? 'selected' : '';
+          var label = a.label || 'Endereco';
+          var addrStr = a.street + (a.number ? ', ' + a.number : '') + (a.neighborhood ? ' - ' + a.neighborhood : '') + ', ' + a.city + '/' + a.state;
+          return '<option value="' + a.id + '" ' + selected + '>' + label + ': ' + addrStr + '</option>';
+        }).join('');
+
+        container.innerHTML =
+          '<div class="checkout-layout">' +
+          '<div class="checkout-left">' +
+
+          '<div class="checkout-section">' +
+          '<h2>Endereco de Entrega</h2>' +
+          '<div class="form-group">' +
+          (addresses.length > 0
+            ? '<select class="form-select" id="addressSelect" onchange="window.selectAddress(this.value)">' + addrOptions + '</select>' +
+              '<button class="btn btn-sm btn-outline" style="margin-top:8px" onclick="window.openAddressModal()">Adicionar novo endereco</button>'
+            : '<p style="font-size:0.85rem;color:#64748b;margin-bottom:12px;">Nenhum endereco cadastrado. Adicione um para continuar.</p>' +
+              '<button class="btn btn-sm btn-primary" onclick="window.openAddressModal()">Adicionar Endereco</button>'
+          ) +
+          '</div>' +
+          '</div>' +
+
+          '<div class="checkout-section">' +
+          '<h2>Forma de Pagamento</h2>' +
+          '<div class="payment-methods" id="paymentMethods"></div>' +
+          '</div>' +
+
+          (selectedMethod === 'CREDIT_CARD' ? renderCreditCardForm() : '') +
+
+          '<button class="btn btn-primary btn-block btn-lg" id="placeOrderBtn" onclick="window.placeOrder()">' +
+          'Finalizar Pedido - ' + formatPrice(total) +
+          '</button>' +
+          '</div>' +
+
+          '<div class="checkout-right">' +
+          '<div class="order-summary-card">' +
+          '<div class="order-summary-header"><h3>Resumo do Pedido</h3></div>' +
+          '<div class="order-summary-items" id="summaryItems">' +
+          items.map(function(item) {
+            var price = getItemPrice(item);
+            var qty = lineQty(item);
+            var img = getItemImage(item);
+            var name = getItemName(item);
+            var color = getItemColor(item);
+            return '<div class="order-summary-item">' +
+              '<img src="' + img + '" alt="' + name + '">' +
+              '<div class="osi-info">' +
+              '<div class="osi-name">' + name + '</div>' +
+              (color ? '<div class="osi-desc">Cor: ' + color + ' | Qtd: ' + qty + '</div>' : '<div class="osi-desc">Qtd: ' + qty + '</div>') +
+              '</div>' +
+              '<div class="osi-price">' + formatPrice(price * qty) + '</div>' +
+              '</div>';
+          }).join('') +
+          '</div>' +
+          '<div class="order-summary-totals">' +
+          '<div class="total-line"><span>Subtotal</span><span>' + formatPrice(total) + '</span></div>' +
+          '<div class="total-line"><span>Frete</span><span>Grátis</span></div>' +
+          '<div class="total-line total"><span>Total</span><span>' + formatPrice(total) + '</span></div>' +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+          '</div>';
+      }
+
+      function renderCreditCardForm() {
+        return '<div class="checkout-section" id="cardForm">' +
+          '<h2>Dados do Cartao</h2>' +
+          '<div class="form-group"><label>Numero do Cartao</label><input class="form-input" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19"></div>' +
+          '<div class="form-row">' +
+          '<div class="form-group"><label>Validade</label><input class="form-input" id="cardExpiry" placeholder="MM/AA" maxlength="5"></div>' +
+          '<div class="form-group"><label>CVV</label><input class="form-input" id="cardCvv" placeholder="123" maxlength="4"></div>' +
+          '</div>' +
+          '<div class="form-group"><label>Nome no Cartao</label><input class="form-input" id="cardName" placeholder="Como esta impresso no cartao"></div>' +
+          '<div class="form-group"><label>CPF/CNPJ do Titular</label><input class="form-input" id="cardDocument" placeholder="000.000.000-00" maxlength="18"></div>' +
+          '</div>';
+      }
+
+      function renderPaymentMethods() {
+        var container = document.getElementById('paymentMethods');
+        if (!container) return;
+        container.innerHTML = renderPaymentOptions(selectedMethod);
+        container.querySelectorAll('.payment-method-option').forEach(function(el) {
+          el.addEventListener('click', function() {
+            selectedMethod = this.getAttribute('data-method');
+            renderPaymentMethods();
+            var cardForm = document.getElementById('cardForm');
+            if (cardForm) {
+              cardForm.style.display = selectedMethod === 'CREDIT_CARD' ? 'block' : 'none';
+            }
+          });
+        });
+      }
+
+      async function checkGatewayAvailability() {
+        try {
+          var key = (typeof getSetting === 'function') ? await getSetting('asaas_api_key') : null;
+          var proxyOk = (typeof isAsaasProxyAvailable === 'function') ? await isAsaasProxyAvailable() : false;
+          var pm = document.getElementById('paymentMethods');
+          if (!pm) return;
+          if (document.getElementById('checkoutPaymentEnvWarn')) return;
+          var msg = '';
+          if (!key) msg = 'Pagamento online nao esta disponivel no momento. Voce ainda pode concluir o pedido; nosso time entrara em contato se necessario.';
+          else if (!proxyOk) msg = 'Pagamento online pode falhar neste endereco. Se isso acontecer, seu pedido fica registrado e voce pode falar com a loja.';
+          if (msg) {
+            var warn = document.createElement('div');
+            warn.id = 'checkoutPaymentEnvWarn';
+            warn.style.cssText = 'background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:10px 12px;border-radius:6px;font-size:0.82rem;margin-bottom:12px;';
+            warn.textContent = msg;
+            pm.parentNode.insertBefore(warn, pm);
+          }
+        } catch (e) { /* silent */ }
+      }
+
+      window.selectAddress = function(addressId) {
+        selectedAddressId = addressId;
+      };
+
+      window.placeOrder = async function() {
+        if (processingOrder) return;
+        processingOrder = true;
+
+        var btn = document.getElementById('placeOrderBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Processando...'; }
+
+        var total = cartItems.reduce(function(acc, item) {
+          return acc + getItemPrice(item) * lineQty(item);
+        }, 0);
+
+        try {
+          var user = await checkAuth();
+          if (!user) {
+            showToast('Faca login para finalizar a compra', 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Finalizar Pedido - ' + formatPrice(total); }
+            return;
+          }
+
+          if (!selectedAddressId && userAddresses.length > 0) {
+            showToast('Selecione um endereco de entrega', 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Finalizar Pedido - ' + formatPrice(total); }
+            return;
+          }
+
+          var orderNumber = generateOrderNumber();
+
+          var orderData = {
+            user_id: user.id,
+            order_number: orderNumber,
+            status: 'pending',
+            payment_status: 'pending',
+            payment_method: selectedMethod,
+            total_amount: total,
+            shipping_amount: 0,
+            discount_amount: 0,
+            shipping_address_id: selectedAddressId || null,
+            notes: ''
+          };
+
+          var orderResult;
+          var orderInsert = await sb.from('orders').insert(orderData).select();
+          if (orderInsert.error) {
+            console.error('orders insert error:', orderInsert.error);
+            var em = orderInsert.error.message || '';
+            if (/row-level security|RLS/i.test(em)) {
+              throw new Error('Permissao do banco bloqueou a criacao do pedido. Rode o arquivo database/checkout_fixes.sql no Supabase.');
+            }
+            throw orderInsert.error;
+          }
+          orderResult = orderInsert.data;
+
+          if (!orderResult || orderResult.length === 0) throw new Error('Erro ao criar pedido');
+          var order = orderResult[0];
+
+          for (var i = 0; i < cartItems.length; i++) {
+            var item = cartItems[i];
+            var itemData = {
+              order_id: order.id,
+              product_id: item.product_id,
+              photo_id: item.photo_id,
+              product_name: getItemName(item),
+              photo_url: getItemImage(item),
+              quantity: lineQty(item),
+              unit_price: getItemPrice(item),
+              color_name: getItemColor(item) || null
+            };
+            var itemRes = await sb.from('order_items').insert(itemData);
+            if (itemRes.error) {
+              console.error('order_items insert error:', itemRes.error);
+              if (/row-level security|RLS/i.test(itemRes.error.message || '')) {
+                throw new Error('Permissao do banco bloqueou os itens do pedido. Rode database/checkout_fixes.sql no Supabase.');
+              }
+              throw itemRes.error;
+            }
+          }
+
+          try {
+            var stockRes = await sb.rpc('decrement_stock_for_order', { p_order_id: order.id });
+            if (stockRes && stockRes.error) {
+              console.warn('[Conforta] Falha ao baixar estoque do pedido:', stockRes.error.message || stockRes.error);
+            }
+          } catch (stockErr) {
+            console.warn('[Conforta] Erro ao baixar estoque do pedido:', stockErr);
+          }
+
+          // Process payment
+          var paymentResult = null;
+          var customerData = {
+            user_id: user.id,
+            name: user.user_metadata?.full_name || 'Cliente',
+            email: user.email,
+            phone: user.user_metadata?.phone || '',
+            document: document.getElementById('cardDocument')?.value?.replace(/\D/g, '') || ''
+          };
+
+          var orderPaymentData = {
+            customer: customerData,
+            total: total,
+            orderNumber: orderNumber,
+            orderId: order.id,
+            card: selectedMethod === 'CREDIT_CARD' ? {
+              number: document.getElementById('cardNumber')?.value?.replace(/\s/g, '') || '',
+              holderName: document.getElementById('cardName')?.value || '',
+              expiryMonth: document.getElementById('cardExpiry')?.value?.split('/')[0] || '',
+              expiryYear: '20' + (document.getElementById('cardExpiry')?.value?.split('/')[1] || ''),
+              ccv: document.getElementById('cardCvv')?.value || ''
+            } : null
+          };
+
+          switch (selectedMethod) {
+            case 'PIX':
+              paymentResult = await processPixPayment(orderPaymentData);
+              break;
+            case 'CREDIT_CARD':
+              paymentResult = await processCreditCardPayment(orderPaymentData);
+              break;
+            case 'BOLETO':
+              paymentResult = await processBoletoPayment(orderPaymentData);
+              break;
+            default:
+              paymentResult = PAYMENT_FALLBACK;
+          }
+
+          if (!paymentResult) {
+            showOrderConfirmation(order, null);
+            return;
+          }
+
+          try { await clearCart(); } catch(e) {}
+
+          showOrderConfirmation(order, paymentResult);
+
+        } catch(e) {
+          showToast('Erro ao processar pedido: ' + (e.message || e), 'error');
+          if (btn) { btn.disabled = false; btn.textContent = 'Finalizar Pedido - ' + formatPrice(total); }
+        } finally {
+          processingOrder = false;
+        }
+      };
+
+      function showOrderConfirmation(order, payment) {
+        var container = document.getElementById('checkoutContent');
+        var statusMsg = '';
+        var paymentInfo = '';
+        var paymentFailed = !payment;
+
+        if (paymentFailed) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[Conforta] Pagamento nao concluido. Loja publicada com gateway ativo ou use vercel dev para testar /api/asaas-proxy localmente.');
+          }
+          statusMsg =
+            '<strong style="color:#b45309">Pagamento nao foi concluido agora.</strong> Seu pedido foi registrado e aparece como pendente. Nenhum valor foi cobrado. ' +
+            'Tente finalizar o pagamento de novo em instantes ou entre em contato com a loja.';
+        } else {
+          switch (selectedMethod) {
+            case 'PIX':
+              statusMsg = 'Pagamento via PIX pendente. Escaneie o QR Code abaixo para pagar.';
+              paymentInfo = payment.pixKey
+                ? '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:20px;text-align:center;margin:16px 0;">' +
+                  (payment.pixQrCode ? '<img src="data:image/png;base64,' + payment.pixQrCode + '" style="width:200px;height:200px;margin:0 auto 16px;" alt="QR Code PIX">' : '') +
+                  '<p style="font-size:0.82rem;color:#64748b;margin-bottom:6px;">Codigo PIX (copia e cola):</p>' +
+                  '<code style="display:block;background:#ffffff;border:1px solid #e2e8f0;border-radius:4px;padding:10px;font-size:0.78rem;word-break:break-all;">' + payment.pixKey + '</code>' +
+                  '<button type="button" class="btn btn-sm btn-outline" style="margin-top:10px;" data-pix-copy="' + encodeURIComponent(payment.pixKey) + '" onclick="window.copyPixFromBtn(this)">Copiar codigo</button>' +
+                  '</div>'
+                : '<p style="color:#64748b;font-size:0.85rem;">PIX gerado, mas o codigo ainda nao chegou. Atualize a pagina ou veja o pedido no perfil.</p>';
+              break;
+            case 'BOLETO':
+              statusMsg = 'Boleto gerado com sucesso!';
+              paymentInfo = payment.boletoUrl
+                ? '<div style="margin:16px 0;"><a href="' + payment.boletoUrl + '" target="_blank" class="btn btn-primary">Baixar Boleto</a>' +
+                  (payment.barCode ? '<p style="margin-top:8px;font-size:0.82rem;color:#64748b;">Codigo de barras: <code style="display:block;background:#f1f5f9;padding:8px;border-radius:4px;margin-top:4px;font-size:0.78rem;">' + payment.barCode + '</code></p>' : '') +
+                  '</div>'
+                : '';
+              break;
+            case 'CREDIT_CARD':
+              statusMsg = 'Pagamento processado com sucesso!';
+              break;
+            default:
+              statusMsg = 'Pedido criado com sucesso!';
+          }
+        }
+
+        var iconColor = paymentFailed ? '#ca8a04' : '#16a34a';
+        var title = paymentFailed ? 'Pedido registrado (pagamento pendente)' : 'Pedido confirmado!';
+
+        container.innerHTML =
+          '<div style="max-width:600px;margin:0 auto;text-align:center;padding:40px 0;">' +
+          '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' +
+          '<h2 style="font-size:1.3rem;font-weight:700;color:#0f172a;margin:16px 0 4px;">' + title + '</h2>' +
+          '<p style="font-size:0.9rem;color:#64748b;">Pedido <strong>#' + order.order_number + '</strong> foi criado no sistema.</p>' +
+          '<p style="font-size:0.88rem;color:#475569;margin-top:12px;line-height:1.55;text-align:left;max-width:520px;margin-left:auto;margin-right:auto;">' + statusMsg + '</p>' +
+          paymentInfo +
+          '<div style="margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">' +
+          '<a href="perfil.html" class="btn btn-outline">Acompanhar Pedido</a>' +
+          '<a href="produtos.html" class="btn btn-primary">Continuar Comprando</a>' +
+          '</div>' +
+          '</div>';
+      }
+
+      window.openAddressModal = function() {
+        showToast('Use a pagina Meu Perfil para gerenciar enderecos', 'info');
+      };
+
+      window.copyPixFromBtn = function(btn) {
+        var enc = btn && btn.getAttribute('data-pix-copy');
+        if (!enc) return;
+        try {
+          copyToClipboard(decodeURIComponent(enc), 'Codigo PIX copiado');
+        } catch (e) {
+          copyToClipboard(enc, 'Codigo PIX copiado');
+        }
+      };
+
+      window.copyToClipboard = function(text, msg) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).then(function() { showToast(msg || 'Copiado', 'success'); });
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showToast(msg || 'Copiado', 'success');
+        }
+      };
+
+    })();
+  </script>
+</body>
+</html>

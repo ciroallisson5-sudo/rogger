@@ -1,0 +1,9 @@
+{
+  "name": "conforta-store",
+  "version": "1.0.0",
+  "description": "Conforta Store - E-commerce with Supabase + Asaas payments",
+  "scripts": {
+    "dev": "npx serve .",
+    "dev:vercel": "vercel dev"
+  }
+}

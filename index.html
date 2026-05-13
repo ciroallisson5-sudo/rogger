@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Conforta Colchoes - Descansar bem muda tudo. Colchoes de qualidade com entrega rapida e ate 12x sem juros.">
+  <title>Conforta Colchoes - Descansar bem muda tudo</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; background: #0f172a; line-height: 1.6; }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+    img { max-width: 100%; display: block; }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input { font-family: inherit; border: none; outline: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+    /* Header */
+    .header { position: fixed; top: 0; left: 0; right: 0; background: #0f172a; border-bottom: 1px solid #1e293b; z-index: 1000; }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 20px; }
+    .logo { display: flex; align-items: center; gap: 8px; color: #ffffff; }
+    .logo img { height: 36px; width: auto; display: block; }
+    .logo .logo-text { font-size: 1rem; font-weight: 700; color: #ffffff; letter-spacing: -0.3px; line-height: 1.1; }
+    .logo .logo-text small { display: block; font-weight: 400; color: #94a3b8; font-size: 0.7rem; letter-spacing: 1px; }
+    .search-bar { flex: 1; max-width: 480px; display: flex; align-items: center; background: #1e293b; border-radius: 6px; overflow: hidden; border: 1px solid transparent; transition: border-color 0.2s; }
+    .search-bar:focus-within { border-color: #1a56db; background: #1e293b; }
+    .search-bar input { flex: 1; padding: 10px 16px; background: transparent; font-size: 0.9rem; color: #e2e8f0; }
+    .search-bar input::placeholder { color: #64748b; }
+    .search-bar button { padding: 10px 16px; background: transparent; display: flex; align-items: center; justify-content: center; color: #64748b; transition: color 0.2s; }
+    .search-bar button:hover { color: #ffffff; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .header-actions button { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: #cbd5e1; transition: background 0.2s, color 0.2s; }
+    .header-actions button:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
+    .cart-count { position: absolute; top: 2px; right: 2px; background: #dc2626; color: #ffffff; font-size: 0.65rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; display: none; }
+    .cart-count.visible { display: flex; }
+    .mobile-menu-btn { display: none; }
+    .mobile-menu { display: none; position: fixed; top: 56px; left: 0; right: 0; background: #0f172a; border-bottom: 1px solid #1e293b; padding: 12px 20px; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .mobile-menu.open { display: block; }
+    .mobile-menu a { display: block; padding: 10px 0; font-size: 0.95rem; font-weight: 500; color: #cbd5e1; border-bottom: 1px solid #1e293b; }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a:hover { color: #ffffff; }
+
+    /* Main */
+    .main { margin-top: 0; padding-top: 56px; background: #ffffff; }
+
+    /* Hero */
+    .hero { background: linear-gradient(180deg, #0f172a 0%, #1e40af 40%, #3b82f6 100%); padding: 24px 0 48px; color: #ffffff; position: relative; overflow: hidden; margin-top: -56px; padding-top: calc(56px + 24px); }
+    .hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events: none; }
+    .hero .container { position: relative; z-index: 1; }
+    .hero-content { max-width: 720px; }
+    .hero h1 { font-size: 2rem; font-weight: 800; line-height: 1.2; margin-bottom: 14px; letter-spacing: -0.5px; }
+    .hero p { font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.85); margin-bottom: 22px; max-width: 600px; }
+    .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .hero-actions .btn-primary { background: #ffffff; color: #1a56db; padding: 11px 22px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; transition: transform 0.2s, box-shadow 0.2s; }
+    .hero-actions .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .hero-actions .btn-outline { border: 2px solid rgba(255,255,255,0.5); color: #ffffff; padding: 9px 22px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; transition: background 0.2s, border-color 0.2s; }
+    .hero-actions .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: #ffffff; }
+    .hero-info-bar { margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.15); display: flex; gap: 22px; flex-wrap: wrap; }
+    .hero-info-bar span { font-size: 0.82rem; color: rgba(255,255,255,0.78); display: flex; align-items: center; gap: 6px; }
+    .hero-info-bar span svg { flex-shrink: 0; }
+
+    /* Sections */
+    .section { padding: 36px 0; }
+    .section-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    .section-subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 22px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .section-header .section-title { margin-bottom: 0; }
+    .section-link { font-size: 0.9rem; font-weight: 600; color: #1a56db; display: flex; align-items: center; gap: 4px; transition: gap 0.2s; }
+    .section-link:hover { gap: 8px; }
+
+    /* Carousel */
+    .carousel-wrapper { position: relative; max-width: 720px; margin: 0 auto; }
+    .carousel { overflow: hidden; border-radius: 10px; position: relative; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 4px 18px rgba(15,23,42,0.06); }
+    .carousel-track { display: flex; transition: transform 0.5s ease; }
+    .carousel-slide { min-width: 100%; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; background: #ffffff; position: relative; cursor: pointer; }
+    .carousel-slide img, .carousel-slide video { width: 100%; height: 100%; object-fit: contain; background: #ffffff; }
+    .carousel-slide-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 24px; background: linear-gradient(transparent, rgba(0,0,0,0.65)); color: #ffffff; text-align: left; }
+    .carousel-slide-content h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .carousel-slide-content p { font-size: 0.88rem; opacity: 0.9; }
+    .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 44px; height: 44px; border-radius: 6px; background: rgba(255,255,255,0.9); color: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: background 0.2s, transform 0.2s; }
+    .carousel-btn:hover { background: #ffffff; transform: translateY(-50%) scale(1.05); }
+    .carousel-btn.prev { left: 16px; }
+    .carousel-btn.next { right: 16px; }
+    .carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+    .carousel-dots button { width: 10px; height: 10px; border-radius: 5px; background: #cbd5e1; transition: background 0.3s, width 0.3s; }
+    .carousel-dots button.active { background: #1a56db; width: 28px; }
+
+    /* Benefits */
+    .benefits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .benefit-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 20px 16px; text-align: center; transition: transform 0.2s, box-shadow 0.2s; }
+    .benefit-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .benefit-card .icon { width: 40px; height: 40px; border-radius: 6px; background: #eff6ff; color: #1a56db; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+    .benefit-card h3 { font-size: 0.95rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    .benefit-card p { font-size: 0.82rem; color: #64748b; line-height: 1.5; }
+
+    /* Category Links */
+    .category-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .category-links a { padding: 9px 16px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.82rem; font-weight: 600; color: #334155; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+    .category-links a:hover { background: #eff6ff; color: #1a56db; border-color: #1a56db; }
+
+    /* Promo banner (light blue, just after hero) */
+    .promo-banner { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); color: #fff; padding: 18px 0; }
+    .promo-banner-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .promo-banner-text { display: flex; align-items: center; gap: 12px; }
+    .promo-banner-text svg { flex-shrink: 0; }
+    .promo-banner-text h3 { font-size: 1.05rem; font-weight: 700; line-height: 1.2; margin-bottom: 2px; }
+    .promo-banner-text p { font-size: 0.85rem; opacity: 0.92; }
+    .promo-banner .btn-promo { background: #ffffff; color: #1e40af; padding: 9px 18px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; transition: transform 0.2s, box-shadow 0.2s; }
+    .promo-banner .btn-promo:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+    /* Flash sale & weekly offer sections */
+    .flash-banner { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .flash-banner .flash-info { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.95rem; }
+    .flash-banner .flash-info svg { flex-shrink: 0; }
+    .flash-timer { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); padding: 6px 12px; border-radius: 6px; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.95rem; }
+    .weekly-banner { background: linear-gradient(135deg, #0f3a8e 0%, #1a56db 100%); color: #fff; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.95rem; }
+
+    /* Product Grid */
+    .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .product-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; position: relative; cursor: pointer; }
+    .product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .product-card .product-image { width: 100%; aspect-ratio: 1 / 1; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.85rem; overflow: hidden; }
+    .product-card .product-image img { width: 100%; height: 100%; object-fit: cover; }
+    .product-card .product-body { padding: 12px; flex: 1; display: flex; flex-direction: column; }
+    .product-card .product-category { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #1a56db; margin-bottom: 4px; }
+    .product-card .product-name { font-size: 0.85rem; font-weight: 600; color: #0f172a; margin-bottom: 6px; line-height: 1.3; flex: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .product-card .product-flash { display: inline-flex; align-items: center; gap: 4px; background: #fef2f2; color: #dc2626; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-bottom: 6px; width: fit-content; }
+    .product-card .product-old-price { font-size: 0.78rem; color: #94a3b8; text-decoration: line-through; }
+    .product-card .product-price { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+    .product-card .product-installment { font-size: 0.72rem; color: #64748b; margin-bottom: 10px; }
+    .product-card .btn-add-cart { width: 100%; padding: 8px; background: #1a56db; color: #ffffff; border-radius: 6px; font-weight: 600; font-size: 0.8rem; transition: background 0.2s; }
+    .product-card .btn-add-cart:hover { background: #0f3a8e; }
+    .product-card .product-countdown { display: inline-flex; align-items: center; gap: 4px; background: #fff7ed; color: #c2410c; font-size: 0.7rem; font-weight: 700; padding: 3px 7px; border-radius: 4px; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+
+    /* Compact Footer */
+    .footer { background: #0f172a; color: #cbd5e1; padding: 24px 0 18px; margin-top: 24px; }
+    .footer-compact { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
+    .footer-brand-mini { display: inline-flex; align-items: center; }
+    .footer-brand-mini img { height: 34px; width: auto; display: block; }
+    .footer-contacts { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+    .footer-contact-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #cbd5e1; transition: color 0.2s; }
+    a.footer-contact-item:hover { color: #fff; }
+    .footer-contact-item svg { flex-shrink: 0; color: #94a3b8; }
+    .footer-bottom-mini { font-size: 0.75rem; color: #64748b; padding-top: 12px; border-top: 1px solid #1e293b; width: 100%; }
+
+    /* Loading */
+    .loading-spinner { display: flex; align-items: center; justify-content: center; padding: 40px; color: #94a3b8; gap: 8px; }
+    .loading-spinner::before { content: ''; width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: #1a56db; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .product-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .search-bar { display: none; }
+      .mobile-menu-btn { display: flex; }
+      .hero { padding: 32px 0 28px; }
+      .hero h1 { font-size: 1.4rem; margin-bottom: 10px; }
+      .hero p { font-size: 0.88rem; margin-bottom: 16px; }
+      .hero-actions .btn-primary, .hero-actions .btn-outline { padding: 10px 18px; font-size: 0.85rem; }
+      .section { padding: 24px 0; }
+      .benefits-grid { grid-template-columns: 1fr; gap: 10px; }
+      .benefit-card { padding: 16px 14px; }
+      .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .carousel-wrapper { max-width: 100%; }
+      .carousel-slide { aspect-ratio: 1 / 1; }
+      .carousel-slide-content { padding: 14px 16px; }
+      .carousel-slide-content h3 { font-size: 1rem; }
+      .carousel-slide-content p { font-size: 0.8rem; }
+      .section-title { font-size: 1.1rem; }
+      .hero-info-bar { gap: 12px; margin-top: 16px; padding-top: 12px; }
+      .hero-info-bar span { font-size: 0.75rem; }
+      .footer { padding: 20px 0 14px; }
+      .footer-contacts { gap: 10px; flex-direction: column; }
+      .product-card .product-body { padding: 10px; }
+      .product-card .product-price { font-size: 0.95rem; }
+    }
+    @media (max-width: 480px) {
+      .container { padding: 0 12px; }
+      .header-inner { gap: 8px; height: 52px; }
+      .main { padding-top: 52px; }
+      .hero { margin-top: -52px; padding-top: calc(52px + 18px); }
+      .mobile-menu { top: 52px; }
+      .logo img { height: 28px; }
+      .logo .logo-text { display: none; }
+      .header-actions button, .header-actions a { width: 36px; height: 36px; }
+      .hero h1 { font-size: 1.25rem; }
+      .product-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .product-card .product-name { font-size: 0.78rem; }
+      .product-card .product-price { font-size: 0.9rem; }
+      .product-card .btn-add-cart { padding: 7px; font-size: 0.75rem; }
+      .carousel-slide { aspect-ratio: 1 / 1; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="Conforta Colchoes">
+        <img src="assets/logo.png" alt="">
+        <span class="logo-text">Conforta<small>COLCHOES</small></span>
+      </a>
+      <form class="search-bar" id="searchForm" action="produtos.html" method="GET">
+        <input type="text" name="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
+        <button type="submit" aria-label="Buscar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </button>
+      </form>
+      <div class="header-actions">
+        <button id="cartBtn" aria-label="Carrinho">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+        <a href="perfil.html" id="authBtn" aria-label="Perfil">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </a>
+        <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">
+          <svg id="menuIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+          </svg>
+          <svg id="closeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="index.html">Inicio</a>
+      <a href="produtos.html">Produtos</a>
+      <a href="perfil.html">Meu Perfil</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1>Descansar bem muda tudo</h1>
+          <p>Colchoes selecionados para transformar suas noites de sono. Conforta Colchoes: qualidade, durabilidade e o melhor preco em Serra, Vitoria e regiao.</p>
+          <div class="hero-actions">
+            <a href="produtos.html" class="btn-primary">Ver produtos disponiveis</a>
+            <button class="btn-outline" onclick="openChat()">Falar com assistente</button>
+          </div>
+          <div class="hero-info-bar">
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              Entrega rapida
+            </span>
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              12x sem juros
+            </span>
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Atendimento especializado
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="promo-banner">
+      <div class="container promo-banner-inner">
+        <div class="promo-banner-text">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          <div>
+            <h3>Frete rapido e ate 12x sem juros</h3>
+            <p>Compre online e receba em ate 24h em Serra, Vitoria e regiao</p>
+          </div>
+        </div>
+        <a href="produtos.html" class="btn-promo">Ver colchoes</a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Destaques</h2>
+        </div>
+        <div class="carousel-wrapper">
+          <div class="carousel" id="carousel">
+            <div class="carousel-track" id="carouselTrack"></div>
+            <button class="carousel-btn prev" id="carouselPrev" aria-label="Anterior">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="carousel-btn next" id="carouselNext" aria-label="Proximo">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="carousel-dots" id="carouselDots"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="flashSection" style="display:none;">
+      <div class="container">
+        <div class="flash-banner">
+          <div class="flash-info">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Promocao Relampago
+          </div>
+          <div class="flash-timer" id="flashTimer">--:--:--</div>
+        </div>
+        <div class="product-grid" id="flashGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" id="weeklySection" style="display:none; background:#f8fafc;">
+      <div class="container">
+        <div class="weekly-banner">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Oferta da Semana
+        </div>
+        <div class="product-grid" id="weeklyGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" style="background: #f8fafc;">
+      <div class="container">
+        <div class="benefits-grid">
+          <div class="benefit-card">
+            <div class="icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            </div>
+            <h3>Parcelamento facilitado</h3>
+            <p>Compre em ate 12x sem juros e encontre a opcao ideal para seu orcamento.</p>
+          </div>
+          <div class="benefit-card">
+            <div class="icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h3>Atendimento especializado</h3>
+            <p>Nossa equipe ajuda voce a escolher o produto ideal para sua necessidade e espaco.</p>
+          </div>
+          <div class="benefit-card">
+            <div class="icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <h3>Entrega rapida</h3>
+            <p>Receba seus produtos em ate 24 horas com agilidade, seguranca e suporte em Serra, Vitoria e regiao.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="category-links">
+          <a href="produtos.html?categoria=1">Ver colchoes</a>
+          <a href="produtos.html?categoria=2">Ver sofas</a>
+          <a href="produtos.html?categoria=3">Box bau</a>
+          <a href="produtos.html?categoria=4">Cabeceiras</a>
+          <a href="produtos.html?categoria=5">Kit colchao + base</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="background: #f8fafc;">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Produtos em Oferta</h2>
+          <a href="produtos.html" class="section-link">
+            Ver todos
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+        <div class="product-grid" id="productGrid"></div>
+      </div>
+    </section>
+
+    <div id="chatContainer"></div>
+  </main>
+
+  <footer class="footer" id="siteFooter"></footer>
+
+  <script src="js/supabase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/products.js"></script>
+  <script src="js/chat.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof initSupabase === 'function') initSupabase();
+
+        var cartCountEl = document.getElementById('cartCount');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        var menuIcon = document.getElementById('menuIcon');
+        var closeIcon = document.getElementById('closeIcon');
+
+        if (mobileMenuBtn && mobileMenu) {
+          mobileMenuBtn.addEventListener('click', function() {
+            var isOpen = mobileMenu.classList.toggle('open');
+            if (menuIcon) menuIcon.style.display = isOpen ? 'none' : 'block';
+            if (closeIcon) closeIcon.style.display = isOpen ? 'block' : 'none';
+          });
+        }
+
+        document.addEventListener('click', function(e) {
+          if (mobileMenu && mobileMenuBtn && !mobileMenu.contains(e.target) && e.target !== mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+            mobileMenu.classList.remove('open');
+            if (menuIcon) menuIcon.style.display = 'block';
+            if (closeIcon) closeIcon.style.display = 'none';
+          }
+        });
+
+        var searchForm = document.getElementById('searchForm');
+        if (searchForm) {
+          searchForm.addEventListener('submit', function(e) {
+            var input = this.querySelector('input');
+            if (input && !input.value.trim()) {
+              e.preventDefault();
+            }
+          });
+        }
+
+        if (typeof updateCartCount === 'function') updateCartCount();
+
+        async function loadFeaturedProducts() {
+          var track = document.getElementById('carouselTrack');
+          var dots = document.getElementById('carouselDots');
+          var grid = document.getElementById('productGrid');
+          if (!track || !grid) return;
+
+          track.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+          grid.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+
+          if (typeof getSupabase !== 'function') {
+            renderFallbackContent(track, dots, grid);
+            return;
+          }
+          var sb = getSupabase();
+          if (!sb) {
+            renderFallbackContent(track, dots, grid);
+            return;
+          }
+
+          try {
+            var carouselIds = [];
+            try {
+              var setRes = await sb.from('site_settings').select('value').eq('key', 'home_carousel_product_ids').maybeSingle();
+              if (setRes.data && Array.isArray(setRes.data.value)) carouselIds = setRes.data.value;
+            } catch (_) {}
+
+            var response = await sb
+              .from('products')
+              .select('*, product_photos(*)')
+              .eq('active', true)
+              .order('featured', { ascending: false })
+              .order('created_at', { ascending: false })
+              .limit(40);
+
+            var data = response.data;
+            if (response.error || !data || data.length === 0) {
+              renderFallbackContent(track, dots, grid);
+              return;
+            }
+
+            var carouselProducts;
+            if (carouselIds.length > 0) {
+              var byId = {};
+              data.forEach(function(p) { byId[String(p.id)] = p; });
+              carouselProducts = carouselIds.map(function(id) { return byId[String(id)]; }).filter(Boolean);
+            }
+            if (!carouselProducts || carouselProducts.length === 0) {
+              carouselProducts = data.filter(function(p) { return p.featured; });
+            }
+            if (!carouselProducts || carouselProducts.length === 0) {
+              carouselProducts = data.slice(0, 5);
+            }
+
+            var offers = data.filter(function(p) {
+              var dp = parseFloat(p.discount_price || p.sale_price || 0);
+              var bp = parseFloat(p.base_price || p.price || 0);
+              return dp && bp && dp < bp;
+            });
+            if (offers.length === 0) offers = data;
+
+            renderCarousel(carouselProducts, track, dots);
+            renderProducts(offers.length > 0 ? offers : data.slice(0, 8), grid);
+          } catch (_) {
+            renderFallbackContent(track, dots, grid);
+          }
+        }
+
+        function renderFallbackContent(track, dots, grid) {
+          var fallbackProducts = [
+            { id: 1, name: 'Colchao King Size Conforta', category_id: 1, price: 4999.00, sale_price: 3999.00, installment: 12, featured: true, product_photos: [] },
+            { id: 2, name: 'Sofa 3 Lugares Conforta Premium', category_id: 2, price: 3899.00, sale_price: 3299.00, installment: 12, featured: true, product_photos: [] },
+            { id: 3, name: 'Box Bau Casal Conforta', category_id: 3, price: 2199.00, sale_price: 1799.00, installment: 10, featured: true, product_photos: [] },
+            { id: 4, name: 'Cabeceira Estofada King', category_id: 4, price: 1299.00, sale_price: 999.00, installment: 10, featured: true, product_photos: [] },
+            { id: 5, name: 'Kit Colchao Casal + Box Bau', category_id: 5, price: 3999.00, sale_price: 3499.00, installment: 12, featured: true, product_photos: [] },
+            { id: 6, name: 'Colchao Solteiro Conforta', category_id: 1, price: 1599.00, sale_price: 1299.00, installment: 10, featured: false, product_photos: [] },
+            { id: 7, name: 'Sofa 2 Lugares Retratil', category_id: 2, price: 2899.00, sale_price: 2499.00, installment: 12, featured: false, product_photos: [] },
+            { id: 8, name: 'Colchao Queen Size Ortopedico', category_id: 1, price: 3299.00, sale_price: 2799.00, installment: 12, featured: false, product_photos: [] }
+          ];
+          var featured = fallbackProducts.filter(function(p) { return p.featured; });
+          renderCarousel(featured.length > 0 ? featured : fallbackProducts.slice(0, 5), track, dots);
+          renderProducts(fallbackProducts, grid);
+        }
+
+        function renderCarousel(products, track, dots) {
+          if (!products || products.length === 0) {
+            track.innerHTML = '<div class="carousel-slide" style="color:#94a3b8;font-size:1rem;">Nenhum destaque disponivel</div>';
+            return;
+          }
+          track.innerHTML = products.map(function(p, i) {
+            var media = '';
+            var photos = (p.product_photos || []).slice().sort(function(a, b) { return (a.sort_order || 0) - (b.sort_order || 0); });
+            var first = photos[0];
+            if (first) {
+              if (first.is_video && first.video_url) {
+                media = '<video src="' + first.video_url + '" muted loop playsinline ' + (i === 0 ? 'autoplay' : '') + ' preload="metadata"></video>';
+              } else if (first.url) {
+                media = '<img src="' + first.url + '" alt="' + escapeHtml(p.name) + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '">';
+              }
+            }
+            if (!media) {
+              media = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+            }
+            var bp = parseFloat(p.base_price || p.price) || 0;
+            var dp = parseFloat(p.discount_price || p.sale_price) || 0;
+            var price = (dp && dp > 0) ? dp : bp;
+            return '<a href="produto.html?id=' + encodeURIComponent(p.id) + '" class="carousel-slide">' + media + '<div class="carousel-slide-content"><h3>' + escapeHtml(p.name) + '</h3><p>A partir de R$ ' + price.toFixed(2).replace('.', ',') + '</p></div></a>';
+          }).join('');
+
+          dots.innerHTML = products.map(function(_, i) {
+            return '<button class="' + (i === 0 ? 'active' : '') + '" data-index="' + i + '" aria-label="Slide ' + (i + 1) + '"></button>';
+          }).join('');
+
+          startCarousel();
+        }
+
+        function escapeHtml(s) {
+          if (s == null) return '';
+          return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function buildProductCard(p, opts) {
+          opts = opts || {};
+          var categoryNames = { 1: 'Colchoes', 2: 'Sofas', 3: 'Box Bau', 4: 'Cabeceiras', 5: 'Kits' };
+          var img = '';
+          if (p.product_photos && p.product_photos.length > 0) {
+            img = '<img src="' + p.product_photos[0].url + '" alt="' + escapeHtml(p.name) + '" loading="lazy">';
+          }
+          var catName = categoryNames[p.category_id] || (p.category && p.category.name) || 'Produtos';
+
+          var basePrice = parseFloat(p.base_price ?? p.price) || 0;
+          var discountPrice = (p.discount_price ?? p.sale_price);
+          discountPrice = (discountPrice === null || discountPrice === undefined || discountPrice === '') ? null : parseFloat(discountPrice);
+          var displayPrice = (discountPrice && discountPrice > 0) ? discountPrice : basePrice;
+          var hasDiscount = !!(discountPrice && discountPrice > 0 && discountPrice < basePrice);
+
+          var maxParcelas = parseInt(p.installment || p.max_installments || 12);
+          var installmentValue = (displayPrice > 0 && maxParcelas > 0) ? (displayPrice / maxParcelas) : 0;
+          var installmentHtml = (installmentValue >= 20)
+            ? '<span class="product-installment">' + maxParcelas + 'x de R$ ' + installmentValue.toFixed(2).replace('.', ',') + ' sem juros</span>'
+            : '';
+
+          var href = 'produto.html?id=' + encodeURIComponent(p.id);
+          var countdownHtml = '';
+          if (opts.countdownId) {
+            countdownHtml = '<span class="product-countdown" data-countdown="' + opts.countdownId + '">--:--:--</span>';
+          }
+          var safeId = String(p.id).replace(/'/g, "\\'");
+          return '<div class="product-card" data-id="' + escapeHtml(String(p.id)) + '" onclick="if(event.target.closest(\'.btn-add-cart\'))return;window.location.href=\'' + href + '\';">' +
+            '<a href="' + href + '" class="product-image" onclick="event.stopPropagation()">' + img + '</a>' +
+            '<div class="product-body">' +
+            '<span class="product-category">' + escapeHtml(catName) + '</span>' +
+            '<a href="' + href + '" style="color:inherit;text-decoration:none;flex:1;" onclick="event.stopPropagation()"><h3 class="product-name">' + escapeHtml(p.name) + '</h3></a>' +
+            countdownHtml +
+            (hasDiscount ? '<span class="product-flash"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Oferta</span>' : '') +
+            (hasDiscount ? '<span class="product-old-price">R$ ' + basePrice.toFixed(2).replace('.', ',') + '</span>' : '') +
+            '<span class="product-price">R$ ' + displayPrice.toFixed(2).replace('.', ',') + '</span>' +
+            installmentHtml +
+            '<button class="btn-add-cart" onclick="event.stopPropagation();addProductToCart(\'' + safeId + '\')">Adicionar ao carrinho</button>' +
+            '</div></div>';
+        }
+
+        function renderProducts(products, grid) {
+          if (!products || products.length === 0) {
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">Nenhum produto disponivel</div>';
+            return;
+          }
+          var display = products.slice(0, 8);
+          grid.innerHTML = display.map(function(p) { return buildProductCard(p); }).join('');
+        }
+
+        var carouselInterval = null;
+        var currentIndex = 0;
+
+        function startCarousel() {
+          var prevBtn = document.getElementById('carouselPrev');
+          var nextBtn = document.getElementById('carouselNext');
+          var dotsContainer = document.getElementById('carouselDots');
+          var track = document.getElementById('carouselTrack');
+          var slides = track ? track.querySelectorAll('.carousel-slide') : [];
+          var dots = dotsContainer ? dotsContainer.querySelectorAll('button') : [];
+
+          if (slides.length <= 1) {
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
+            return;
+          }
+
+          if (carouselInterval) clearInterval(carouselInterval);
+          currentIndex = 0;
+
+          function goTo(index) {
+            if (index < 0) index = slides.length - 1;
+            if (index >= slides.length) index = 0;
+            currentIndex = index;
+            track.style.transform = 'translateX(-' + (currentIndex * 100) + '%)';
+            dots.forEach(function(d, i) {
+              d.classList.toggle('active', i === currentIndex);
+            });
+          }
+
+          function nextSlide() { goTo(currentIndex + 1); }
+          function prevSlide() { goTo(currentIndex - 1); }
+
+          if (prevBtn) prevBtn.addEventListener('click', function() { prevSlide(); resetInterval(); });
+          if (nextBtn) nextBtn.addEventListener('click', function() { nextSlide(); resetInterval(); });
+          dots.forEach(function(dot) {
+            dot.addEventListener('click', function() {
+              goTo(parseInt(this.getAttribute('data-index')));
+              resetInterval();
+            });
+          });
+
+          function resetInterval() {
+            if (carouselInterval) clearInterval(carouselInterval);
+            carouselInterval = setInterval(nextSlide, 5000);
+          }
+
+          resetInterval();
+        }
+
+        loadFeaturedProducts();
+        loadHomeSections();
+
+        if (typeof renderCompactFooter === 'function') {
+          renderCompactFooter('#siteFooter');
+        }
+
+        async function loadHomeSections() {
+          if (typeof getSupabase !== 'function') return;
+          var sb = getSupabase();
+          if (!sb) return;
+          try {
+            var settingsRes = await sb.from('site_settings').select('key, value');
+            if (settingsRes.error || !settingsRes.data) return;
+            var map = {};
+            settingsRes.data.forEach(function(r) { map[r.key] = r.value; });
+
+            var flashIds = Array.isArray(map.home_flash_sale_product_ids) ? map.home_flash_sale_product_ids : [];
+            var weeklyIds = Array.isArray(map.home_weekly_offer_product_ids) ? map.home_weekly_offer_product_ids : [];
+            var flashEnd = map.home_flash_sale_ends_at;
+
+            if (flashIds.length > 0) {
+              await loadIntoGrid(flashIds, 'flashGrid', 'flashSection', { withCountdown: true });
+              var timer = document.getElementById('flashTimer');
+              if (timer && flashEnd) {
+                startCountdown(timer, flashEnd);
+                document.querySelectorAll('[data-countdown="flash"]').forEach(function(el){ startCountdown(el, flashEnd); });
+              }
+            }
+            if (weeklyIds.length > 0) {
+              await loadIntoGrid(weeklyIds, 'weeklyGrid', 'weeklySection', {});
+            }
+          } catch (e) { /* silent */ }
+        }
+
+        async function loadIntoGrid(ids, gridId, sectionId, opts) {
+          var grid = document.getElementById(gridId);
+          var section = document.getElementById(sectionId);
+          if (!grid || !section) return;
+          if (typeof getSupabase !== 'function') return;
+          var sb = getSupabase();
+          if (!sb) return;
+          var res = await sb
+            .from('products')
+            .select('*, product_photos(*)')
+            .in('id', ids)
+            .eq('active', true);
+          if (res.error || !res.data || res.data.length === 0) return;
+          section.style.display = '';
+          grid.innerHTML = res.data.slice(0, 8).map(function(p) {
+            return buildProductCard(p, { countdownId: opts && opts.withCountdown ? 'flash' : null });
+          }).join('');
+        }
+
+        if (typeof window.updateCartCount === 'function') {
+          window.updateCartCount();
+        }
+
+      });
+
+      window.openChat = function() {
+        if (typeof window.openChatWidget === 'function') {
+          window.openChatWidget();
+        } else if (typeof window.toggleChat === 'function') {
+          window.toggleChat();
+        } else {
+          setTimeout(function() {
+            if (typeof window.openChatWidget === 'function') window.openChatWidget();
+          }, 300);
+        }
+      };
+    })();
+  </script>
+</body>
+</html>

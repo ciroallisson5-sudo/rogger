@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/asaas-proxy.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/openai-chat.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/asaas-proxy",
+      "dest": "/api/asaas-proxy.js"
+    },
+    {
+      "src": "/api/openai-chat",
+      "dest": "/api/openai-chat.js"
+    }
+  ]
+}
