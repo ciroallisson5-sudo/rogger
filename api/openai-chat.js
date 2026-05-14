@@ -1,4 +1,4 @@
-// Conforta Store - OpenAI Chat proxy (Vercel Serverless)
+// Conforta Store — assistente (Vercel Serverless)
 // Env: OPENAI_API_KEY (obrigatório). Opcional: OPENAI_CHAT_MODEL (default gpt-4o-mini)
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';

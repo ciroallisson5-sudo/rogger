@@ -170,6 +170,46 @@
         return (isFinite(q) && q > 0) ? q : 1;
       }
 
+      function getCheckoutDocumentDigits() {
+        var el = document.getElementById('checkoutDocument');
+        return (el && el.value) ? String(el.value).replace(/\D/g, '') : '';
+      }
+
+      function validaCPF(cpf) {
+        if (!cpf || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+        var n = cpf.split('').map(function(x) { return parseInt(x, 10); });
+        var s = 0;
+        for (var i = 0; i < 9; i++) s += n[i] * (10 - i);
+        var d1 = (s % 11) < 2 ? 0 : 11 - (s % 11);
+        if (d1 !== n[9]) return false;
+        s = 0;
+        for (var j = 0; j < 10; j++) s += n[j] * (11 - j);
+        var d2 = (s % 11) < 2 ? 0 : 11 - (s % 11);
+        return d2 === n[10];
+      }
+
+      function validaCNPJ(cnpj) {
+        if (!cnpj || cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+        var n = cnpj.split('').map(function(x) { return parseInt(x, 10); });
+        var w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        var s = 0;
+        for (var i = 0; i < 12; i++) s += n[i] * w1[i];
+        var d1 = s % 11 < 2 ? 0 : 11 - (s % 11);
+        if (d1 !== n[12]) return false;
+        var w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        s = 0;
+        for (var j = 0; j < 13; j++) s += n[j] * w2[j];
+        var d2 = s % 11 < 2 ? 0 : 11 - (s % 11);
+        return d2 === n[13];
+      }
+
+      function isValidBrazilTaxId(digits) {
+        if (!digits) return false;
+        if (digits.length === 11) return validaCPF(digits);
+        if (digits.length === 14) return validaCNPJ(digits);
+        return false;
+      }
+
       document.addEventListener('DOMContentLoaded', async function() {
         if (typeof initSupabase === 'function') initSupabase();
         sb = getSupabase();
@@ -254,6 +294,15 @@
           '</div>' +
 
           '<div class="checkout-section">' +
+          '<h2>CPF ou CNPJ</h2>' +
+          '<p style="font-size:0.8rem;color:#64748b;margin:-8px 0 14px;">Obrigatorio para PIX, boleto e cartao (regra do Asaas).</p>' +
+          '<div class="form-group">' +
+          '<label for="checkoutDocument">Documento do comprador</label>' +
+          '<input class="form-input" id="checkoutDocument" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00 ou 00.000.000/0000-00" maxlength="18">' +
+          '</div>' +
+          '</div>' +
+
+          '<div class="checkout-section">' +
           '<h2>Forma de Pagamento</h2>' +
           '<div class="payment-methods" id="paymentMethods"></div>' +
           '</div>' +
@@ -304,7 +353,6 @@
           '<div class="form-group"><label>CVV</label><input class="form-input" id="cardCvv" placeholder="123" maxlength="4"></div>' +
           '</div>' +
           '<div class="form-group"><label>Nome no Cartao</label><input class="form-input" id="cardName" placeholder="Como esta impresso no cartao"></div>' +
-          '<div class="form-group"><label>CPF/CNPJ do Titular</label><input class="form-input" id="cardDocument" placeholder="000.000.000-00" maxlength="18"></div>' +
           '</div>';
       }
 
@@ -326,14 +374,16 @@
 
       async function checkGatewayAvailability() {
         try {
-          var key = (typeof getSetting === 'function') ? await getSetting('asaas_api_key') : null;
-          var proxyOk = (typeof isAsaasProxyAvailable === 'function') ? await isAsaasProxyAvailable() : false;
+          var paymentApiOk = (typeof isAsaasPaymentApiAvailable === 'function') ? await isAsaasPaymentApiAvailable() : false;
           var pm = document.getElementById('paymentMethods');
           if (!pm) return;
           if (document.getElementById('checkoutPaymentEnvWarn')) return;
           var msg = '';
-          if (!key) msg = 'Pagamento online nao esta disponivel no momento. Voce ainda pode concluir o pedido; nosso time entrara em contato se necessario.';
-          else if (!proxyOk) msg = 'Pagamento online pode falhar neste endereco. Se isso acontecer, seu pedido fica registrado e voce pode falar com a loja.';
+          if (!paymentApiOk) {
+            msg =
+              (typeof window !== 'undefined' && window.__confortaAsaasApiHint && String(window.__confortaAsaasApiHint).trim()) ||
+              'Pagamento online indisponivel no momento. Seu pedido ainda pode ser registrado; entre em contato com a loja.';
+          }
           if (msg) {
             var warn = document.createElement('div');
             warn.id = 'checkoutPaymentEnvWarn';
@@ -371,6 +421,15 @@
             showToast('Selecione um endereco de entrega', 'error');
             if (btn) { btn.disabled = false; btn.textContent = 'Finalizar Pedido - ' + formatPrice(total); }
             return;
+          }
+
+          if (selectedMethod === 'PIX' || selectedMethod === 'BOLETO' || selectedMethod === 'CREDIT_CARD') {
+            var taxIdDigits = getCheckoutDocumentDigits();
+            if (!isValidBrazilTaxId(taxIdDigits)) {
+              showToast('Informe um CPF ou CNPJ valido antes de finalizar (obrigatorio para este pagamento).', 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Finalizar Pedido - ' + formatPrice(total); }
+              return;
+            }
           }
 
           var orderNumber = generateOrderNumber();
@@ -441,7 +500,7 @@
             name: user.user_metadata?.full_name || 'Cliente',
             email: user.email,
             phone: user.user_metadata?.phone || '',
-            document: document.getElementById('cardDocument')?.value?.replace(/\D/g, '') || ''
+            document: getCheckoutDocumentDigits()
           };
 
           var orderPaymentData = {
@@ -496,12 +555,6 @@
         var paymentFailed = !payment;
 
         if (paymentFailed) {
-          if (typeof console !== 'undefined' && console.warn) {
-            console.warn(
-              '[Conforta] Pagamento nao concluido. Verifique: (1) variavel ASAAS_API_KEY na Vercel e redeploy; ' +
-              '(2) ambiente Asaas no admin (sandbox vs producao) igual ao da chave; (3) resposta de /api/asaas-proxy no Network.'
-            );
-          }
           statusMsg =
             '<strong style="color:#b45309">Pagamento nao foi concluido agora.</strong> Seu pedido foi registrado e aparece como pendente. Nenhum valor foi cobrado. ' +
             'Tente finalizar o pagamento de novo em instantes ou entre em contato com a loja.';
