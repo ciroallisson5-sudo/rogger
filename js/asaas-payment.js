@@ -5,8 +5,11 @@ const ASAAS_PROXY_URL = '/api/asaas-proxy';
 const MSG_PAYMENT_UNAVAILABLE = 'Pagamento online indisponivel no momento. Tente mais tarde ou fale com a loja.';
 
 function logPaymentDev(reason, detail) {
-  if (typeof console !== 'undefined' && console.warn) {
-    console.warn('[Conforta/Asaas] ' + (reason || ''), detail || '');
+  if (typeof console === 'undefined' || typeof console.warn !== 'function') return;
+  if (detail === undefined || detail === null || detail === '') {
+    console.warn('[Conforta/Asaas]', reason || '');
+  } else {
+    console.warn('[Conforta/Asaas]', reason || '', detail);
   }
 }
 
@@ -67,7 +70,10 @@ async function callAsaasProxy(endpoint, method, body) {
       throw new Error('gateway');
     }
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || 'Erro na requisicao');
+    if (!res.ok) {
+      const msg = result.error || result.message || 'Erro na requisicao';
+      throw new Error('HTTP ' + res.status + ': ' + msg);
+    }
     return result;
   } catch (e) {
     logPaymentDev('Falha no proxy Asaas', e && e.message);
