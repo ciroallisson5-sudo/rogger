@@ -428,7 +428,7 @@
           try {
             var stockRes = await sb.rpc('decrement_stock_for_order', { p_order_id: order.id });
             if (stockRes && stockRes.error) {
-              console.warn('[Conforta] Falha ao baixar estoque do pedido:', stockRes.error.message || stockRes.error);
+              console.warn('[Conforta] Falha ao baixar estoque do pedido:', stockRes.error.message || stockRes.error, stockRes.error);
             }
           } catch (stockErr) {
             console.warn('[Conforta] Erro ao baixar estoque do pedido:', stockErr);
@@ -497,7 +497,10 @@
 
         if (paymentFailed) {
           if (typeof console !== 'undefined' && console.warn) {
-            console.warn('[Conforta] Pagamento nao concluido. Loja publicada com gateway ativo ou use vercel dev para testar /api/asaas-proxy localmente.');
+            console.warn(
+              '[Conforta] Pagamento nao concluido. Verifique: (1) variavel ASAAS_API_KEY na Vercel e redeploy; ' +
+              '(2) ambiente Asaas no admin (sandbox vs producao) igual ao da chave; (3) resposta de /api/asaas-proxy no Network.'
+            );
           }
           statusMsg =
             '<strong style="color:#b45309">Pagamento nao foi concluido agora.</strong> Seu pedido foi registrado e aparece como pendente. Nenhum valor foi cobrado. ' +
