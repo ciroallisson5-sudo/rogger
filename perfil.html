@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Meu perfil - Conforta Colchoes. Gerencie seus dados, enderecos, pedidos e configuracoes.">
-  <title>Meu Perfil - Conforta Colchoes</title>
+  <meta name="theme-color" content="#0f172a">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="Meu perfil - Conforta Colchões. Gerencie seus dados, enderecos, pedidos e configuracoes.">
+  <title>Meu Perfil - Conforta Colchões</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,8 +16,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; background: #0f172a; line-height: 1.6; }
-    .main { background: #f8fafc; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; background: #f8fafc; line-height: 1.6; }
     a { text-decoration: none; color: inherit; }
     ul { list-style: none; }
     img { max-width: 100%; display: block; }
@@ -48,12 +49,12 @@
     .mobile-menu a { display: block; padding: 10px 0; font-size: 0.95rem; font-weight: 500; color: #cbd5e1; border-bottom: 1px solid #1e293b; }
     .mobile-menu a:last-child { border-bottom: none; }
     .mobile-menu a:hover { color: #ffffff; }
-    .main { margin-top: 56px; min-height: calc(100vh - 56px); }
+    .main { margin-top: 0; min-height: 100vh; background: #f8fafc; }
 
-    .profile-page { padding: 32px 0 48px; }
+    .profile-page { max-width: 1200px; margin: 0 auto; padding: 28px 16px 48px; background: #f8fafc; min-height: 100vh; width: 100%; }
 
-    /* Login gate */
-    .auth-gate { max-width: 420px; margin: 40px auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 28px 26px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    /* Login gate — largura total, sem “colunas” escuras nas laterais */
+    .auth-gate { max-width: 420px; width: 100%; margin: 24px auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px 22px; box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
     .auth-gate h2 { font-size: 1.25rem; font-weight: 700; color: #0f172a; text-align: center; margin-bottom: 4px; }
     .auth-gate p.sub { font-size: 0.85rem; color: #64748b; text-align: center; margin-bottom: 22px; }
     .auth-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 6px; margin-bottom: 18px; }
@@ -75,9 +76,9 @@
     .profile-header-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
     .profile-header-bar h1 { font-size: 1.5rem; font-weight: 700; color: #0f172a; }
 
-    .profile-layout { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start; }
+    .profile-layout { display: flex; flex-direction: column; gap: 22px; align-items: stretch; width: 100%; max-width: 100%; margin: 0; }
 
-    .profile-sidebar { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+    .profile-sidebar { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; width: 100%; }
 
     .profile-summary { padding: 24px 20px; text-align: center; border-bottom: 1px solid #f1f5f9; }
     .profile-banner-wrap { height: 80px; background: linear-gradient(135deg, #1a56db, #0f3a8e); border-radius: 6px 6px 0 0; margin: -24px -20px 16px; overflow: hidden; }
@@ -88,16 +89,16 @@
     .profile-name { font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
     .profile-email { font-size: 0.82rem; color: #64748b; }
 
-    .profile-nav { padding: 8px; }
-    .profile-nav-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border-radius: 6px; font-size: 0.88rem; font-weight: 500; color: #475569; transition: all 0.15s; text-align: left; }
+    .profile-nav { padding: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .profile-nav-item { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; justify-content: flex-start; padding: 10px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 500; color: #475569; transition: all 0.15s; text-align: left; border: 1px solid transparent; background: transparent; }
     .profile-nav-item:hover { background: #f1f5f9; color: #1e293b; }
-    .profile-nav-item.active { background: #eff6ff; color: #1a56db; font-weight: 600; }
+    .profile-nav-item.active { background: #eff6ff; color: #1a56db; font-weight: 600; border-color: #dbeafe; }
     .profile-nav-item svg { flex-shrink: 0; }
-    .profile-nav-item.logout { margin-top: 8px; border-top: 1px solid #f1f5f9; padding-top: 16px; border-radius: 0; color: #dc2626; }
+    .profile-nav-item.logout { margin-top: 0; border-top: none; padding-top: 10px; flex-basis: 100%; justify-content: center; color: #dc2626; }
     .profile-nav-item.logout:hover { background: #fef2f2; }
     .profile-nav-item.logout.active { background: #fef2f2; color: #dc2626; }
 
-    .profile-content { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 28px; min-height: 400px; }
+    .profile-content { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 28px; min-height: 400px; flex: 1; min-width: 0; }
 
     .profile-section { display: none; }
     .profile-section.active { display: block; }
@@ -232,17 +233,9 @@
     .checkbox-wrap { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: #475569; cursor: pointer; }
     .checkbox-wrap input { width: 18px; height: 18px; accent-color: #1a56db; cursor: pointer; }
 
-    @media (max-width: 1024px) {
-      .profile-layout { grid-template-columns: 1fr; gap: 20px; }
-      .profile-sidebar { max-width: 100%; }
-      .profile-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 12px 16px; overflow-x: auto; }
-      .profile-nav-item { white-space: nowrap; font-size: 0.82rem; padding: 8px 12px; }
-      .profile-nav-item.logout { margin-top: 0; border-top: none; padding-top: 8px; }
-    }
-
     @media (max-width: 768px) {
       .search-bar { display: none; }
-      .mobile-menu-btn { display: flex; }
+      .mobile-menu-btn { display: none !important; }
       .profile-content { padding: 16px; }
       .form-row { grid-template-columns: 1fr; }
       .form-row-3 { grid-template-columns: 1fr; }
@@ -259,63 +252,157 @@
       .main { margin-top: 52px; }
       .mobile-menu { top: 52px; }
       .logo img { height: 28px; }
-      .logo .logo-text { display: none; }
       .header-actions button, .header-actions a { width: 36px; height: 36px; }
       .profile-page { padding: 12px 0 20px; }
       .profile-content { padding: 14px; }
       .address-card { flex-direction: column; }
       .address-card .address-actions { align-self: flex-end; }
     }
+
+    /* Ecommerce account area refresh */
+    :root { --brand:#1a56db; --brand-dark:#0f3a8e; --brand-soft:#eff6ff; --ink:#0f172a; --text:#1e293b; --muted:#64748b; --soft:#f8fafc; --line:#e2e8f0; --success:#16a34a; --danger:#dc2626; --warning:#f59e0b; --shadow:0 18px 42px rgba(15,23,42,0.08); }
+    .account-hero { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 22px; align-items: stretch; margin-bottom: 22px; }
+    .account-title-card, .customer-summary-card { background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 24px; box-shadow: 0 8px 24px rgba(15,23,42,0.04); }
+    .account-title-card h1 { color: var(--ink); font-size: clamp(2rem, 4vw, 3rem); line-height: 1; letter-spacing: -0.06em; margin-bottom: 10px; }
+    .account-title-card p { color: var(--muted); max-width: 650px; }
+    .account-microcopy { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    .account-microcopy span { padding: 7px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 0.75rem; font-weight: 900; }
+    .customer-summary-card { display: grid; gap: 12px; }
+    .customer-kicker { color: var(--brand); font-size: 0.74rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+    .customer-summary-card h2 { color: var(--ink); font-size: 1.2rem; line-height: 1.15; }
+    .customer-summary-card p { color: var(--muted); font-size: 0.88rem; word-break: break-word; }
+    .summary-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    @media (min-width: 900px) {
+      .profile-layout {
+        display: grid;
+        grid-template-columns: 268px minmax(0, 1fr);
+        gap: 28px;
+        align-items: start;
+      }
+      .profile-sidebar {
+        position: sticky;
+        top: 78px;
+        align-self: start;
+        max-height: calc(100vh - 96px);
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+      .profile-content { min-height: 480px; }
+      .profile-nav { padding: 12px; display: grid; gap: 6px; }
+    }
+    .profile-sidebar { border-radius: 24px; box-shadow: 0 8px 24px rgba(15,23,42,0.04); }
+    .profile-summary { display: none; }
+    .profile-nav-item { border-radius: 14px; padding: 12px 14px; font-weight: 800; color: #475569; }
+    .profile-nav-item.active { background: var(--brand-soft); color: var(--brand-dark); }
+    .profile-nav-item.logout { border-top: 1px solid #f1f5f9; border-radius: 14px; margin-top: 4px; color: var(--danger); }
+    .profile-content { border-radius: 24px; padding: 28px; box-shadow: 0 8px 24px rgba(15,23,42,0.04); }
+    .profile-section h2 { font-size: 1.45rem; font-weight: 900; letter-spacing: -0.045em; }
+    .profile-section .section-desc { font-size: 0.92rem; margin-bottom: 22px; }
+    .btn { min-height: 42px; border-radius: 14px; font-weight: 900; }
+    .btn-primary { background: var(--brand); box-shadow: 0 12px 24px rgba(26,86,219,0.16); }
+    .btn-primary:hover { background: var(--brand-dark); transform: translateY(-1px); }
+    .btn-outline { color: var(--brand-dark); border-color: var(--line); background: #fff; }
+    .btn-outline:hover { background: var(--brand-soft); border-color: #bfdbfe; }
+    .btn-whatsapp { background: #16a34a; color: #fff; }
+    .form-input, .form-select { min-height: 46px; border-radius: 14px; border: 1.5px solid var(--line); }
+    .form-input:focus, .form-select:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(26,86,219,0.10); }
+    .account-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+    .support-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 18px; }
+    .support-card, .security-card { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--soft); }
+    .support-card h3, .security-card h3 { color: var(--ink); font-size: 1rem; margin-bottom: 6px; }
+    .support-card p, .security-card p { color: var(--muted); font-size: 0.86rem; margin-bottom: 12px; }
+    .state-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .address-card, .order-card { border-radius: 18px; border-color: var(--line); background: #fff; box-shadow: 0 8px 22px rgba(15,23,42,0.04); }
+    .address-card .address-label .default-badge { border-radius: 999px; padding: 4px 8px; }
+    .order-card-header { padding: 18px; cursor: default; }
+    .order-card-header:hover { background: #fff; }
+    .order-meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; width: 100%; align-items: center; }
+    .order-meta-item span { display: block; color: var(--muted); font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+    .order-meta-item strong { color: var(--ink); font-size: 0.92rem; }
+    .order-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .order-card-body { border-top: 1px solid var(--line); background: var(--soft); border-radius: 0 0 18px 18px; }
+    .empty-state { border: 1px solid var(--line); border-radius: 22px; background: #fff; padding: 54px 20px; }
+    .empty-state h3 { color: var(--ink); font-size: 1.25rem; }
+    .empty-state p { color: var(--muted); font-size: 0.92rem; margin-bottom: 16px; }
+    .profile-skeleton { display: grid; gap: 12px; }
+    .sk { display: block; position: relative; overflow: hidden; background: #e2e8f0; border-radius: 14px; }
+    .sk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.58), transparent); animation: shimmer 1.2s infinite; }
+    .sk-line { height: 16px; }
+    .sk-card { height: 92px; border-radius: 18px; }
+    .auth-gate { max-width: 760px; border-radius: 28px; padding: 34px; text-align: left; box-shadow: var(--shadow); }
+    .auth-gate h2 { font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.055em; }
+    .auth-gate p.sub { font-size: 0.95rem; }
+    .auth-gate .btn { border-radius: 14px; }
+    .upload-area, .upload-preview.banner-preview, #bannerUploadArea, #bannerPreview, #avatarUploadArea, #avatarPreview { display: none !important; }
+    .modal { border-radius: 22px; }
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
+    @media (max-width: 899px) {
+      .account-hero { grid-template-columns: 1fr; }
+      .profile-sidebar {
+        position: relative !important;
+        top: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      .profile-nav {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 8px;
+        padding: 10px 10px 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+      }
+      .profile-nav-item {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        justify-content: center;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+      }
+      .profile-nav-item.active { border-color: #bfdbfe; }
+      .profile-nav-item.logout {
+        margin-top: 0;
+        border-top: none;
+        flex: 0 0 auto;
+      }
+    }
+    @media (max-width: 768px) {
+      .profile-content { padding: 18px; border-radius: 20px; }
+      .account-title-card, .customer-summary-card { padding: 20px; border-radius: 20px; }
+      .account-grid, .support-grid, .order-meta-grid { grid-template-columns: 1fr; }
+      .order-card-header { align-items: stretch; }
+      .summary-actions, .order-actions { flex-direction: column; }
+      .summary-actions .btn, .order-actions .btn { width: 100%; }
+    }
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="container header-inner">
-      <a href="index.html" class="logo" aria-label="Conforta Colchoes">
-        <img src="assets/logo.png" alt="">
-        <span class="logo-text">Conforta<small>COLCHOES</small></span>
-      </a>
-      <form class="search-bar" id="searchForm" action="produtos.html" method="GET">
-        <input type="text" name="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
-        <button type="submit" aria-label="Buscar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </button>
-      </form>
-      <div class="header-actions">
-        <button id="cartBtn" aria-label="Carrinho">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-          </svg>
-          <span class="cart-count" id="cartCount">0</span>
-        </button>
-        <a href="perfil.html" id="authBtn" aria-label="Perfil">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-        </a>
-        <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">
-          <svg id="menuIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-          </svg>
-          <svg id="closeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-    <div class="mobile-menu" id="mobileMenu">
-      <a href="index.html">Inicio</a>
-      <a href="produtos.html">Produtos</a>
-      <a href="perfil.html">Meu Perfil</a>
-    </div>
-  </header>
+  <span id="cartCount" class="cart-count" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0" aria-hidden="true">0</span>
 
   <main class="main">
     <div class="container profile-page">
-      <div class="profile-header-bar">
-        <h1>Minha Conta</h1>
+      <div class="account-hero">
+        <section class="account-title-card">
+          <h1>Minha Conta</h1>
+          <p>Acompanhe seus pedidos, dados e enderecos em um so lugar.</p>
+          <div class="account-microcopy">
+            <span>Acompanhe tudo em um so lugar</span>
+            <span>Compre novamente com facilidade</span>
+            <span>Atendimento antes e depois da compra</span>
+          </div>
+        </section>
+        <aside class="customer-summary-card" id="customerSummaryCard">
+          <span class="customer-kicker">Cliente</span>
+          <h2 id="sidebarName">Conta Conforta</h2>
+          <p id="sidebarEmail"></p>
+          <p id="sidebarPhone"></p>
+          <div class="summary-actions">
+            <button class="btn btn-outline" onclick="navigateProfile('dados')">Editar dados</button>
+            <button class="btn btn-danger-outline" onclick="handleLogout()">Sair</button>
+          </div>
+        </aside>
       </div>
 
       <div class="profile-layout">
@@ -329,25 +416,29 @@
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </div>
             </div>
-            <div class="profile-name" id="sidebarName">Carregando...</div>
-            <div class="profile-email" id="sidebarEmail"></div>
+            <div class="profile-name" id="legacySidebarName"></div>
+            <div class="profile-email" id="legacySidebarEmail"></div>
           </div>
           <nav class="profile-nav" id="profileNav">
-            <button class="profile-nav-item active" data-section="dados" onclick="navigateProfile('dados')">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              Meus Dados
+            <button class="profile-nav-item active" data-section="pedidos" onclick="navigateProfile('pedidos')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"/><path d="M16.5 7.5 21 12l-4.5 4.5"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Meus Pedidos
             </button>
             <button class="profile-nav-item" data-section="enderecos" onclick="navigateProfile('enderecos')">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               Enderecos
             </button>
-            <button class="profile-nav-item" data-section="pedidos" onclick="navigateProfile('pedidos')">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"/><path d="M16.5 7.5 21 12l-4.5 4.5"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Meus Pedidos
+            <button class="profile-nav-item" data-section="dados" onclick="navigateProfile('dados')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Dados pessoais
+            </button>
+            <button class="profile-nav-item" data-section="atendimento" onclick="navigateProfile('atendimento')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+              Atendimento
             </button>
             <button class="profile-nav-item" data-section="config" onclick="navigateProfile('config')">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              Configuracoes
+              Seguranca
             </button>
             <button class="profile-nav-item logout" onclick="handleLogout()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -357,57 +448,19 @@
         </aside>
 
         <div class="profile-content">
-          <div class="profile-section active" id="section-dados">
-            <h2>Meus Dados</h2>
-            <p class="section-desc">Gerencie suas informacoes pessoais</p>
-            <form id="profileForm">
-              <div class="form-group">
-                <label for="fullName">Nome completo</label>
-                <input class="form-input" type="text" id="fullName" placeholder="Seu nome completo">
-              </div>
-              <div class="form-group">
-                <label for="profileEmail">Email</label>
-                <input class="form-input" type="email" id="profileEmail" disabled>
-              </div>
-              <div class="form-group">
-                <label for="profilePhone">Telefone</label>
-                <input class="form-input" type="tel" id="profilePhone" placeholder="(27) 99999-9999">
-              </div>
-              <div class="form-group">
-                <label>Foto do perfil</label>
-                <div class="upload-area" id="avatarUploadArea">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-                  <p>Clique para fazer upload da foto</p>
-                  <input type="file" id="avatarInput" accept="image/*">
-                </div>
-                <div class="upload-preview" id="avatarPreview" style="display:none">
-                  <img src="" alt="Preview avatar">
-                  <span class="upload-name" id="avatarFileName"></span>
-                  <button type="button" onclick="clearAvatarUpload()">Remover</button>
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Banner do perfil</label>
-                <div class="upload-area" id="bannerUploadArea">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-                  <p>Clique para fazer upload do banner</p>
-                  <input type="file" id="bannerInput" accept="image/*">
-                </div>
-                <div class="upload-preview banner-preview" id="bannerPreview" style="display:none">
-                  <img src="" alt="Preview banner">
-                  <span class="upload-name" id="bannerFileName"></span>
-                  <button type="button" onclick="clearBannerUpload()">Remover</button>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary">Salvar alteracoes</button>
-            </form>
+          <div class="profile-section active" id="section-pedidos">
+            <h2>Meus pedidos</h2>
+            <p class="section-desc">Acompanhe o historico, status e detalhes das suas compras.</p>
+            <div id="ordersContainer">
+              <div class="profile-skeleton"><span class="sk sk-card"></span><span class="sk sk-card"></span></div>
+            </div>
           </div>
 
           <div class="profile-section" id="section-enderecos">
             <h2>Enderecos</h2>
-            <p class="section-desc">Gerencie seus enderecos de entrega</p>
+            <p class="section-desc">Salve seu endereco para finalizar suas proximas compras mais rapido.</p>
             <div id="addressesContainer">
-              <div class="loading-spinner">Carregando...</div>
+              <div class="profile-skeleton"><span class="sk sk-card"></span><span class="sk sk-card"></span></div>
             </div>
             <button class="btn btn-outline" style="margin-top:16px" onclick="openAddressModal()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -415,37 +468,64 @@
             </button>
           </div>
 
-          <div class="profile-section" id="section-pedidos">
-            <h2>Meus Pedidos</h2>
-            <p class="section-desc">Acompanhe o historico dos seus pedidos</p>
-            <div id="ordersContainer">
-              <div class="loading-spinner">Carregando...</div>
+          <div class="profile-section" id="section-dados">
+            <h2>Dados pessoais</h2>
+            <p class="section-desc">Mantenha seus dados atualizados. CPF/CNPJ e telefone sao usados no checkout e em pagamentos.</p>
+            <form id="profileForm">
+              <div class="account-grid">
+                <div class="form-group">
+                  <label for="fullName">Nome completo</label>
+                  <input class="form-input" type="text" id="fullName" placeholder="Seu nome completo">
+                </div>
+                <div class="form-group">
+                  <label for="profileEmail">E-mail</label>
+                  <input class="form-input" type="email" id="profileEmail" disabled>
+                </div>
+                <div class="form-group">
+                  <label for="profilePhone">Telefone/WhatsApp</label>
+                  <input class="form-input" type="tel" id="profilePhone" placeholder="(27) 99999-9999">
+                </div>
+                <div class="form-group">
+                  <label for="profileDocument">CPF ou CNPJ</label>
+                  <input class="form-input" type="text" id="profileDocument" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="18">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Salvar alteracoes</button>
+            </form>
+          </div>
+
+          <div class="profile-section" id="section-atendimento">
+            <h2>Precisa de ajuda?</h2>
+            <p class="section-desc">Nossa equipe esta pronta para ajudar com pedidos, produtos, entregas e duvidas sobre o colchao ideal.</p>
+            <div class="summary-actions">
+              <a class="btn btn-whatsapp js-account-whatsapp" data-message="Ola! Preciso de ajuda com meu pedido na Conforta Colchões." href="#">Falar no WhatsApp</a>
+              <a class="btn btn-outline" href="produtos.html">Ver produtos</a>
+              <button class="btn btn-outline" onclick="navigateProfile('pedidos')">Acompanhar pedidos</button>
+            </div>
+            <div class="support-grid">
+              <article class="support-card"><h3>Duvidas sobre entrega</h3><p>Consulte prazo, regiao e disponibilidade.</p><a class="btn btn-outline btn-sm js-account-whatsapp" data-message="Ola! Quero consultar informacoes sobre entrega." href="#">Chamar atendimento</a></article>
+              <article class="support-card"><h3>Ajuda para escolher colchao</h3><p>Receba orientacao para peso, rotina e conforto.</p><a class="btn btn-outline btn-sm js-account-whatsapp" data-message="Ola! Quero ajuda para escolher o colchao ideal." href="#">Receber ajuda</a></article>
+              <article class="support-card"><h3>Problemas com pedido</h3><p>Fale com a equipe sobre status, pagamento ou entrega.</p><a class="btn btn-outline btn-sm js-account-whatsapp" data-message="Ola! Preciso de ajuda com meu pedido na Conforta Colchões." href="#">Falar sobre pedido</a></article>
+              <article class="support-card"><h3>Garantia e troca</h3><p>Entenda orientacoes sobre produto e suporte pos-compra.</p><a class="btn btn-outline btn-sm js-account-whatsapp" data-message="Ola! Quero informacoes sobre garantia e troca." href="#">Consultar suporte</a></article>
             </div>
           </div>
 
           <div class="profile-section" id="section-config">
-            <h2>Configuracoes</h2>
-            <p class="section-desc">Preferencias da sua conta</p>
-            <div class="config-section">
-              <h3>Notificacoes</h3>
-              <p>Gerencie suas preferencias de notificacao</p>
-              <div class="config-toggle">
-                <span class="toggle-label">Receber atualizacoes de pedidos por email</span>
-                <div class="toggle-switch active" id="toggleOrderEmail" onclick="this.classList.toggle('active')"></div>
-              </div>
-              <div class="config-toggle">
-                <span class="toggle-label">Receber ofertas e promocoes</span>
-                <div class="toggle-switch" id="toggleOffers" onclick="this.classList.toggle('active')"></div>
-              </div>
+            <h2>Seguranca e configuracoes</h2>
+            <p class="section-desc">Acoes importantes da sua conta, sem distracoes.</p>
+            <div class="security-card">
+              <h3>Acesso da conta</h3>
+              <p>Para alterar sua senha, use a recuperacao de senha na tela de login.</p>
+              <button class="btn btn-outline" onclick="requestPasswordResetFromProfile()">Alterar senha</button>
             </div>
-            <div class="config-section">
-              <h3>Tema</h3>
-              <p>O tema claro e aplicado por padrao. O modo escuro estara disponivel em breve.</p>
-              <div style="font-size:0.85rem;color:#94a3b8;font-style:italic">Tema claro ativo</div>
+            <div class="security-card" style="margin-top:12px">
+              <h3>Sair da conta</h3>
+              <p>Encerre sua sessao neste dispositivo com seguranca.</p>
+              <button class="btn btn-danger-outline" onclick="handleLogout()">Sair</button>
             </div>
-            <div class="config-section" style="border-bottom:none;padding-bottom:0">
-              <h3>Zona de perigo</h3>
-              <p>Esta acao e irreversivel. Todos os seus dados serao permanentemente removidos.</p>
+            <div class="security-card" style="margin-top:12px">
+              <h3>Acoes avancadas</h3>
+              <p>Excluir conta e uma acao sensivel. Se precisar, fale com o suporte antes.</p>
               <button class="btn btn-danger-outline btn-sm" onclick="confirmDeleteAccount()">Excluir minha conta</button>
             </div>
           </div>
@@ -558,6 +638,50 @@
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
       }
 
+      function normalizeWhatsapp(raw) {
+        var digits = String(raw || '').replace(/\D/g, '');
+        if (!digits) return '';
+        return (digits.length === 10 || digits.length === 11) ? '55' + digits : digits;
+      }
+
+      async function configureWhatsapp() {
+        if (!window.CONFORTA_WHATSAPP_URL) {
+          try {
+            var phone = '';
+            if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
+            if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
+            var normalized = normalizeWhatsapp(phone);
+            if (normalized) window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + normalized;
+          } catch(e) {}
+        }
+        updateWhatsappLinks();
+      }
+
+      function updateWhatsappLinks() {
+        document.querySelectorAll('.js-account-whatsapp').forEach(function(link) {
+          var msg = link.getAttribute('data-message') || 'Ola! Preciso de ajuda na minha conta da Conforta Colchões.';
+          if (window.CONFORTA_WHATSAPP_URL) {
+            link.href = window.CONFORTA_WHATSAPP_URL + '?text=' + encodeURIComponent(msg);
+            link.target = '_blank';
+            link.rel = 'noopener';
+          } else {
+            link.href = '#';
+            link.onclick = function(e) {
+              e.preventDefault();
+              if (typeof window.openChatWidget === 'function') window.openChatWidget();
+              else if (typeof window.toggleChat === 'function') window.toggleChat();
+              else showToast('Atendimento indisponivel no momento', 'info');
+            };
+          }
+        });
+      }
+
+      function profileSkeleton(count) {
+        var html = '<div class="profile-skeleton">';
+        for (var i = 0; i < (count || 2); i++) html += '<span class="sk sk-card"></span>';
+        return html + '</div>';
+      }
+
       function getStatusClass(status) {
         var map = {
           'pending': 'order-status-pending',
@@ -582,10 +706,10 @@
 
       function getStatusLabel(status) {
         var map = {
-          'pending': 'Pendente',
-          'confirmed': 'Confirmado',
-          'preparing': 'Preparando',
-          'shipped': 'Enviado',
+          'pending': 'Pedido recebido',
+          'confirmed': 'Em separacao',
+          'preparing': 'Em separacao',
+          'shipped': 'Saiu para entrega',
           'delivered': 'Entregue',
           'cancelled': 'Cancelado'
         };
@@ -612,16 +736,33 @@
         if (modal) modal.classList.remove('open');
       }
 
+      function formatProfileTaxDisplay(digits) {
+        var d = String(digits || '').replace(/\D/g, '').slice(0, 14);
+        if (!d) return '';
+        if (d.length > 11) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, '$1.$2.$3/$4-$5');
+        return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
+      }
+
       window.navigateProfile = function(section) {
-        var navItems = document.querySelectorAll('.profile-nav-item');
+        var navItems = document.querySelectorAll('.profile-nav-item[data-section]');
         navItems.forEach(function(item) {
           item.classList.toggle('active', item.getAttribute('data-section') === section);
+          item.setAttribute('aria-selected', item.getAttribute('data-section') === section ? 'true' : 'false');
         });
 
         var sections = document.querySelectorAll('.profile-section');
         sections.forEach(function(s) {
           s.classList.toggle('active', s.id === 'section-' + section);
         });
+
+        var activeNav = document.querySelector('.profile-nav-item[data-section].active');
+        if (activeNav && activeNav.scrollIntoView) {
+          try {
+            activeNav.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+          } catch (e) {
+            activeNav.scrollIntoView(false);
+          }
+        }
       };
 
       async function initProfile() {
@@ -639,7 +780,8 @@
               id: currentUser.id,
               email: currentUser.email || '',
               full_name: (currentUser.user_metadata && currentUser.user_metadata.full_name) || '',
-              phone: (currentUser.user_metadata && currentUser.user_metadata.phone) || ''
+              phone: (currentUser.user_metadata && currentUser.user_metadata.phone) || '',
+              cpf_cnpj: null
             };
           }
           currentProfile = profile;
@@ -647,8 +789,28 @@
           loadAddresses(currentUser.id);
           loadOrders(currentUser.id);
         } catch (e) {
-          renderAuthGate();
+          renderAccountError();
         }
+      }
+
+      function renderAccountError() {
+        var layout = document.querySelector('.profile-layout');
+        if (layout) layout.style.display = 'none';
+        var hero = document.querySelector('.account-hero');
+        if (hero) hero.style.display = 'none';
+        var page = document.querySelector('.profile-page');
+        if (!page) return;
+        var existing = document.getElementById('accountErrorState');
+        if (existing) return;
+        page.insertAdjacentHTML('beforeend',
+          '<div class="empty-state" id="accountErrorState">' +
+          '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg>' +
+          '<h3>Nao foi possivel carregar sua conta</h3>' +
+          '<p>Tente novamente ou fale com nossa equipe pelo WhatsApp.</p>' +
+          '<div class="state-actions"><button class="btn btn-primary" onclick="location.reload()">Tentar novamente</button><a href="#" class="btn btn-whatsapp js-account-whatsapp">Falar no WhatsApp</a></div>' +
+          '</div>'
+        );
+        updateWhatsappLinks();
       }
 
       function hideAuthGate() {
@@ -656,15 +818,15 @@
         if (gate) gate.style.display = 'none';
         var layout = document.querySelector('.profile-layout');
         if (layout) layout.style.display = '';
-        var headerBar = document.querySelector('.profile-header-bar h1');
-        if (headerBar) headerBar.textContent = 'Minha Conta';
+        var hero = document.querySelector('.account-hero');
+        if (hero) hero.style.display = '';
       }
 
       function renderAuthGate() {
         var layout = document.querySelector('.profile-layout');
         if (layout) layout.style.display = 'none';
-        var headerBar = document.querySelector('.profile-header-bar h1');
-        if (headerBar) headerBar.textContent = 'Entrar / Cadastrar';
+        var hero = document.querySelector('.account-hero');
+        if (hero) hero.style.display = 'none';
 
         var page = document.querySelector('.profile-page');
         if (!page) return;
@@ -673,11 +835,11 @@
 
         var html =
           '<div class="auth-gate" id="authGate">' +
-            '<h2>Acesse sua conta</h2>' +
-            '<p class="sub">Entre para finalizar pedidos e acompanhar a entrega.</p>' +
+            '<h2>Entre na sua conta</h2>' +
+            '<p class="sub">Acesse sua conta para acompanhar pedidos, salvar enderecos e agilizar suas proximas compras.</p>' +
             '<div class="auth-tabs">' +
               '<button type="button" class="auth-tab active" data-tab="login" onclick="window.switchAuthTab(\'login\')">Entrar</button>' +
-              '<button type="button" class="auth-tab" data-tab="signup" onclick="window.switchAuthTab(\'signup\')">Cadastrar</button>' +
+              '<button type="button" class="auth-tab" data-tab="signup" onclick="window.switchAuthTab(\'signup\')">Criar conta</button>' +
             '</div>' +
             '<div class="auth-error" id="authError"></div>' +
             '<form class="auth-form active" id="loginForm" onsubmit="window.submitLogin(event)">' +
@@ -693,6 +855,7 @@
               '<div class="form-group"><label>Senha (mín. 6 caracteres)</label><input class="form-input" type="password" id="signupPassword" minlength="6" required autocomplete="new-password"></div>' +
               '<button type="submit" class="btn" id="signupBtn">Criar conta</button>' +
             '</form>' +
+            '<div class="state-actions" style="margin-top:18px"><a class="btn btn-outline" href="produtos.html">Ver produtos</a></div>' +
           '</div>';
         page.insertAdjacentHTML('beforeend', html);
       }
@@ -772,11 +935,27 @@
         }
       };
 
+      window.requestPasswordResetFromProfile = async function() {
+        var email = (currentProfile && currentProfile.email) || (currentUser && currentUser.email) || '';
+        if (!email) { showToast('Nao encontramos um email para recuperacao', 'error'); return; }
+        try {
+          var sb = getSupabase();
+          if (!sb) throw new Error('Servico indisponivel');
+          var redirectTo = new URL('perfil.html', window.location.href).href;
+          var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
+          if (res.error) throw res.error;
+          showToast('Email de recuperacao enviado!', 'success');
+        } catch (e) {
+          showToast('Nao foi possivel enviar o email agora', 'error');
+        }
+      };
+
       function loadProfile(profile) {
         if (!profile) return;
 
         var nameEl = document.getElementById('sidebarName');
         var emailEl = document.getElementById('sidebarEmail');
+        var phoneSummaryEl = document.getElementById('sidebarPhone');
         var fullNameEl = document.getElementById('fullName');
         var profileEmailEl = document.getElementById('profileEmail');
         var phoneEl = document.getElementById('profilePhone');
@@ -785,9 +964,15 @@
 
         if (nameEl) nameEl.textContent = profile.full_name || 'Usuario';
         if (emailEl) emailEl.textContent = profile.email || '';
+        if (phoneSummaryEl) phoneSummaryEl.textContent = profile.phone ? 'Telefone: ' + profile.phone : 'Telefone nao informado';
         if (fullNameEl) fullNameEl.value = profile.full_name || '';
         if (profileEmailEl) profileEmailEl.value = profile.email || '';
         if (phoneEl) phoneEl.value = profile.phone || '';
+        var docEl = document.getElementById('profileDocument');
+        if (docEl) {
+          var rawDoc = String(profile.cpf_cnpj || '').replace(/\D/g, '');
+          docEl.value = rawDoc ? formatProfileTaxDisplay(rawDoc) : '';
+        }
 
         if (profile.avatar_url && avatarWrap) {
           var img = avatarWrap.querySelector('img');
@@ -818,6 +1003,7 @@
         if (typeof renderCompactFooter === 'function') {
           renderCompactFooter('#siteFooter');
         }
+        configureWhatsapp();
         initProfile();
 
         var profileForm = document.getElementById('profileForm');
@@ -825,6 +1011,14 @@
           profileForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             await saveProfile();
+          });
+        }
+
+        var profileDocumentEl = document.getElementById('profileDocument');
+        if (profileDocumentEl) {
+          profileDocumentEl.addEventListener('input', function() {
+            var d = String(this.value).replace(/\D/g, '').slice(0, 14);
+            this.value = formatProfileTaxDisplay(d);
           });
         }
 
@@ -909,11 +1103,16 @@
       async function saveProfile() {
         var name = document.getElementById('fullName').value.trim();
         var phone = document.getElementById('profilePhone').value.trim();
+        var docInput = document.getElementById('profileDocument');
+        var documentRaw = docInput ? String(docInput.value).replace(/\D/g, '') : '';
         if (!name) { showToast('Informe seu nome', 'error'); return; }
+        if (documentRaw && documentRaw.length !== 11 && documentRaw.length !== 14) {
+          showToast('CPF ou CNPJ invalido.', 'error'); return;
+        }
 
         try {
           showLoading(true);
-          var updates = { full_name: name, phone: phone };
+          var updates = { full_name: name, phone: phone, cpf_cnpj: documentRaw || null };
           await updateProfile(currentUser.id, updates);
           currentProfile = { ...currentProfile, ...updates };
 
@@ -962,14 +1161,15 @@
               '<div class="empty-state">' +
               '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
               '<h3>Nenhum endereco cadastrado</h3>' +
-              '<p>Adicione um endereco de entrega</p>' +
+              '<p>Adicione seu endereco para agilizar suas proximas compras.</p>' +
+              '<button class="btn btn-primary" onclick="openAddressModal()">Adicionar endereco</button>' +
               '</div>';
             return;
           }
 
           container.innerHTML = '<div class="address-list">' +
             data.map(function(a) {
-              var isDefault = a.is_default ? '<span class="default-badge">Padrao</span>' : '';
+              var isDefault = a.is_default ? '<span class="default-badge">Endereco principal</span>' : '';
               return '<div class="address-card" data-id="' + a.id + '">' +
                 '<div class="address-info">' +
                 '<div class="address-label">' + escHtml(a.label || 'Endereco') + ' ' + isDefault + '</div>' +
@@ -990,7 +1190,7 @@
             }).join('') +
             '</div>';
         } catch (e) {
-          container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar enderecos</h3></div>';
+          container.innerHTML = '<div class="empty-state"><h3>Nao foi possivel carregar enderecos</h3><p>Tente novamente em instantes.</p></div>';
         }
       }
 
@@ -1128,9 +1328,11 @@
             container.innerHTML =
               '<div class="empty-state">' +
               '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 16v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"/><path d="M16.5 7.5 21 12l-4.5 4.5"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
-              '<h3>Nenhum pedido ainda</h3>' +
-              '<p>Seus pedidos aparecerao aqui</p>' +
+              '<h3>Voce ainda nao fez nenhum pedido</h3>' +
+              '<p>Veja nossos produtos e encontre o colchao ideal para dormir melhor.</p>' +
+              '<div class="summary-actions" style="justify-content:center"><a href="produtos.html" class="btn btn-primary">Ver produtos</a><a href="#" class="btn btn-whatsapp js-account-whatsapp" data-message="Ola! Quero ajuda para escolher o colchao ideal.">Falar no WhatsApp</a></div>' +
               '</div>';
+            updateWhatsappLinks();
             return;
           }
 
@@ -1140,26 +1342,32 @@
               var paymentClass = getPaymentStatusClass(o.payment_status);
               var statusLabel = getStatusLabel(o.status);
               var paymentLabel = getPaymentStatusLabel(o.payment_status);
+              var orderNumber = escHtml(o.order_number || o.id.slice(0, 8));
+              var orderMsg = 'Ola! Preciso de ajuda com meu pedido #' + orderNumber + ' na Conforta Colchões.';
               return '<div class="order-card">' +
-                '<div class="order-card-header" onclick="toggleOrderItems(\'' + o.id + '\')">' +
-                '<div>' +
-                '<div class="order-number">Pedido #' + escHtml(o.order_number || o.id.slice(0, 8)) + '</div>' +
-                '<div class="order-date">' + (typeof formatDate === 'function' ? formatDate(o.created_at) : o.created_at ? o.created_at.slice(0, 10) : '') + '</div>' +
+                '<div class="order-card-header">' +
+                '<div class="order-meta-grid">' +
+                '<div class="order-meta-item"><span>Pedido</span><strong>#' + orderNumber + '</strong></div>' +
+                '<div class="order-meta-item"><span>Data</span><strong>' + (typeof formatDate === 'function' ? formatDate(o.created_at) : o.created_at ? o.created_at.slice(0, 10) : '') + '</strong></div>' +
+                '<div class="order-meta-item"><span>Status</span><strong><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></strong></div>' +
+                '<div class="order-meta-item"><span>Total</span><strong>' + (typeof formatPrice === 'function' ? formatPrice(o.total_amount) : 'R$ ' + (o.total_amount || 0).toFixed(2).replace('.', ',')) + '</strong></div>' +
                 '</div>' +
-                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-                '<span class="status-badge ' + statusClass + '">' + statusLabel + '</span>' +
-                '<span class="status-badge ' + paymentClass + '">' + paymentLabel + '</span>' +
-                '<span class="order-total">' + (typeof formatPrice === 'function' ? formatPrice(o.total_amount) : 'R$ ' + (o.total_amount || 0).toFixed(2).replace('.', ',')) + '</span>' +
+                '<div class="order-actions">' +
+                '<button class="btn btn-outline btn-sm" onclick="toggleOrderItems(\'' + o.id + '\')">Ver detalhes</button>' +
+                '<a class="btn btn-outline btn-sm" href="produtos.html">Comprar novamente</a>' +
+                '<a class="btn btn-whatsapp btn-sm js-account-whatsapp" data-message="' + escHtml(orderMsg) + '" href="#">Falar sobre este pedido</a>' +
                 '</div>' +
                 '</div>' +
                 '<div class="order-card-body" id="orderItems-' + o.id + '">' +
-                '<div class="loading-inline" style="display:flex;align-items:center;gap:6px;padding:12px;color:#94a3b8;font-size:0.85rem">Carregando itens...</div>' +
+                profileSkeleton(1) +
                 '</div>' +
                 '</div>';
             }).join('') +
             '</div>';
+          updateWhatsappLinks();
         } catch (e) {
-          container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar pedidos</h3></div>';
+          container.innerHTML = '<div class="empty-state"><h3>Nao foi possivel carregar seus pedidos</h3><p>Tente novamente ou fale com nossa equipe pelo WhatsApp.</p><div class="summary-actions" style="justify-content:center"><button class="btn btn-primary" onclick="location.reload()">Tentar novamente</button><a href="#" class="btn btn-whatsapp js-account-whatsapp">Falar no WhatsApp</a></div></div>';
+          updateWhatsappLinks();
         }
       }
 
@@ -1169,7 +1377,7 @@
 
         var isOpen = body.classList.toggle('open');
 
-        if (isOpen && (body.querySelector('.loading-inline') || body.innerHTML.trim() === '')) {
+        if (isOpen && (body.querySelector('.profile-skeleton') || body.innerHTML.trim() === '')) {
           try {
             var sb = getSupabase();
             if (!sb) return;
@@ -1178,13 +1386,13 @@
             if (resp.error) throw resp.error;
 
             if (!items || items.length === 0) {
-              body.innerHTML = '<div style="padding:12px;font-size:0.85rem;color:#94a3b8;text-align:center">Nenhum item</div>';
+              body.innerHTML = '<div style="padding:12px;font-size:0.85rem;color:#94a3b8;text-align:center">Nenhum item encontrado para este pedido.</div>';
               return;
             }
 
-            body.innerHTML = items.map(function(item) {
+            body.innerHTML = '<div style="display:grid;gap:8px;margin-bottom:12px;color:#475569;font-size:0.86rem"><strong>Produtos do pedido</strong></div>' + items.map(function(item) {
               var imgHtml = item.photo_url
-                ? '<img src="' + item.photo_url + '" alt="' + escHtml(item.product_name) + '">'
+                ? '<img src="' + item.photo_url + '" alt="' + escHtml(item.product_name) + '" loading="lazy" decoding="async">'
                 : '<div style="width:48px;height:48px;border-radius:6px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>';
               var colorInfo = item.color_name ? ' - ' + item.color_name : '';
               var sizeInfo = item.size ? ' (' + item.size + ')' : '';
@@ -1194,9 +1402,10 @@
                 '<div class="oi-name">' + escHtml(item.product_name) + colorInfo + sizeInfo + '</div>' +
                 '<div class="oi-qty">Qtd: ' + item.quantity + '</div>' +
                 '</div>' +
-                '<div class="oi-price">' + (typeof formatPrice === 'function' ? formatPrice(item.unit_price) : 'R$ ' + item.unit_price.toFixed(2).replace('.', ',')) + '</div>' +
+                '<div class="oi-price">' + (typeof formatPrice === 'function' ? formatPrice(item.unit_price * item.quantity) : 'R$ ' + (item.unit_price * item.quantity).toFixed(2).replace('.', ',')) + '</div>' +
                 '</div>';
-            }).join('');
+            }).join('') + '<div class="order-actions"><a class="btn btn-whatsapp btn-sm js-account-whatsapp" href="#" data-message="Ola! Preciso de ajuda com meu pedido na Conforta Colchões.">Falar pelo WhatsApp</a></div>';
+            updateWhatsappLinks();
           } catch (e) {
             body.innerHTML = '<div style="padding:12px;font-size:0.85rem;color:#dc2626;text-align:center">Erro ao carregar itens</div>';
           }

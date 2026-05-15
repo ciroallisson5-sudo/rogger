@@ -12,9 +12,9 @@ function initChat() {
   const style = document.createElement('style');
   style.textContent = `
     .chat-widget { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    .chat-toggle { width: 50px; height: 50px; border-radius: 50%; background: #1a56db; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(26,86,219,0.35); transition: transform 0.2s, box-shadow 0.2s; position: absolute; bottom: 0; right: 0; }
-    .chat-toggle:hover { transform: scale(1.05); box-shadow: 0 6px 24px rgba(26,86,219,0.45); }
-    .chat-toggle svg { width: 22px; height: 22px; stroke: #fff; fill: none; }
+    .chat-toggle { height: 50px; min-width: 124px; padding: 0 18px; border-radius: 999px; background: linear-gradient(135deg, #0f3a8e, #1a56db); color: #fff; border: 1px solid rgba(255,255,255,0.18); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 12px 30px rgba(26,86,219,0.32); transition: transform 0.2s, box-shadow 0.2s; position: absolute; bottom: 0; right: 0; font-size: 0.85rem; font-weight: 800; letter-spacing: -0.01em; }
+    .chat-toggle:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(26,86,219,0.42); }
+    .chat-toggle svg { width: 21px; height: 21px; stroke: #fff; fill: none; flex-shrink: 0; }
     .chat-box { display: none; position: fixed; bottom: 80px; right: 20px; width: 340px; height: 460px; max-height: calc(100vh - 100px); background: #fff; border-radius: 14px; box-shadow: 0 8px 40px rgba(0,0,0,0.15); overflow: hidden; flex-direction: column; animation: chatFadeIn 0.25s ease; }
     .chat-box.open { display: flex; }
     @keyframes chatFadeIn { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -47,14 +47,14 @@ function initChat() {
     .chat-toggle.has-unread::after { content: ''; position: absolute; top: 0; right: 0; width: 12px; height: 12px; background: #ef4444; border-radius: 50%; border: 2px solid #fff; }
     @media (max-width: 600px) {
       .chat-widget { bottom: 14px; right: 14px; }
-      .chat-toggle { width: 46px; height: 46px; }
+      .chat-toggle { min-width: 112px; height: 46px; padding: 0 14px; font-size: 0.78rem; }
       .chat-box { position: fixed; left: 10px; right: 10px; bottom: 70px; top: auto; width: auto; height: 60vh; max-height: 460px; border-radius: 12px; }
       .chat-box.open.kb-up { bottom: calc(var(--kb-offset, 0px) + 8px); height: calc(100vh - var(--kb-offset, 0px) - 80px); max-height: none; }
     }
   `;
   document.head.appendChild(style);
 
-  const chatToggleSvg = `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+  const chatToggleSvg = `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Chat 24h</span>`;
   const closeSvg = `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
   const sendSvg = `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>`;
 
@@ -69,7 +69,7 @@ function initChat() {
   chatBox.id = 'chatBox';
   chatBox.innerHTML = `
     <div class="chat-header">
-      <h4>Assistente Conforta</h4>
+      <h4>Conforta — atendimento</h4>
       <button class="chat-close" aria-label="Fechar chat">${closeSvg}</button>
     </div>
     <div class="chat-messages" id="chatMessages"></div>
@@ -91,8 +91,8 @@ function initChat() {
   });
   chatBox.querySelector('.chat-input-area button').addEventListener('click', sendChatMessage);
 
-  setTimeout(() => {
-    addChatMessage('assistant', 'Olá! Sou assistente da Conforta. Posso ajudar com informações sobre produtos, preços, prazos de entrega e mais. Como posso ajudar?');
+    setTimeout(() => {
+    addChatMessage('assistant', 'Ola! Sou da equipe Conforta — estou aqui para te ajudar com produtos, precos, entrega na regiao, parcelamento ou para te encaminhar ao que precisar. Por onde quer comecar?');
     loadChatHistory();
   }, 500);
 }
@@ -209,6 +209,10 @@ async function sendChatMessage() {
 
     removeTypingIndicator();
     const reply = response.reply || response.answer || response.message || 'Desculpe, não entendi. Pode reformular?';
+    try {
+      var mUrl = String(reply).match(/produto\.html\?id=([^&\s"'<>]+)/i);
+      if (mUrl) writeChatContext({ lastOfferedProductId: decodeURIComponent(mUrl[1]) });
+    } catch (e2) { /* silent */ }
     addChatMessage('assistant', reply);
 
     if (!webhookUrl && window.__chatGptHistory) {
@@ -245,22 +249,69 @@ function sortProductsByPrice(products) {
   });
 }
 
+function productPageUrl(productId) {
+  try {
+    return new URL('produto.html?id=' + encodeURIComponent(productId), window.location.href).href;
+  } catch (e) {
+    return 'produto.html?id=' + encodeURIComponent(productId);
+  }
+}
+
+function readChatContext() {
+  try {
+    var raw = sessionStorage.getItem('chatctx');
+    if (!raw) return {};
+    var o = JSON.parse(raw);
+    if (o.lastOfferedAt && Date.now() - o.lastOfferedAt > 20 * 60 * 1000) {
+      sessionStorage.removeItem('chatctx');
+      return {};
+    }
+    return o;
+  } catch (e) {
+    return {};
+  }
+}
+
+function writeChatContext(partial) {
+  try {
+    var cur = readChatContext();
+    Object.assign(cur, partial);
+    if (partial.lastOfferedProductId === null || partial.lastOfferedProductId === '') {
+      delete cur.lastOfferedAt;
+    } else if (cur.lastOfferedProductId) {
+      cur.lastOfferedAt = Date.now();
+    }
+    sessionStorage.setItem('chatctx', JSON.stringify(cur));
+  } catch (e) { /* silent */ }
+}
+
 function buildCatalogSystemPrompt(sortedProducts) {
   var lines = (sortedProducts || []).slice(0, 50).map(function(p) {
     var price = parseFloat(p.discount_price || p.base_price) || 0;
     var name = (p.name || 'Produto').slice(0, 90);
-    return '- ' + name + ' | R$ ' + price.toFixed(2).replace('.', ',');
+    var id = p.id || '';
+    var link = id ? productPageUrl(id) : '';
+    return '- ' + name + ' | R$ ' + price.toFixed(2).replace('.', ',') + (link ? ' | ' + link : '');
   });
   var cheapestLine = '';
   if (sortedProducts && sortedProducts.length > 0) {
     var c = sortedProducts[0];
     var cp = parseFloat(c.discount_price || c.base_price) || 0;
-    cheapestLine = 'O item com MENOR preço no catalogo é: "' + (c.name || 'Produto') + '" por R$ ' + cp.toFixed(2).replace('.', ',') + '.\n';
+    var u = c.id ? productPageUrl(c.id) : '';
+    cheapestLine =
+      'O item com MENOR preço no catalogo agora é: "' +
+      (c.name || 'Produto') +
+      '" por R$ ' +
+      cp.toFixed(2).replace('.', ',') +
+      (u ? '. Link direto: ' + u : '') +
+      '.\n';
   }
   return (
-    'Voce é o assistente virtual da loja Conforta Colchoes (colchoes e moveis).\n' +
-    'Responda em portugues do Brasil, de forma objetiva e cordial.\n' +
-    'Use apenas o catalogo abaixo para nomes e precos. Nao invente produtos nem valores.\n' +
+    'Voce é um atendente da Conforta Colchões (colchões, camas, sofás e móveis). Fale como uma pessoa prestativa da loja: natural, caloroso, sem soar robotizado. Use "eu" quando fizer sentido.\n' +
+    'Responda em portugues do Brasil. Frases curtas quando couber; confirme o que entendeu antes de longas explicacoes.\n' +
+    'Use SOMENTE o catalogo abaixo para nomes, precos e links. Nao invente produtos, precos nem URLs.\n' +
+    'Se o cliente pedir link, pagina, "manda ai", "sim" depois de voce oferecer o produto, envie o link completo da linha do produto.\n' +
+    'Se nao souber algo (garantia legal, nota fiscal, status de pedido especifico), diga com honestidade e oriente a falar no WhatsApp ou na loja — nao invente.\n' +
     cheapestLine +
     '\nCatalogo (do menor ao maior preço):\n' +
     (lines.length ? lines.join('\n') : '(catalogo vazio no momento)')
@@ -287,12 +338,11 @@ async function tryOpenAiChat(userMessage, sortedProducts) {
     });
     var data = await res.json().catch(function() { return {}; });
     if (!res.ok || !data.reply) {
-      if (data.error) console.warn('[chat/OpenAI]', data.error);
+      if (data.error) void data.error;
       return null;
     }
     return String(data.reply).trim() || null;
   } catch (e) {
-    console.warn('[chat/OpenAI]', e);
     return null;
   }
 }
@@ -338,40 +388,123 @@ function removeTypingIndicator() {
   if (el) el.remove();
 }
 
+function wantsLinkOrProduct(msg) {
+  var t = msg.trim().toLowerCase();
+  if (/^(sim|s|ss|isso|claro|ok|pode|manda|envia|quero|bora)\b/i.test(t)) return true;
+  if (/link|pagina|url|endere[cç]o\s+do\s+produto|ver\s+o\s+produto|abrir\s+o\s+produto|fornecer|passa\s+o|me\s+manda|cad[eê]\s+o/i.test(t)) return true;
+  if (/pode\s+(me\s+)?(mandar|enviar|passar)/i.test(t)) return true;
+  return false;
+}
+
 function getLocalResponse(message, products) {
   const msg = message.toLowerCase();
   const sorted = sortProductsByPrice(products || []);
+  var ctx = readChatContext();
+
+  if (wantsLinkOrProduct(msg)) {
+    var pid = ctx.lastOfferedProductId;
+    if (pid && sorted.length) {
+      var pick = null;
+      for (var i = 0; i < sorted.length; i++) {
+        if (String(sorted[i].id) === String(pid)) {
+          pick = sorted[i];
+          break;
+        }
+      }
+      if (pick && pick.id) {
+        var url = productPageUrl(pick.id);
+        var pr2 = parseFloat(pick.discount_price || pick.base_price) || 0;
+        writeChatContext({ lastOfferedProductId: null, lastOfferedProductName: null });
+        return (
+          'Combinado! Aqui está a página do ' +
+          pick.name +
+          ' (a partir de R$ ' +
+          pr2.toFixed(2).replace('.', ',') +
+          '):\n' +
+          url +
+          '\n\nSe quiser, me diga o tamanho (solteiro, casal, queen…) ou se prefere falar com alguém no WhatsApp da loja.'
+        );
+      }
+    }
+    if (sorted.length) {
+      return 'Pra eu te mandar o link certo, me diz "qual o mais barato" ou o nome do produto (como aparece no site). Se você já tinha pedido o mais barato antes, manda de novo "qual o mais barato" que eu repito o link.';
+    }
+    return 'Assim que o catálogo carregar eu mando link. Enquanto isso, usa o menu Produtos no site ou o WhatsApp da loja.';
+  }
 
   if (/barat|menor\s*pre[cç]o|mais\s*barat|menor\s*valor|mais\s*econ|qual\s*o\s*mais\s*barat|qual\s*e\s*o\s*mais\s*barat|produto\s*mais\s*barat|o\s*mais\s*barat/i.test(msg)) {
     if (sorted.length > 0) {
       var best = sorted[0];
       var pr = parseFloat(best.discount_price || best.base_price) || 0;
-      return 'O produto com menor preço no catálogo agora é o ' + best.name + ', a partir de R$ ' + pr.toFixed(2).replace('.', ',') + '. Quer ver a página do produto em Produtos no site?';
+      var linkBest = best.id ? productPageUrl(best.id) : '';
+      writeChatContext({ lastOfferedProductId: best.id, lastOfferedProductName: best.name || '' });
+      return (
+        'Hoje o mais em conta no nosso catálogo é o ' +
+        best.name +
+        ', a partir de R$ ' +
+        pr.toFixed(2).replace('.', ',') +
+        '.' +
+        (linkBest ? ' Pode abrir direto aqui: ' + linkBest : '') +
+        ' Quer que eu sugira algo parecido ou fale de entrega?'
+      );
     }
-    return 'Ainda não consigo ver produtos no catálogo. Tente de novo em instantes ou veja a lista em Produtos no site.';
+    return 'Não consegui carregar o catálogo agora. Abre a página Produtos no site ou tenta de novo daqui a pouco — às vezes é instabilidade momentânea.';
   }
 
-  if (msg.includes('preço') || msg.includes('preco') || msg.includes('valor') || msg.includes('custa')) {
+  if (/^(oi|ol[aá]|bom\s*dia|boa\s*tarde|boa\s*noite|hey)\b/i.test(msg.trim())) {
+    return 'Oi! Tudo bem? Me diz o que você está procurando — colchão, sofá, preço, entrega na Grande Vitória… que eu te ajudo passo a passo.';
+  }
+
+  if (/obrigad|valeu|agrade[cç]/i.test(msg)) {
+    return 'Imagina! Qualquer coisa é só chamar de novo. Se precisar de humano, usa o WhatsApp do site que a equipe responde rapidinho.';
+  }
+
+  if (/humano|atendente|pessoa|falar\s+com|telefone|whatsapp|zap/i.test(msg)) {
+    return 'Perfeito — para falar com a equipe humana, use o botão WhatsApp no site ou no cabeçalho; eles veem promoções, estoque e agendamento na hora. Enquanto isso posso te ajudar com preços e links dos produtos da vitrine.';
+  }
+
+  if (/hor[aá]rio|funciona|abre|fecha|atendimento\s+na\s+loja/i.test(msg)) {
+    return 'Consigo te orientar sobre produtos e entrega aqui no chat. Horários e visita à loja o pessoal confirma direto no WhatsApp — é o jeito mais certeiro de pegar alguém disponível.';
+  }
+
+  if (msg.includes('preço') || msg.includes('preco') || msg.includes('valor') || msg.includes('custa') || msg.includes('quanto')) {
     if (sorted.length > 0) {
       const p = sorted[Math.floor(Math.random() * Math.min(sorted.length, 5))];
       const price = parseFloat(p.discount_price || p.base_price) || 0;
-      return 'O ' + p.name + ' custa a partir de R$ ' + price.toFixed(2).replace('.', ',') + '. Posso ajudar com mais informações?';
+      writeChatContext({ lastOfferedProductId: p.id, lastOfferedProductName: p.name || '' });
+      var uq = p.id ? productPageUrl(p.id) : '';
+      return (
+        'Um exemplo do catálogo: o ' +
+        p.name +
+        ' sai a partir de R$ ' +
+        price.toFixed(2).replace('.', ',') +
+        '.' +
+        (uq ? ' Link: ' + uq : '') +
+        ' Se quiser o mais barato de todos, pergunta "qual o mais barato?" que eu te digo na hora.'
+      );
     }
-    return 'Temos produtos a partir de R$ 199,90. Qual categoria você procura?';
+    return 'Temos várias faixas de preço no site. Abre em Produtos ou me diz casal/queen/king que eu te guio.';
   }
-  if (msg.includes('prazo') || msg.includes('entrega') || msg.includes('demora')) {
-    return 'Trabalhamos com entrega rápida em até 24 horas para Serra, Vitória e região. Para outras localidades, consulte o prazo no checkout.';
+  if (msg.includes('prazo') || msg.includes('entrega') || msg.includes('demora') || msg.includes('frete')) {
+    return 'A gente trabalha com entrega rápida para Serra, Vitória e região — em muitos casos em até 24 h para itens prontos. CEP e prazo exatos o checkout calcula na hora; se quiser, me passa o bairro que eu te digo o que costuma rolar por aqui.';
   }
   if (msg.includes('colchão') || msg.includes('colchao') || msg.includes('cama')) {
-    return 'Temos colchões ortopédicos, pillow top, espuma D33 e D45, molas ensacadas e muito mais. Qual tipo você prefere?';
+    return 'Temos linha boa de colchão: ortopédico, pillow top, D33/D45, molas ensacadas… Me diz se dorme de lado, costas ou barriga e se prefere mais firme ou mais macio que eu te ajudo a filtrar.';
   }
   if (msg.includes('sofá') || msg.includes('sofa') || msg.includes('poltrona')) {
-    return 'Trabalhamos com sofás retráteis, sofás-cama, poltronas reclináveis e sofás de canto. Para quantos lugares?';
+    return 'Sofá retrátil, sofá-cama, canto, poltrona reclinável… Para quantas pessoas e tamanho do sala? Com isso eu te ajudo a pensar em modelo.';
   }
-  if (msg.includes('parcelamento') || msg.includes('parcela') || msg.includes('cartão') || msg.includes('cartao')) {
-    return 'Aceitamos parcelamento em até 12x sem juros no cartão de crédito. Também aceitamos PIX e boleto com desconto.';
+  if (msg.includes('parcelamento') || msg.includes('parcela') || msg.includes('cartão') || msg.includes('cartao') || msg.includes('pix') || msg.includes('boleto')) {
+    return 'No site costuma rolar até 12x sem juros no cartão; PIX e boleto às vezes têm condição melhor — isso aparece certinho no checkout na hora de fechar.';
   }
-  return 'Não tenho certeza da resposta. Posso falar de preços, entrega, parcelamento ou colchões e sofás. O que você precisa?';
+  if (msg.includes('garantia') || msg.includes('defeito')) {
+    return 'Garantia e assistência variam por modelo e fabricante; na página do produto tem resumo e a equipe no WhatsApp confirma certinho na nota e no fabricante. Posso te mandar o link de algum modelo se quiser.';
+  }
+
+  return (
+    'Hmm, não peguei 100% — pode repetir de outro jeito? ' +
+    'Posso te ajudar com: preço e link de produto, qual o mais barato, entrega, parcelamento, ou te encaminhar pro WhatsApp da loja. O que faz mais sentido pra você agora?'
+  );
 }
 
 async function loadChatHistory() {

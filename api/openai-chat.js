@@ -1,12 +1,20 @@
 // Conforta Store — assistente (Vercel Serverless)
 // Env: OPENAI_API_KEY (obrigatório). Opcional: OPENAI_CHAT_MODEL (default gpt-4o-mini)
+//
+// POST normal: { "messages": [ { "role":"system"|"user"|"assistant", "content":"..." }, ... ] }
+// POST n8n (texto curto mesmo “cérebro” do chat): {
+//   "n8n_product_blurb": true,
+//   "product": { ... objeto vindo do webhook ... },
+//   "catalog_hint": "(opcional) texto com resumo de outros produtos",
+//   "instruction": "(opcional) ex: Gere legenda para Instagram"
+// }
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -32,10 +40,51 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-    const messages = body.messages;
-    if (!Array.isArray(messages) || messages.length === 0) {
-      res.status(400).json({ error: 'messages array required' });
-      return;
+
+    let messages;
+    const blurbOn =
+      body.n8n_product_blurb === true ||
+      body.n8n_product_blurb === 'true' ||
+      body.n8n_product_blurb === 1 ||
+      body.n8n_product_blurb === '1';
+    let productPayload = body.product;
+    if (typeof productPayload === 'string' && productPayload.trim()) {
+      try {
+        productPayload = JSON.parse(productPayload);
+      } catch (_) {
+        productPayload = null;
+      }
+    }
+    if (blurbOn && productPayload && typeof productPayload === 'object' && !Array.isArray(productPayload)) {
+      const catalogHint =
+        typeof body.catalog_hint === 'string' ? body.catalog_hint.trim().slice(0, 12000) : '';
+      const sys =
+        'Voce e atendente da Conforta Colchoes, no mesmo tom do chat do site: natural, prestativo, portugues do Brasil.\n' +
+        'Tarefa: escrever UMA unica mensagem curta (no maximo cerca de 320 caracteres) para WhatsApp ou legenda de rede social sobre o produto em foco.\n' +
+        'Use apenas dados fornecidos; nao invente precos, garantias nem links que nao estiverem nos dados.\n' +
+        (catalogHint
+          ? 'Contexto opcional de outros produtos da loja (para alinhar tom, nao copie nomes aleatoriamente):\n' +
+            catalogHint +
+            '\n\n'
+          : '') +
+        'Produto em foco (JSON):\n' +
+        JSON.stringify(productPayload);
+      const userMsg =
+        typeof body.instruction === 'string' && body.instruction.trim()
+          ? body.instruction.trim()
+          : 'Gere a mensagem promocional curta, convidativa, em um unico paragrafo, sem lista com tracos.';
+      messages = [
+        { role: 'system', content: sys },
+        { role: 'user', content: userMsg }
+      ];
+    } else {
+      messages = body.messages;
+      if (!Array.isArray(messages) || messages.length === 0) {
+        res.status(400).json({
+          error: 'Envie "messages" (array) ou use n8n_product_blurb: true com objeto "product".'
+        });
+        return;
+      }
     }
 
     const model = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';

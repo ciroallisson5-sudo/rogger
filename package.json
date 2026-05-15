@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Conforta Store - E-commerce with Supabase + Asaas payments",
   "scripts": {
-    "dev": "npx vercel dev",
-    "dev:static": "npx serve .",
+    "dev": "npx serve . --listen 3000",
+    "dev:static": "npx serve . --listen 3000",
     "dev:vercel": "npx vercel dev"
   }
 }

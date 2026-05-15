@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Conforta Colchoes</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0f172a">
+  <title>Admin - Conforta Colchões</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -249,7 +251,7 @@
 
   <div class="auth-gate" id="authGate">
     <div class="auth-gate-card">
-      <h1>Conforta Colchoes - Admin</h1>
+      <h1>Conforta Colchões - Admin</h1>
       <p class="auth-subtitle">Acesso restrito. Faca login com uma conta de administrador.</p>
       <div class="auth-msg" id="authMsg"></div>
       <div id="authLoginView">
@@ -273,7 +275,7 @@
 
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <img src="assets/logo.png" alt="Conforta Colchoes">
+      <img src="assets/logo.png" alt="Conforta Colchões">
       <div class="sb-name">Conforta<small>COLCHOES</small></div>
     </div>
     <nav class="sidebar-menu">
@@ -346,6 +348,7 @@
         <div class="toolbar">
           <div class="toolbar-left">
             <button class="btn btn-primary" onclick="openProductModal()">+ Novo Produto</button>
+            <button type="button" class="btn btn-ghost" id="btnBulkTripo3d" onclick="bulkGenerateTripo3dMissing()" title="Usa a primeira foto de cada produto (sem video)">Gerar 3D nos que faltam</button>
           </div>
           <div class="toolbar-right">
             <input class="search-input" id="productSearch" placeholder="Buscar produtos..." oninput="debounceSearch()">
@@ -424,7 +427,7 @@
               </div>
               <div>
                 <label class="form-label-light">Nome da loja</label>
-                <input type="text" id="storeName" class="form-input" placeholder="Conforta Colchoes">
+                <input type="text" id="storeName" class="form-input" placeholder="Conforta Colchões">
               </div>
             </div>
             <div style="display:flex;justify-content:flex-end;margin-top:14px;">
@@ -511,6 +514,12 @@
         <div class="n8n-endpoint">
           <h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:8px;">Endpoint de Dados para n8n</h3>
           <p style="font-size:0.85rem;color:var(--text2);margin-bottom:12px;">Use esta URL no modulo HTTP Request do n8n para obter todos os dados de produtos com fotos.</p>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;line-height:1.55;">Depois do deploy na <strong>Vercel</strong>, o admin e as rotas <code>/api/*</code> ficam no <strong>mesmo dominio</strong> (ex.: <code>https://sua-loja.vercel.app</code>). O navegador ja chama <code>/api/openai-chat</code> e <code>/api/gerar-3d</code> relativos — nao precisa apontar para API local no codigo. Abra o admin sempre por esse URL (nao <code>file://</code>), senao o <code>/api/</code> nao existe.</p>
+          <p style="font-size:0.78rem;color:var(--text2);margin-bottom:6px;">Base deste deploy (cole no n8n antes de <code>openai-chat</code>, <code>gerar-3d</code>, etc.):</p>
+          <div class="endpoint-url" style="margin-bottom:16px;">
+            <code id="n8nSiteApiBase">Carregando...</code>
+            <button type="button" class="btn btn-sm btn-ghost" onclick="copyN8nSiteApiBase()">Copiar</button>
+          </div>
           <div class="endpoint-url">
             <code id="n8nEndpointUrl">Carregando...</code>
             <button class="btn btn-sm btn-ghost" onclick="copyN8nUrl()">Copiar URL</button>
@@ -527,6 +536,11 @@
               <li>Adicione o header <code>Content-Type: application/json</code></li>
               <li>Use a resposta JSON no modulo <strong>AI Agent</strong> ou <strong>OpenAI</strong> do n8n como contexto</li>
               <li>Voce tambem pode usar o webhook configurado nas Configuracoes para receber dados automaticamente</li>
+              <li>O webhook envia <code>summary_line</code> (uma linha com nome, preço, categoria, tags, trecho da descricao) e o objeto <code>product</code> completo</li>
+              <li>Para gerar texto com a mesma IA do site: modulo <strong>HTTP Request POST</strong> para a URL completa abaixo com JSON
+                <div class="endpoint-url" style="margin:8px 0;"><code id="n8nOpenaiChatUrl">—</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyN8nOpenaiChatUrl()">Copiar</button></div>
+                <code style="display:block;margin-top:6px;white-space:pre-wrap;">{ "n8n_product_blurb": true, "product": {{ $json.product }} }</code>
+                (opcional: <code>"catalog_hint"</code> com trecho do catalogo; <code>"instruction"</code> para customizar o pedido). Prefira <strong>POST</strong> a GET para nao estourar limite de URL.</li>
             </ol>
             <p style="margin-top:12px;">URL da API REST Supabase:</p>
             <div class="endpoint-url" style="margin:8px 0 0;">
@@ -591,6 +605,10 @@
             <p>Clique para adicionar foto ou video</p>
             <small style="display:block;color:var(--text2);font-size:0.75rem;margin-top:4px;">JPG, PNG, WebP, MP4, MOV - varios arquivos de uma vez</small>
             <input type="file" id="photoFileInput" accept="image/*,video/*" multiple style="display:none;" onchange="handlePhotoUpload(event)">
+          </div>
+          <div class="form-group" style="margin-top:12px;">
+            <label class="form-check"><input type="checkbox" id="prodGerar3dTripo"> Apos salvar, gerar modelo 3D automaticamente (Tripo AI — pode levar varios minutos e consumir creditos)</label>
+            <small style="display:block;color:var(--text2);font-size:0.7rem;margin-top:4px;">A primeira foto (nao video) sera salva como <code>imagens/[id].jpg</code> no bucket Storage configurado (padrao: <code>public</code>).</small>
           </div>
         </div>
       </div>
@@ -673,6 +691,8 @@
           <div class="form-group"><label class="form-label">Estoque (sobrescrever)</label><input class="form-input" id="pcStockOverride" type="number"></div>
         </div>
         <div class="form-group"><label class="form-label">Label Personalizado</label><input class="form-input" id="pcCustomLabel" placeholder="Ex: Cor principal"></div>
+        <div class="form-group"><label class="form-label">Modelo 3D (GLB)</label><input class="form-input" id="pcModelGlb" placeholder="assets/models/meu-colchao-abc123def456.glb ou URL publica"></div>
+        <div class="form-group"><label class="form-label">AR iOS (USDZ, opcional)</label><input class="form-input" id="pcModelUsdz" placeholder="URL do ficheiro .usdz para Quick Look"></div>
         <div class="form-group"><label class="form-label">Mesma configuracao da foto...</label>
           <select class="form-select" id="pcSameAsPhoto"><option value="">Nenhuma</option></select>
         </div>
@@ -708,6 +728,10 @@
         orderSearchTimer: null
       };
 
+      /** Padronizar imagem: bucket + prefixo alinhados ao servidor /api/gerar-3d (env SUPABASE_IMAGE_*) */
+      var CONFORTA_IMG_BUCKET = 'public';
+      var CONFORTA_IMG_PREFIX = 'imagens';
+
       // ===================== INIT =====================
       async function init() {
         if (typeof initSupabase === 'function') initSupabase();
@@ -717,9 +741,9 @@
         if (!allowed) return;
 
         renderSidebar();
+        await loadCategories();
         loadDashboard();
         loadProducts();
-        loadCategoriesDropdowns();
 
         document.querySelectorAll('.sidebar-item[data-section]').forEach(function(el) {
           el.addEventListener('click', function(e) {
@@ -781,10 +805,10 @@
         if (!email) return false;
         try {
           var r = await sb.rpc('get_admin_emails');
-          if (r.error) { console.error('get_admin_emails error', r.error); return false; }
+          if (r.error) { return false; }
           var list = (r.data || []).map(function(e) { return String(e || '').toLowerCase(); });
           return list.indexOf(String(email).toLowerCase()) !== -1;
-        } catch(e) { console.error('isAdminUser error', e); return false; }
+        } catch(e) { return false; }
       }
 
       async function requireAdmin() {
@@ -798,7 +822,7 @@
           hideAuthGate();
           return true;
         } catch(e) {
-          console.error('requireAdmin error', e);
+          void e;
           showAuthGate('login');
           return false;
         }
@@ -818,7 +842,7 @@
           if (!ok) { showAuthGate('blocked', r.data.user && r.data.user.email); return; }
           location.reload();
         } catch(e) {
-          console.error('adminGateLogin error', e);
+          void e;
           setAuthMsg('Erro inesperado ao entrar.', 'error');
         } finally {
           btn.disabled = false; btn.textContent = oldText;
@@ -1063,6 +1087,8 @@
         document.getElementById('prodSeoTitle').value = '';
         document.getElementById('prodSeoDesc').value = '';
         document.getElementById('prodCategory').value = '';
+        var g3 = document.getElementById('prodGerar3dTripo');
+        if (g3) g3.checked = false;
 
         renderPhotoGrid();
         openModalById('productModal');
@@ -1096,6 +1122,8 @@
           document.getElementById('prodSeoTitle').value = p.seo_title || '';
           document.getElementById('prodSeoDesc').value = p.seo_description || '';
           document.getElementById('prodCategory').value = p.category_id || '';
+          var g3e = document.getElementById('prodGerar3dTripo');
+          if (g3e) g3e.checked = false;
 
           renderPhotoGrid();
           openModalById('productModal');
@@ -1108,6 +1136,231 @@
         document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
         document.querySelector('#productTabs .tab[data-tab="' + tab + '"]').classList.add('active');
         document.getElementById('productTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+      }
+
+      async function normalizeFirstProductPhotoToIdJpg(productId) {
+        var idx = state.photoList.findIndex(function(p) { return !p.is_video && p.url; });
+        if (idx < 0) return;
+        var ph = state.photoList[idx];
+        var res = await fetch(ph.url);
+        if (!res.ok) throw new Error('nao foi possivel baixar a foto atual');
+        var blob = await res.blob();
+        var ct = (blob.type && blob.type.indexOf('png') >= 0) ? 'image/png' : 'image/jpeg';
+        var file = new File([blob], productId + '.jpg', { type: ct });
+        var rel = (CONFORTA_IMG_PREFIX ? CONFORTA_IMG_PREFIX + '/' : '') + productId + '.jpg';
+        var newUrl = await supabaseUpload(CONFORTA_IMG_BUCKET, rel, file);
+        ph.url = newUrl;
+      }
+
+      async function runTripo3dPipeline(productId, imageUrl, accessToken) {
+        try {
+          var r = await fetch('/api/gerar-3d', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + accessToken
+            },
+            body: JSON.stringify({ phase: 'create', productId: productId, imageUrl: imageUrl })
+          });
+          var j = await r.json().catch(function() { return {}; });
+          if (!r.ok) {
+            showToast((j && j.error) || 'Falha ao iniciar geracao 3D', 'error');
+            return { ok: false, error: (j && j.error) || 'create_failed' };
+          }
+          var taskId = j.tripTaskId;
+          if (!taskId) {
+            showToast('Resposta invalida do servidor 3D', 'error');
+            return { ok: false, error: 'no_task_id' };
+          }
+          showToast('Modelo 3D em processamento na Tripo...', 'success');
+          for (var i = 0; i < 120; i++) {
+            await new Promise(function(res) { setTimeout(res, 3000); });
+            var pr = await fetch('/api/gerar-3d', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + accessToken
+              },
+              body: JSON.stringify({ phase: 'poll', tripTaskId: taskId, productId: productId })
+            });
+            var pj = await pr.json().catch(function() { return {}; });
+            if (!pr.ok) {
+              showToast((pj && pj.error) || 'Erro ao acompanhar geracao 3D', 'error');
+              return { ok: false, error: (pj && pj.error) || 'poll_http' };
+            }
+            if (pj.done) {
+              if (pj.ok === false) {
+                showToast((pj.error || 'Tripo falhou') + (pj.tripoStatus ? ' (' + pj.tripoStatus + ')' : ''), 'error');
+                return { ok: false, error: (pj && pj.error) || pj.tripoStatus || 'tripo_failed' };
+              }
+              showToast('Modelo 3D salvo no Storage (modelos-3d).', 'success');
+              return { ok: true };
+            }
+          }
+          showToast('Timeout na geracao 3D; tente novamente mais tarde.', 'error');
+          return { ok: false, error: 'timeout' };
+        } catch (e) {
+          showToast('Erro na pipeline 3D: ' + ((e && e.message) || e), 'error');
+          return { ok: false, error: (e && e.message) || 'exception' };
+        }
+      }
+
+      function heroPhotoRecord(product) {
+        var photos = (product.product_photos || []).slice().sort(function(a, b) {
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+        for (var i = 0; i < photos.length; i++) {
+          var ph = photos[i];
+          if (!ph || ph.is_video) continue;
+          if ((ph.url || '').trim()) return ph;
+        }
+        return null;
+      }
+
+      function productHeroHasGlbUrl(product) {
+        var ph = heroPhotoRecord(product);
+        return !!(ph && String(ph.model_glb_url || '').trim());
+      }
+
+      function pickHeroImageUrl(product) {
+        var ph = heroPhotoRecord(product);
+        return ph ? String(ph.url || '').trim() : '';
+      }
+
+      async function checkProductHasDefaultGlb(productId, accessToken) {
+        var res = await fetch('/api/gerar-3d?productId=' + encodeURIComponent(productId), {
+          headers: { Authorization: 'Bearer ' + accessToken }
+        });
+        var j = await res.json().catch(function() { return {}; });
+        if (!res.ok) return false;
+        return !!j.hasGlb;
+      }
+
+      window.bulkGenerateTripo3dMissing = async function() {
+        if (!sb) { showToast('Supabase nao inicializado', 'error'); return; }
+        var btn = document.getElementById('btnBulkTripo3d');
+        try {
+          var sessR = await sb.auth.getSession();
+          var tok = sessR.data && sessR.data.session && sessR.data.session.access_token;
+          if (!tok) { showToast('Faca login novamente.', 'error'); return; }
+          if (!state.products || state.products.length === 0) {
+            showToast('Carregue a lista de produtos primeiro.', 'info');
+            return;
+          }
+          if (btn) { btn.disabled = true; }
+          var queue = [];
+          for (var i = 0; i < state.products.length; i++) {
+            var p = state.products[i];
+            if (productHeroHasGlbUrl(p)) continue;
+            var img = pickHeroImageUrl(p);
+            if (!img) continue;
+            var has = await checkProductHasDefaultGlb(p.id, tok);
+            if (has) continue;
+            queue.push({ id: p.id, name: p.name, imageUrl: img });
+          }
+          if (queue.length === 0) {
+            showToast('Nenhum produto na lista precisa do GLB padrao (ou todos sem foto / ja tem URL 3D na foto).', 'success');
+            return;
+          }
+          if (!confirm('Gerar 3D (Tripo) para ' + queue.length + ' produto(s), um de cada vez? Isso pode levar muito tempo e consumir creditos. Deixe esta aba aberta.')) {
+            return;
+          }
+          var okCount = 0;
+          var failCount = 0;
+          for (var j = 0; j < queue.length; j++) {
+            var item = queue[j];
+            showToast('[' + (j + 1) + '/' + queue.length + '] ' + item.name, 'info');
+            var result = await runTripo3dPipeline(item.id, item.imageUrl, tok);
+            if (result && result.ok) okCount++;
+            else failCount++;
+            await new Promise(function(res) { setTimeout(res, 1500); });
+          }
+          showToast('Fila concluida: ' + okCount + ' ok, ' + failCount + ' falha(s).', okCount > 0 ? 'success' : 'warning');
+          loadProducts();
+        } catch (e) {
+          showToast('Erro: ' + ((e && e.message) || e), 'error');
+        } finally {
+          if (btn) { btn.disabled = false; }
+        }
+      };
+
+      function categoryNameById(categoryId) {
+        if (!categoryId || !state.categories || !state.categories.length) return '';
+        for (var i = 0; i < state.categories.length; i++) {
+          if (state.categories[i].id === categoryId) return String(state.categories[i].name || '');
+        }
+        return '';
+      }
+
+      function firstPhotoUrlFromPhotoList() {
+        var ph = state.photoList.filter(function(p) { return !p.is_video && p.url; })[0];
+        return ph && ph.url ? String(ph.url).trim() : '';
+      }
+
+      function buildN8nProductWebhookPayload(productId, productName, pdata) {
+        var catName = categoryNameById(pdata.category_id);
+        var photoUrl = firstPhotoUrlFromPhotoList();
+        var origin = '';
+        try { origin = window.location.origin || ''; } catch (e1) { void e1; }
+        var productPage = origin ? origin + '/produto.html?id=' + encodeURIComponent(productId) : 'produto.html?id=' + encodeURIComponent(productId);
+        var listPrice = parseFloat(pdata.base_price) || 0;
+        var disc = pdata.discount_price != null && pdata.discount_price !== '' ? parseFloat(pdata.discount_price) : null;
+        var priceShow = disc != null && !isNaN(disc) && disc < listPrice ? disc : listPrice;
+        var descFull = (pdata.description || '').trim();
+        var descShort = descFull.replace(/\s+/g, ' ');
+        var tagStr = (pdata.tags && pdata.tags.length) ? pdata.tags.join(' ') : '';
+        var summaryParts = [productName, 'R$' + priceShow.toFixed(2).replace('.', ',')];
+        if (catName) summaryParts.push(catName);
+        if (tagStr) summaryParts.push(tagStr);
+        if (pdata.material) summaryParts.push(String(pdata.material));
+        if (descShort) summaryParts.push(descShort.slice(0, 160));
+        if (pdata.dimensions) summaryParts.push(String(pdata.dimensions));
+        var summaryLine = summaryParts.join(' — ');
+        return {
+          event: state.editingProductId ? 'product_updated' : 'product_created',
+          product_id: productId,
+          product_name: productName,
+          timestamp: new Date().toISOString(),
+          summary_line: summaryLine,
+          product_page_url: productPage,
+          slug: pdata.slug,
+          description: descFull,
+          description_excerpt: descShort.slice(0, 320),
+          base_price: pdata.base_price,
+          discount_price: pdata.discount_price,
+          price_display: priceShow,
+          list_price: listPrice,
+          currency: 'BRL',
+          stock: pdata.stock,
+          category_id: pdata.category_id || null,
+          category_name: catName,
+          tags: pdata.tags || [],
+          featured: pdata.featured,
+          active: pdata.active,
+          weight: pdata.weight,
+          dimensions: pdata.dimensions,
+          material: pdata.material,
+          warranty: pdata.warranty,
+          seo_title: pdata.seo_title,
+          seo_description: pdata.seo_description,
+          first_photo_url: photoUrl,
+          product: {
+            id: productId,
+            name: productName,
+            slug: pdata.slug,
+            summary_line: summaryLine,
+            product_page_url: productPage,
+            first_photo_url: photoUrl,
+            prices: { list: listPrice, sale: pdata.discount_price, display: priceShow },
+            category: { id: pdata.category_id || null, name: catName },
+            stock: pdata.stock,
+            tags: pdata.tags || [],
+            material: pdata.material,
+            dimensions: pdata.dimensions,
+            warranty: pdata.warranty,
+            description: descFull
+          }
+        };
       }
 
       async function saveProduct() {
@@ -1148,6 +1401,16 @@
             showToast('Produto criado com sucesso', 'success');
           }
 
+          try {
+            await normalizeFirstProductPhotoToIdJpg(productId);
+          } catch (normErr) {
+            showToast('Aviso: foto principal nao padronizada como imagens/[id].jpg — ' + ((normErr && normErr.message) || normErr), 'warning');
+          }
+
+          var wantTripo = !!(document.getElementById('prodGerar3dTripo') && document.getElementById('prodGerar3dTripo').checked);
+          var firstPhForTripo = state.photoList.filter(function(p) { return !p.is_video && p.url; })[0];
+          var firstImgUrlForTripo = firstPhForTripo && firstPhForTripo.url ? firstPhForTripo.url : '';
+
           // Save photos
           for (var i = 0; i < state.photoList.length; i++) {
             var ph = state.photoList[i];
@@ -1166,12 +1429,15 @@
                 size: ph.size || null,
                 custom_label: ph.custom_label || null,
                 stock_override: ph.stock_override || null,
+                model_glb_url: ph.model_glb_url || null,
+                model_usdz_url: ph.model_usdz_url || null,
                 same_as_photo_id: ph.same_as_photo_id || null,
                 active: true
               };
               await sb.from('product_photos').insert(phData);
             } else {
               var updateData = {
+                url: ph.url,
                 sort_order: i,
                 is_video: ph.is_video || false,
                 video_url: ph.video_url || null,
@@ -1182,6 +1448,8 @@
                 size: ph.size || null,
                 custom_label: ph.custom_label || null,
                 stock_override: ph.stock_override || null,
+                model_glb_url: ph.model_glb_url || null,
+                model_usdz_url: ph.model_usdz_url || null,
                 same_as_photo_id: ph.same_as_photo_id || null
               };
               await sb.from('product_photos').update(updateData).eq('id', ph.id);
@@ -1191,16 +1459,23 @@
           closeModalById('productModal');
           loadProducts();
 
+          if (wantTripo && firstImgUrlForTripo) {
+            try {
+              var sessR = await sb.auth.getSession();
+              var tok = sessR.data && sessR.data.session && sessR.data.session.access_token;
+              if (tok) void runTripo3dPipeline(productId, firstImgUrlForTripo, tok);
+              else showToast('Sessao expirada; entre de novo para gerar 3D.', 'error');
+            } catch (eTripo) {
+              void eTripo;
+              showToast('Nao foi possivel iniciar geracao 3D.', 'error');
+            }
+          }
+
           // Send to n8n webhook if configured
           try {
             var n8nUrl = await getSetting('n8n_webhook_url');
             if (n8nUrl) {
-              var n8nData = {
-                event: state.editingProductId ? 'product_updated' : 'product_created',
-                product_id: productId,
-                product_name: name,
-                timestamp: new Date().toISOString()
-              };
+              var n8nData = buildN8nProductWebhookPayload(productId, name, data);
               fetch(n8nUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1210,7 +1485,7 @@
           } catch(e) {}
 
         } catch(e) {
-          console.error('Erro ao salvar produto', e);
+          void e;
           var detail = e && (e.message || e.error_description || e.hint || e.details);
           showToast('Erro ao salvar produto: ' + (detail || JSON.stringify(e)), 'error');
         }
@@ -1234,7 +1509,7 @@
         }
         grid.innerHTML = state.photoList.map(function(ph, idx) {
           var thumb = ph.url || '';
-          var hasConfig = ph.price || ph.discount_price || ph.color_name || ph.size || ph.custom_label || ph.is_video;
+          var hasConfig = ph.price || ph.discount_price || ph.color_name || ph.size || ph.custom_label || ph.is_video || ph.model_glb_url || ph.model_usdz_url;
           var thumbHtml;
           if (ph.is_video) {
             var src = ph.video_url || ph.url || '';
@@ -1315,10 +1590,12 @@
               size: null,
               custom_label: null,
               stock_override: null,
-              same_as_photo_id: null
+              same_as_photo_id: null,
+              model_glb_url: null,
+              model_usdz_url: null
             });
           } catch(e) {
-            console.error('Erro upload', file.name, e);
+            void e;
             var msg = (e && (e.message || e.error_description || e.statusText)) || 'erro desconhecido';
             showToast('Erro ao enviar ' + file.name + ': ' + msg, 'error');
           }
@@ -1351,6 +1628,8 @@
         document.getElementById('pcSize').value = ph.size || '';
         document.getElementById('pcStockOverride').value = ph.stock_override || '';
         document.getElementById('pcCustomLabel').value = ph.custom_label || '';
+        document.getElementById('pcModelGlb').value = ph.model_glb_url || '';
+        document.getElementById('pcModelUsdz').value = ph.model_usdz_url || '';
 
         // Populate same_as dropdown
         var sameSelect = document.getElementById('pcSameAsPhoto');
@@ -1384,6 +1663,8 @@
         ph.size = document.getElementById('pcSize').value.trim() || null;
         ph.stock_override = document.getElementById('pcStockOverride').value ? parseInt(document.getElementById('pcStockOverride').value) : null;
         ph.custom_label = document.getElementById('pcCustomLabel').value.trim() || null;
+        ph.model_glb_url = document.getElementById('pcModelGlb').value.trim() || null;
+        ph.model_usdz_url = document.getElementById('pcModelUsdz').value.trim() || null;
 
         var sameVal = document.getElementById('pcSameAsPhoto').value;
         ph.same_as_photo_id = sameVal || null;
@@ -2053,7 +2334,27 @@
         }
         document.getElementById('n8nEndpointUrl').textContent = endpoint;
         document.getElementById('supabaseRestUrl').textContent = url;
+        var origin = '';
+        try { origin = window.location.origin || ''; } catch (e2) { void e2; }
+        var baseEl = document.getElementById('n8nSiteApiBase');
+        var openaiEl = document.getElementById('n8nOpenaiChatUrl');
+        if (baseEl) {
+          baseEl.textContent = origin ? origin + '/api/' : '(use o dominio do site — nao file://)';
+        }
+        if (openaiEl) {
+          openaiEl.textContent = origin ? origin + '/api/openai-chat' : '(abra pelo URL publicado)';
+        }
       }
+
+      window.copyN8nSiteApiBase = function() {
+        var el = document.getElementById('n8nSiteApiBase');
+        if (el && el.textContent) copyToClipboard(el.textContent, 'Base /api/ copiada');
+      };
+
+      window.copyN8nOpenaiChatUrl = function() {
+        var el = document.getElementById('n8nOpenaiChatUrl');
+        if (el && el.textContent) copyToClipboard(el.textContent, 'URL openai-chat copiada');
+      };
 
       window.copyN8nUrl = function() {
         var text = document.getElementById('n8nEndpointUrl').textContent;

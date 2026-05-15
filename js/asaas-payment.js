@@ -1,10 +1,10 @@
-// Conforta Store — pagamentos Asaas (rota /api/asaas)
+// Conforta Store - Asaas Payment Integration (via Vercel Proxy)
 
-const ASAAS_API_URL = '/api/asaas';
+const ASAAS_PROXY_URL = '/api/asaas-proxy';
 
 const MSG_PAYMENT_UNAVAILABLE = 'Pagamento online indisponivel no momento. Tente mais tarde ou fale com a loja.';
 
-/** sandbox | production — alinhado ao ambiente da chave no servidor. */
+/** Alinha com o proxy: sandbox | production (evita URL errada e 401 por ambiente). */
 function normalizeAsaasEnv(raw) {
   if (raw == null || raw === '') return 'sandbox';
   var s = String(raw).trim();
@@ -19,52 +19,36 @@ function normalizeAsaasEnv(raw) {
 function logPaymentDev(reason, detail) {
   if (typeof console === 'undefined' || typeof console.warn !== 'function') return;
   if (detail === undefined || detail === null || detail === '') {
-    console.warn('[Conforta/Pagamentos]', reason || '');
+    console.warn('[Conforta/Asaas]', reason || '');
   } else {
-    console.warn('[Conforta/Pagamentos]', reason || '', detail);
+    console.warn('[Conforta/Asaas]', reason || '', detail);
   }
 }
 
-/** Servico /api/asaas disponivel e com credenciais no servidor. */
-async function isAsaasPaymentApiAvailable() {
-  if (window.__confortaAsaasApiOk !== undefined) return window.__confortaAsaasApiOk;
+/** Detecta se o proxy serverless do Asaas esta disponivel (Vercel) e configurado. */
+async function isAsaasProxyAvailable() {
+  if (window.__asaasProxyAvailable !== undefined) return window.__asaasProxyAvailable;
   try {
-    const r = await fetch(ASAAS_API_URL, { method: 'GET' });
-    if (r.status === 404) {
-      window.__confortaAsaasApiHint =
-        'Pagamento online nao esta disponivel neste endereco. Acesse o site publicado pela loja.';
-      window.__confortaAsaasApiOk = false;
-      return false;
-    }
+    const r = await fetch(ASAAS_PROXY_URL, { method: 'GET' });
     const ct = r.headers.get('content-type') || '';
     if (ct.includes('application/json')) {
       const meta = await r.json().catch(function() { return {}; });
-      window.__confortaAsaasApiOk = !!meta.configured;
-      if (!window.__confortaAsaasApiOk) {
-        window.__confortaAsaasApiHint =
-          'Pagamento online ainda nao foi ativado no servidor da loja. Tente mais tarde ou entre em contato.';
-      } else {
-        window.__confortaAsaasApiHint = '';
-      }
+      // O proxy existe e a chave esta no env do servidor
+      window.__asaasProxyAvailable = !!meta.configured;
     } else {
-      window.__confortaAsaasApiOk = false;
-      window.__confortaAsaasApiHint = 'Servico de pagamento indisponivel no momento.';
+      window.__asaasProxyAvailable = false;
     }
-  } catch (e) {
-    window.__confortaAsaasApiOk = false;
-    window.__confortaAsaasApiHint = 'Nao foi possivel conectar ao servico de pagamento.';
+  } catch {
+    window.__asaasProxyAvailable = false;
   }
-  return window.__confortaAsaasApiOk;
+  return window.__asaasProxyAvailable;
 }
 
 async function initAsaasPayment(orderData) {
   const env = normalizeAsaasEnv(await getSetting('asaas_environment'));
-  const available = await isAsaasPaymentApiAvailable();
+  const available = await isAsaasProxyAvailable();
   if (!available) {
-    logPaymentDev(
-      (typeof window !== 'undefined' && window.__confortaAsaasApiHint) ? window.__confortaAsaasApiHint : 'Pagamento online indisponivel.',
-      null
-    );
+    logPaymentDev('initAsaasPayment: proxy nao configurado (defina ASAAS_API_KEY na Vercel)', null);
     return null;
   }
   return {
@@ -74,18 +58,15 @@ async function initAsaasPayment(orderData) {
   };
 }
 
-async function callAsaasApi(endpoint, method, body) {
+async function callAsaasProxy(endpoint, method, body) {
   const env = normalizeAsaasEnv(await getSetting('asaas_environment'));
-  const available = await isAsaasPaymentApiAvailable();
+  const available = await isAsaasProxyAvailable();
   if (!available) {
-    logPaymentDev(
-      (typeof window !== 'undefined' && window.__confortaAsaasApiHint) ? window.__confortaAsaasApiHint : 'Pagamento online indisponivel.',
-      ASAAS_API_URL
-    );
+    logPaymentDev('Proxy de pagamento nao configurado (defina ASAAS_API_KEY na Vercel)', ASAAS_PROXY_URL);
     return null;
   }
   try {
-    const res = await fetch(ASAAS_API_URL, {
+    const res = await fetch(ASAAS_PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -97,27 +78,31 @@ async function callAsaasApi(endpoint, method, body) {
     });
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
-      logPaymentDev('Resposta invalida do servico de pagamento', ct);
+      logPaymentDev('Resposta nao-JSON do proxy', ct);
       throw new Error('gateway');
     }
     const result = await res.json();
     if (!res.ok) {
       const msg = result.error || result.message || 'Erro na requisicao';
+      if (res.status === 401 || res.status === 403) {
+        showToast(
+          'Asaas recusou a chave (401). Na Vercel use ASAAS_API_KEY ou chaves separadas ASAAS_API_KEY_SANDBOX / ASAAS_API_KEY_PRODUCTION e deixe o ambiente no admin igual ao da chave.',
+          'error'
+        );
+      } else {
+        showToast(MSG_PAYMENT_UNAVAILABLE, 'error');
+      }
       throw new Error('HTTP ' + res.status + ': ' + msg);
     }
     return result;
   } catch (e) {
-    const m = (e && e.message) ? String(e.message) : '';
-    logPaymentDev('Falha na comunicacao com o pagamento', m || e);
-    const http = m.match(/^HTTP\s(\d{3}):/);
-    const code = http ? parseInt(http[1], 10) : 0;
-    if (code === 401 || code === 403) {
-      showToast('Nao foi possivel autenticar o pagamento. Entre em contato com a loja.', 'error');
-    } else if (code === 400) {
-      var human = m.replace(/^HTTP\s400:\s*/, '').trim();
-      showToast(human || MSG_PAYMENT_UNAVAILABLE, 'error');
+    if (e && e.message && /^HTTP\s(401|403):/.test(e.message)) {
+      logPaymentDev('Falha no proxy Asaas', e.message);
     } else {
-      showToast(MSG_PAYMENT_UNAVAILABLE, 'error');
+      logPaymentDev('Falha no proxy Asaas', e && e.message);
+      if (!(e && e.message && /^HTTP\s(401|403):/.test(e.message))) {
+        showToast(MSG_PAYMENT_UNAVAILABLE, 'error');
+      }
     }
     return null;
   }
@@ -128,39 +113,26 @@ async function createCustomer(userData) {
     const sb = getSupabase();
     if (!sb) throw new Error('Supabase not initialized');
 
-    const docDigits = String(userData.document || '').replace(/\D/g, '');
-
     const { data: existing } = await sb.from('asaas_customers')
       .select('asaas_id')
       .eq('user_id', userData.user_id)
       .maybeSingle();
 
     if (existing?.asaas_id) {
-      if (docDigits.length === 11 || docDigits.length === 14) {
-        const updated = await callAsaasApi('/customers/' + existing.asaas_id, 'PUT', {
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone || '',
-          cpfCnpj: docDigits,
-          notificationDisabled: false
-        });
-        if (!updated) return null;
-      }
       return { asaas_id: existing.asaas_id, cached: true };
     }
 
-    const result = await callAsaasApi('/customers', 'POST', {
+    const result = await callAsaasProxy('/customers', 'POST', {
       name: userData.name,
       email: userData.email,
       phone: userData.phone,
-      cpfCnpj: docDigits,
+      cpfCnpj: userData.document,
       notificationDisabled: false,
       additionalEmails: [],
       externalReference: userData.user_id
     });
 
-    if (!result) return null;
-    if (!result.id) {
+    if (!result || !result.id) {
       logPaymentDev('createCustomer: resposta sem id', result);
       return null;
     }
@@ -181,10 +153,11 @@ async function processPixPayment(orderData) {
   try {
     const { asaas_id } = await createCustomer(orderData.customer) || {};
     if (!asaas_id) {
+      logPaymentDev('PIX: cliente Asaas nao disponivel', null);
       return null;
     }
 
-    const result = await callAsaasApi('/payments', 'POST', {
+    const result = await callAsaasProxy('/payments', 'POST', {
       customer: asaas_id,
       billingType: 'PIX',
       value: orderData.total,
@@ -198,7 +171,7 @@ async function processPixPayment(orderData) {
 
     var qrData = null;
     if (result.id) {
-      qrData = await callAsaasApi('/payments/' + result.id + '/pixQrCode', 'GET');
+      qrData = await callAsaasProxy('/payments/' + result.id + '/pixQrCode', 'GET');
     }
 
     await supabaseInsert('payments', {
@@ -228,10 +201,11 @@ async function processCreditCardPayment(orderData) {
   try {
     const { asaas_id } = await createCustomer(orderData.customer) || {};
     if (!asaas_id) {
+      logPaymentDev('Cartao: cliente Asaas nao disponivel', null);
       return null;
     }
 
-    const result = await callAsaasApi('/payments', 'POST', {
+    const result = await callAsaasProxy('/payments', 'POST', {
       customer: asaas_id,
       billingType: 'CREDIT_CARD',
       value: orderData.total,
@@ -278,10 +252,11 @@ async function processBoletoPayment(orderData) {
   try {
     const { asaas_id } = await createCustomer(orderData.customer) || {};
     if (!asaas_id) {
+      logPaymentDev('Boleto: cliente Asaas nao disponivel', null);
       return null;
     }
 
-    const result = await callAsaasApi('/payments', 'POST', {
+    const result = await callAsaasProxy('/payments', 'POST', {
       customer: asaas_id,
       billingType: 'BOLETO',
       value: orderData.total,
@@ -317,7 +292,7 @@ async function processBoletoPayment(orderData) {
 }
 
 async function checkPaymentStatus(paymentId) {
-  const result = await callAsaasApi('/payments/' + paymentId, 'GET');
+  const result = await callAsaasProxy('/payments/' + paymentId, 'GET');
   if (!result) return null;
   return {
     id: result.id,
@@ -334,7 +309,7 @@ async function checkPaymentStatus(paymentId) {
 }
 
 async function getInstallments(value, maxInstallments) {
-  const result = await callAsaasApi('/payments/installments?value=' + value + '&maxInstallments=' + (maxInstallments || 12), 'GET');
+  const result = await callAsaasProxy('/payments/installments?value=' + value + '&maxInstallments=' + (maxInstallments || 12), 'GET');
   return result?.installments || [];
 }
 
