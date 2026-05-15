@@ -336,8 +336,12 @@ function applyConfortaPolish() {
 }
 
 function getCurrentPageName() {
-  const path = (window.location.pathname || '').split('/').pop() || 'index.html';
-  return path || 'index.html';
+  const raw = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+  const segments = raw.split('/').filter(Boolean);
+  let last = segments.length ? segments[segments.length - 1] : '';
+  if (!last) return 'index.html';
+  if (!last.includes('.')) return last.toLowerCase() + '.html';
+  return last;
 }
 
 function enhanceGlobalHeader(page) {

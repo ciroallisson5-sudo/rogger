@@ -50,10 +50,43 @@
     /* Main */
     .main { margin-top: 0; padding-top: 56px; background: #ffffff; }
 
-    /* Hero */
-    .hero { background: linear-gradient(180deg, #0f172a 0%, #1e40af 40%, #3b82f6 100%); padding: 24px 0 48px; color: #ffffff; position: relative; overflow: hidden; margin-top: -56px; padding-top: calc(56px + 24px); }
-    .hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events: none; }
-    .hero .container { position: relative; z-index: 1; }
+    /* Hero (fundo: imagem + degradê para leitura do texto) */
+    .hero {
+      background: #0f172a;
+      padding: 24px 0 48px;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+      margin-top: -56px;
+      padding-top: calc(56px + 24px);
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-color: #0f172a;
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      pointer-events: none;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(15,23,42,0.88) 0%, rgba(30,64,175,0.55) 42%, rgba(59,130,246,0.35) 100%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+    .hero .container { position: relative; z-index: 3; }
     .hero-content { max-width: 720px; }
     .hero h1 { font-size: 2rem; font-weight: 800; line-height: 1.2; margin-bottom: 14px; letter-spacing: -0.5px; }
     .hero p { font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.85); margin-bottom: 22px; max-width: 600px; }
@@ -205,7 +238,7 @@
   <header class="header">
     <div class="container header-inner">
       <a href="index.html" class="logo" aria-label="Conforta Colchoes">
-        <img src="https://i.postimg.cc/k713y98f/Whats-App-Image-2026-02-10-at-13-04-33-(1).jpg" alt="">
+        <img src="assets/logo.png" alt="">
         <span class="logo-text">Conforta<small>COLCHOES</small></span>
       </a>
       <form class="search-bar" id="searchForm" action="produtos.html" method="GET">
@@ -246,7 +279,8 @@
   </header>
 
   <main class="main">
-    <section class="hero">
+    <section class="hero" id="homeHero">
+      <div class="hero-bg" id="heroBg" role="presentation" aria-hidden="true"></div>
       <div class="container">
         <div class="hero-content">
           <h1>Descansar bem muda tudo</h1>
@@ -397,7 +431,43 @@
     (function() {
       'use strict';
 
+      /** Banner padrão (logo institucional). Troque via Supabase site_settings key home_hero_image_url. */
+      var DEFAULT_HERO_IMAGE_URL = 'https://i.postimg.cc/k713y98f/Whats-App-Image-2026-02-10-at-13-04-33-(1).jpg';
+
+      function absolutizePhotoUrl(u) {
+        if (u == null || u === '') return '';
+        var s = String(u).trim();
+        if (!s) return '';
+        if (/^https?:\/\//i.test(s)) return s;
+        if (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG && SUPABASE_CONFIG.url) {
+          try {
+            var base = String(SUPABASE_CONFIG.url).replace(/\/$/, '');
+            return new URL(s.startsWith('/') ? s : '/' + s, base + '/').href;
+          } catch (_) { /* ignore */ }
+        }
+        try {
+          return new URL(s, window.location.origin).href;
+        } catch (_) {
+          return s;
+        }
+      }
+
+      function applyHeroBackground(imageUrl) {
+        var el = document.getElementById('heroBg');
+        if (!el || !imageUrl) return;
+        el.style.backgroundImage = 'url(' + JSON.stringify(String(imageUrl).trim()) + ')';
+      }
+
+      function parseHeroSetting(raw) {
+        if (raw == null) return '';
+        if (typeof raw === 'string') return raw.trim();
+        if (typeof raw === 'object' && raw.url) return String(raw.url).trim();
+        return '';
+      }
+
       document.addEventListener('DOMContentLoaded', function() {
+        applyHeroBackground(DEFAULT_HERO_IMAGE_URL);
+
         if (typeof initSupabase === 'function') initSupabase();
 
         var cartCountEl = document.getElementById('cartCount');
@@ -528,9 +598,9 @@
             var first = photos[0];
             if (first) {
               if (first.is_video && first.video_url) {
-                media = '<video src="' + first.video_url + '" muted loop playsinline ' + (i === 0 ? 'autoplay' : '') + ' preload="metadata"></video>';
+                media = '<video src="' + absolutizePhotoUrl(first.video_url) + '" muted loop playsinline ' + (i === 0 ? 'autoplay' : '') + ' preload="metadata"></video>';
               } else if (first.url) {
-                media = '<img src="' + first.url + '" alt="' + escapeHtml(p.name) + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '">';
+                media = '<img src="' + absolutizePhotoUrl(first.url) + '" alt="' + escapeHtml(p.name) + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '">';
               }
             }
             if (!media) {
@@ -559,7 +629,7 @@
           var categoryNames = { 1: 'Colchoes', 2: 'Sofas', 3: 'Box Bau', 4: 'Cabeceiras', 5: 'Kits' };
           var img = '';
           if (p.product_photos && p.product_photos.length > 0) {
-            img = '<img src="' + p.product_photos[0].url + '" alt="' + escapeHtml(p.name) + '" loading="lazy">';
+            img = '<img src="' + absolutizePhotoUrl(p.product_photos[0].url) + '" alt="' + escapeHtml(p.name) + '" loading="lazy">';
           }
           var catName = categoryNames[p.category_id] || (p.category && p.category.name) || 'Produtos';
 
@@ -670,6 +740,10 @@
             if (settingsRes.error || !settingsRes.data) return;
             var map = {};
             settingsRes.data.forEach(function(r) { map[r.key] = r.value; });
+
+            var heroFromDb = parseHeroSetting(map.home_hero_image_url);
+            if (heroFromDb) applyHeroBackground(heroFromDb);
+            else applyHeroBackground(DEFAULT_HERO_IMAGE_URL);
 
             var flashIds = Array.isArray(map.home_flash_sale_product_ids) ? map.home_flash_sale_product_ids : [];
             var weeklyIds = Array.isArray(map.home_weekly_offer_product_ids) ? map.home_weekly_offer_product_ids : [];

@@ -4,6 +4,8 @@
 //   TRIPO_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 // Opcional: SUPABASE_IMAGE_BUCKET (default public), SUPABASE_IMAGE_KEY_PREFIX (default imagens),
 //   SUPABASE_MODEL_BUCKET (default modelos-3d), TRIPO_BASE_URL, TRIPO_MODEL_VERSION
+//   TRIPO_SKIP_IMAGE_MIRROR=1 — nunca reenvia a imagem ao Storage; usa imageUrl direto na Tripo
+// POST create: useDirectImageUrl: true — mesmo efeito pontual (URLs assinadas/expiráveis: prefira mirror)
 //
 // GET ?productId=uuid + Authorization Bearer (admin) → { hasGlb }
 // GET sem productId → { configured }
@@ -12,6 +14,25 @@
 const TRIPO_DEFAULT_BASE = 'https://api.tripo3d.ai/v2/openapi';
 
 const TERMINAL_TRIPO = new Set(['success', 'failed', 'cancelled', 'banned', 'expired']);
+
+/** Resposta JSON sem depender de res.status()/res.json() (compatível com Node puro na Vercel). */
+function sendJson(res, statusCode, payload) {
+  try {
+    const body = JSON.stringify(payload);
+    res.statusCode = statusCode;
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+    res.end(body);
+  } catch (_) {
+    try {
+      if (!res.writableEnded) {
+        res.statusCode = 500;
+        res.end('{}');
+      }
+    } catch (__) { /* ignore */ }
+  }
+}
 
 function parseBody(req) {
   if (typeof req.body === 'string') {
@@ -142,10 +163,78 @@ async function tripoGetTask(taskId) {
   return inner && typeof inner === 'object' ? inner : {};
 }
 
+function isLikelyModelUrl(s) {
+  if (!s || typeof s !== 'string') return false;
+  const t = s.trim();
+  if (!/^https?:\/\//i.test(t)) return false;
+  if (/\.(png|jpg|jpeg|webp|gif)(\?|#|$)/i.test(t)) return false;
+  if (/\.glb(\?|#|$)/i.test(t)) return true;
+  if (/tripo3d\.ai/i.test(t)) return true;
+  return false;
+}
+
+/** Tripo task.output: model, pbr_model, base_model; URLs assinadas muitas vezes sem sufixo .glb. */
 function extractGlbUrl(taskData) {
   const out = taskData && taskData.output;
   if (!out || typeof out !== 'object') return '';
-  return String(out.model || out.glb || out.model_url || '').trim();
+
+  const directKeys = [
+    'model',
+    'pbr_model',
+    'base_model',
+    'glb',
+    'model_url',
+    'pbr_model_url',
+    'base_model_url',
+    'download_url',
+    'url',
+    'result',
+    'mesh',
+    'geometry'
+  ];
+  for (let i = 0; i < directKeys.length; i++) {
+    const v = out[directKeys[i]];
+    if (typeof v === 'string' && isLikelyModelUrl(v)) return v.trim();
+  }
+
+  function walk(node, depth) {
+    if (depth > 12 || node == null) return '';
+    if (typeof node === 'string') return isLikelyModelUrl(node) ? node.trim() : '';
+    if (Array.isArray(node)) {
+      for (let j = 0; j < node.length; j++) {
+        const u = walk(node[j], depth + 1);
+        if (u) return u;
+      }
+      return '';
+    }
+    if (typeof node !== 'object') return '';
+    const keys = Object.keys(node);
+    for (let k = 0; k < keys.length; k++) {
+      const u = walk(node[keys[k]], depth + 1);
+      if (u) return u;
+    }
+    return '';
+  }
+
+  return walk(out, 0);
+}
+
+async function fetchGlbBinary(glbUrl) {
+  const key = process.env.TRIPO_API_KEY || '';
+  const headersTripo = {};
+  if (key && /tripo3d\.ai/i.test(glbUrl)) {
+    headersTripo.Authorization = 'Bearer ' + key;
+  }
+  let glbRes = await fetch(glbUrl, { headers: headersTripo, redirect: 'follow' });
+  if (!glbRes.ok && key && /tripo3d\.ai/i.test(glbUrl)) {
+    glbRes = await fetch(glbUrl, { redirect: 'follow' });
+  }
+  if (!glbRes.ok) {
+    const err = new Error('Falha ao baixar GLB da Tripo (HTTP ' + glbRes.status + ')');
+    err.httpStatus = glbRes.status;
+    throw err;
+  }
+  return Buffer.from(await glbRes.arrayBuffer());
 }
 
 function encodeStorageObjectPath(objectPath) {
@@ -205,107 +294,141 @@ async function ensureImageOnServer(productId, imageUrl) {
   return publicObjectUrl(imgBucket, objectPath);
 }
 
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+function envFlagTruthy(name) {
+  const v = String(process.env[name] || '').trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+/**
+ * Fotos já em /storage/v1/object/public/... no mesmo SUPABASE_URL são públicas e estáveis:
+ * envia direto para a Tripo sem baixar e gravar de novo em imagens/{id}.jpg.
+ */
+function shouldUseDirectImageUrl(imageUrl, body) {
+  if (body && (body.useDirectImageUrl === true || body.useDirectImageUrl === 'true' || body.useDirectImageUrl === 1)) {
+    return true;
   }
+  if (body && (body.directImage === true || body.directImage === 'true' || body.directImage === 1)) {
+    return true;
+  }
+  if (envFlagTruthy('TRIPO_SKIP_IMAGE_MIRROR')) return true;
 
-  if (req.method === 'GET') {
-    const productIdCheck = getQueryParam(req, 'productId');
-    const jwt = getBearer(req);
+  const base = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+  if (!base || !imageUrl) return false;
+  try {
+    const u = new URL(imageUrl);
+    const b = new URL(base);
+    if (u.origin !== b.origin) return false;
+    return /\/storage\/v1\/object\/public\//i.test(u.pathname || '');
+  } catch (_) {
+    return false;
+  }
+}
 
-    if (productIdCheck) {
-      if (!jwt) {
-        res.status(401).json({ error: 'Authorization Bearer obrigatorio' });
-        return;
-      }
-      let admin;
-      try {
-        admin = await verifySupabaseAdmin(jwt);
-      } catch (e) {
-        res.status(500).json({ error: e.message || 'Erro ao validar admin' });
-        return;
-      }
-      if (!admin) {
-        res.status(403).json({ error: 'Acesso negado (apenas admin)' });
-        return;
-      }
-      const modelBucket = process.env.SUPABASE_MODEL_BUCKET || 'modelos-3d';
-      const glbPublic = publicObjectUrl(modelBucket, productIdCheck + '.glb');
-      try {
-        const headRes = await fetch(glbPublic, { method: 'HEAD', redirect: 'follow' });
-        res.status(200).json({
-          ok: true,
-          productId: productIdCheck,
-          hasGlb: headRes.ok
-        });
-      } catch (_) {
-        res.status(200).json({ ok: true, productId: productIdCheck, hasGlb: false });
-      }
+module.exports = async function handler(req, res) {
+  try {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      sendJson(res, 200, { ok: true });
       return;
     }
 
-    const configured = !!(
-      process.env.TRIPO_API_KEY &&
-      process.env.SUPABASE_URL &&
-      process.env.SUPABASE_ANON_KEY &&
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-    res.status(200).json({ ok: true, configured: configured });
-    return;
-  }
+    if (req.method === 'GET') {
+      const productIdCheck = getQueryParam(req, 'productId');
+      const jwt = getBearer(req);
 
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+      if (productIdCheck) {
+        if (!jwt) {
+          sendJson(res, 401, { error: 'Authorization Bearer obrigatorio' });
+          return;
+        }
+        let admin;
+        try {
+          admin = await verifySupabaseAdmin(jwt);
+        } catch (e) {
+          sendJson(res, 500, { error: e.message || 'Erro ao validar admin' });
+          return;
+        }
+        if (!admin) {
+          sendJson(res, 403, { error: 'Acesso negado (apenas admin)' });
+          return;
+        }
+        const modelBucket = process.env.SUPABASE_MODEL_BUCKET || 'modelos-3d';
+        const glbPublic = publicObjectUrl(modelBucket, productIdCheck + '.glb');
+        try {
+          const headRes = await fetch(glbPublic, { method: 'HEAD', redirect: 'follow' });
+          sendJson(res, 200, {
+            ok: true,
+            productId: productIdCheck,
+            hasGlb: headRes.ok
+          });
+        } catch (_) {
+          sendJson(res, 200, { ok: true, productId: productIdCheck, hasGlb: false });
+        }
+        return;
+      }
 
-  const jwt = getBearer(req);
-  if (!jwt) {
-    res.status(401).json({ error: 'Authorization Bearer obrigatorio' });
-    return;
-  }
+      const configured = !!(
+        process.env.TRIPO_API_KEY &&
+        process.env.SUPABASE_URL &&
+        process.env.SUPABASE_ANON_KEY &&
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
+      sendJson(res, 200, { ok: true, configured: configured });
+      return;
+    }
 
-  let admin;
-  try {
-    admin = await verifySupabaseAdmin(jwt);
-  } catch (e) {
-    res.status(500).json({ error: e.message || 'Erro ao validar admin' });
-    return;
-  }
-  if (!admin) {
-    res.status(403).json({ error: 'Acesso negado (apenas admin)' });
-    return;
-  }
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { error: 'Method not allowed' });
+      return;
+    }
 
-  const body = parseBody(req);
-  const phase = String(body.phase || 'create').toLowerCase();
-  const productId = String(body.productId || '').trim();
+    const jwt = getBearer(req);
+    if (!jwt) {
+      sendJson(res, 401, { error: 'Authorization Bearer obrigatorio' });
+      return;
+    }
 
-  if (!productId) {
-    res.status(400).json({ error: 'productId obrigatorio' });
-    return;
-  }
+    let admin;
+    try {
+      admin = await verifySupabaseAdmin(jwt);
+    } catch (e) {
+      sendJson(res, 500, { error: e.message || 'Erro ao validar admin' });
+      return;
+    }
+    if (!admin) {
+      sendJson(res, 403, { error: 'Acesso negado (apenas admin)' });
+      return;
+    }
 
-  try {
+    const body = parseBody(req);
+    const phase = String(body.phase || 'create').toLowerCase();
+    const productId = String(body.productId || '').trim();
+
+    if (!productId) {
+      sendJson(res, 400, { error: 'productId obrigatorio' });
+      return;
+    }
+
     if (phase === 'create') {
       let imageUrl = String(body.imageUrl || '').trim();
       if (!imageUrl || !/^https:\/\//i.test(imageUrl)) {
-        res.status(400).json({ error: 'imageUrl https obrigatoria na fase create' });
+        sendJson(res, 400, { error: 'imageUrl https obrigatoria na fase create' });
         return;
       }
-      imageUrl = await ensureImageOnServer(productId, imageUrl);
+      const direct = shouldUseDirectImageUrl(imageUrl, body);
+      if (!direct) {
+        imageUrl = await ensureImageOnServer(productId, imageUrl);
+      }
       const tripTaskId = await tripoCreateTask(imageUrl);
-      res.status(200).json({
+      sendJson(res, 200, {
         ok: true,
         phase: 'create',
         tripTaskId: tripTaskId,
-        standardizedImageUrl: imageUrl
+        standardizedImageUrl: imageUrl,
+        imageSource: direct ? 'direct' : 'mirrored'
       });
       return;
     }
@@ -313,7 +436,7 @@ module.exports = async function handler(req, res) {
     if (phase === 'poll') {
       const tripTaskId = String(body.tripTaskId || '').trim();
       if (!tripTaskId) {
-        res.status(400).json({ error: 'tripTaskId obrigatorio na fase poll' });
+        sendJson(res, 400, { error: 'tripTaskId obrigatorio na fase poll' });
         return;
       }
 
@@ -321,7 +444,7 @@ module.exports = async function handler(req, res) {
       const status = String((taskData && taskData.status) || '').toLowerCase();
 
       if (!TERMINAL_TRIPO.has(status)) {
-        res.status(200).json({
+        sendJson(res, 200, {
           ok: true,
           done: false,
           tripoStatus: status,
@@ -331,7 +454,7 @@ module.exports = async function handler(req, res) {
       }
 
       if (status !== 'success') {
-        res.status(200).json({
+        sendJson(res, 200, {
           ok: false,
           done: true,
           tripoStatus: status,
@@ -342,22 +465,41 @@ module.exports = async function handler(req, res) {
 
       const glbUrl = extractGlbUrl(taskData);
       if (!glbUrl) {
-        res.status(502).json({ error: 'Tripo nao retornou URL do modelo (.glb)' });
+        const out = taskData && taskData.output;
+        sendJson(res, 200, {
+          ok: false,
+          done: true,
+          tripoStatus: status,
+          error: 'Tripo nao retornou URL do modelo (.glb) no JSON da tarefa.',
+          outputKeys: out && typeof out === 'object' ? Object.keys(out) : []
+        });
         return;
       }
 
-      const glbRes = await fetch(glbUrl);
-      if (!glbRes.ok) {
-        res.status(502).json({ error: 'Falha ao baixar GLB da Tripo' });
+      let glbBuf;
+      try {
+        glbBuf = await fetchGlbBinary(glbUrl);
+      } catch (fetchErr) {
+        let host = '';
+        try {
+          host = new URL(glbUrl).host;
+        } catch (_) { /* ignore */ }
+        sendJson(res, 200, {
+          ok: false,
+          done: true,
+          tripoStatus: status,
+          error: fetchErr.message || 'Falha ao baixar GLB da Tripo',
+          glbUrlHost: host
+        });
         return;
       }
-      const glbBuf = Buffer.from(await glbRes.arrayBuffer());
+
       const modelBucket = process.env.SUPABASE_MODEL_BUCKET || 'modelos-3d';
       const objectPath = productId + '.glb';
       await supabaseStorageUpload(modelBucket, objectPath, glbBuf, 'model/gltf-binary');
 
       const glbPublicUrl = publicObjectUrl(modelBucket, objectPath);
-      res.status(200).json({
+      sendJson(res, 200, {
         ok: true,
         done: true,
         tripoStatus: status,
@@ -366,8 +508,8 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    res.status(400).json({ error: 'phase invalida (use create ou poll)' });
+    sendJson(res, 400, { error: 'phase invalida (use create ou poll)' });
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Erro interno' });
+    sendJson(res, 500, { error: err.message || 'Erro interno' });
   }
 };

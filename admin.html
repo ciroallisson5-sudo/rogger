@@ -365,6 +365,16 @@
         <div style="display:flex;flex-direction:column;gap:20px;max-width:980px;">
 
           <div class="home-card">
+            <h3>Banner do hero (topo da home)</h3>
+            <p class="home-card-hint">Imagem de fundo atras o titulo <strong>Descansar bem muda tudo</strong>. Use HTTPS (Postimg, Supabase Storage publico, etc.). Vazio = usa o banner padrao embutido no site.</p>
+            <label class="form-label-light">URL da imagem (HTTPS)</label>
+            <input type="url" id="homeHeroImageUrl" class="form-input" placeholder="https://i.postimg.cc/...">
+            <div class="home-actions" style="margin-top:12px;">
+              <button class="btn btn-primary" onclick="saveHomeHeroImage()">Salvar banner do hero</button>
+            </div>
+          </div>
+
+          <div class="home-card">
             <h3>Carrossel principal</h3>
             <p class="home-card-hint">Selecione os produtos que vao aparecer no carrossel do topo da home. Clique no card para marcar/desmarcar.</p>
             <div class="product-picker-toolbar">
@@ -537,10 +547,19 @@
               <li>Use a resposta JSON no modulo <strong>AI Agent</strong> ou <strong>OpenAI</strong> do n8n como contexto</li>
               <li>Voce tambem pode usar o webhook configurado nas Configuracoes para receber dados automaticamente</li>
               <li>O webhook envia <code>summary_line</code> (uma linha com nome, preço, categoria, tags, trecho da descricao) e o objeto <code>product</code> completo</li>
-              <li>Para gerar texto com a mesma IA do site: modulo <strong>HTTP Request POST</strong> para a URL completa abaixo com JSON
+              <li>Para gerar texto com a mesma IA do site: outro modulo <strong>HTTP Request</strong> com metodo <strong>POST</strong> para a URL abaixo.
                 <div class="endpoint-url" style="margin:8px 0;"><code id="n8nOpenaiChatUrl">—</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyN8nOpenaiChatUrl()">Copiar</button></div>
-                <code style="display:block;margin-top:6px;white-space:pre-wrap;">{ "n8n_product_blurb": true, "product": {{ $json.product }} }</code>
-                (opcional: <code>"catalog_hint"</code> com trecho do catalogo; <code>"instruction"</code> para customizar o pedido). Prefira <strong>POST</strong> a GET para nao estourar limite de URL.</li>
+                <strong style="color:#fca5a5;display:block;margin-top:10px;">Importante:</strong> nao escreva <code>{{ $json }}</code> ou <code>{{ $json.product }}</code> dentro de um JSON estatico — o n8n vira a string <code>[object Object]</code> e o corpo deixa de ser JSON valido (erro no proprio n8n).
+                <span style="display:block;margin-top:8px;color:var(--text2);">Em <strong>Specify Body</strong> escolha JSON e, no campo do corpo, use <strong>uma expressao so</strong> (comece com <code>=</code>) que monte o objeto, por exemplo se o item atual ja e o produto:</span>
+                <code style="display:block;margin-top:8px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ n8n_product_blurb: true, product: $json }) }}</code>
+                <span style="display:block;margin-top:8px;color:var(--text2);">Se o produto estiver em <code>$json.product</code>:</span>
+                <code style="display:block;margin-top:6px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ n8n_product_blurb: true, product: $json.product }) }}</code>
+                <span style="display:block;margin-top:8px;color:var(--text2);">Alternativa (n8n recente): corpo em modo expressao com objeto (sem stringify), se o no aceitar:</span>
+                <code style="display:block;margin-top:6px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ { n8n_product_blurb: true, product: $json } }}</code>
+                <span style="display:block;margin-top:12px;color:#fbbf24;font-weight:600;">Precos fiéis (Make / n8n):</span>
+                <span style="display:block;margin-top:6px;color:var(--text2);">Só com <code>messages</code> e o nome do produto a IA <strong>não</strong> enxerga o banco e pode inventar valor (ex.: R$ 1.299 em vez de R$ 539). No mesmo POST envie também <code>product</code> (objeto do produto: preços, descrição, vindo do Supabase ou do módulo anterior). A API anexa esse JSON ao contexto do sistema.</span>
+                <code style="display:block;margin-top:6px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ messages: [{ role: 'system', content: '...' }, { role: 'user', content: '...' }], product: $json }) }}</code>
+                Opcional no objeto: <code>"catalog_hint"</code> (texto), <code>"instruction"</code> (texto). Use <code>produto</code> no lugar de <code>product</code> se preferir.</li>
             </ol>
             <p style="margin-top:12px;">URL da API REST Supabase:</p>
             <div class="endpoint-url" style="margin:8px 0 0;">
@@ -2191,6 +2210,13 @@
           document.getElementById('contactPhone').value = typeof settings.contact_phone === 'string' ? settings.contact_phone : '';
           document.getElementById('whatsappNumber').value = typeof settings.whatsapp_number === 'string' ? settings.whatsapp_number : '';
           document.getElementById('storeName').value = typeof settings.store_name === 'string' ? settings.store_name : '';
+
+          var heroRaw = settings.home_hero_image_url;
+          var heroStr = '';
+          if (typeof heroRaw === 'string') heroStr = heroRaw;
+          else if (heroRaw && typeof heroRaw === 'object' && heroRaw.url) heroStr = String(heroRaw.url);
+          var heroEl = document.getElementById('homeHeroImageUrl');
+          if (heroEl) heroEl.value = heroStr || '';
         } catch(e) {
           showToast('Erro ao carregar Home: ' + (e.message || e), 'error');
         }
@@ -2272,6 +2298,14 @@
           if (i.error) throw i.error;
         }
       }
+
+      window.saveHomeHeroImage = async function() {
+        try {
+          var v = document.getElementById('homeHeroImageUrl').value.trim();
+          await upsertSetting('home_hero_image_url', v);
+          showToast('Banner do hero salvo. Atualize a home para ver.', 'success');
+        } catch(e) { showToast('Erro: ' + (e.message || e), 'error'); }
+      };
 
       window.saveHomeCarousel = async function() {
         try {
