@@ -606,7 +606,7 @@
               <li>Adicione um modulo <strong>HTTP Request</strong> ao seu workflow n8n</li>
               <li>Defina o metodo como <strong>GET</strong></li>
               <li>Cole a URL do endpoint acima no campo URL</li>
-            <li><strong>Alternativa (este site):</strong> <code>GET /api/n8n-products</code> com o mesmo dominio — retorna JSON com todos os produtos e <code>photos[].url</code>. Opcional <code>?flat_images=1</code> para lista so de imagens (n8n loop → WhatsApp). Protegido por <code>N8N_PRODUCTS_SECRET</code> na Vercel (header <code>Authorization: Bearer …</code> ou <code>?secret=</code>).</li>
+            <li><strong>Alternativa (este site):</strong> <code>GET /api/n8n-products</code> — <code>?flat_images=1</code> lista URLs para WhatsApp (<strong>1 foto por produto</strong> por defeito). Queres todas as fotos por SKU: acrescenta <code>&amp;all_photos=1</code>. Chave na Vercel: <code>N8N_PRODUCTS_SECRET</code> (Bearer ou <code>?secret=</code>).</li>
               <li>Adicione o header <code>Content-Type: application/json</code></li>
               <li>Use a resposta JSON no modulo <strong>AI Agent</strong> ou <strong>OpenAI</strong> do n8n como contexto</li>
               <li>Voce tambem pode usar o webhook configurado nas Configuracoes para receber dados automaticamente</li>

@@ -8,8 +8,12 @@
  *   Authorization: Bearer <N8N_PRODUCTS_SECRET>
  * ou query ?secret=<N8N_PRODUCTS_SECRET>
  *
- * Opções:
- *   ?flat_images=1 — lista plana só com URLs de imagem (sem vídeo), útil para loop "baixar e enviar".
+ * Opções (lista plana = JSON com array `images` para loop WhatsApp):
+ *   ?flat_images=1 — por defeito **1 foto por produto** (hero: primeira imagem por sort_order, sem vídeo).
+ *   ?flat_images=1&all_photos=1 — **todas** as fotos de cada produto (comportamento antigo).
+ *   ?one_per_product=1 — igual a flat com 1 foto (podes usar sem flat_images).
+ *
+ * Mesma chave sempre: N8N_PRODUCTS_SECRET (Bearer ou ?secret=).
  */
 
 const SECRET = process.env.N8N_PRODUCTS_SECRET || '';
@@ -54,6 +58,7 @@ function mapProduct(p) {
         id: ph.id,
         url: ph.url,
         thumb_url: ph.thumb_url || null,
+        sort_order: ph.sort_order != null ? Number(ph.sort_order) : 0,
         is_video: !!ph.is_video,
         video_url: ph.video_url || null,
         color_name: ph.color_name,
@@ -108,9 +113,16 @@ module.exports = async function handler(req, res) {
   }
 
   let flatImages = false;
+  let onePerProduct = false;
+  let allPhotos = false;
   try {
     const u = new URL(req.url || '', 'http://localhost');
-    flatImages = u.searchParams.get('flat_images') === '1';
+    const explicitOne = u.searchParams.get('one_per_product') === '1';
+    flatImages = u.searchParams.get('flat_images') === '1' || explicitOne;
+    allPhotos = u.searchParams.get('all_photos') === '1';
+    if (explicitOne) flatImages = true;
+    /* flat_images só: predefinição = cardápio WhatsApp (1 hero por SKU). all_photos=1 volta a listar todas. */
+    onePerProduct = explicitOne || (flatImages && !allPhotos);
   } catch (_) {
     /**/
   }
@@ -142,8 +154,27 @@ module.exports = async function handler(req, res) {
     if (flatImages) {
       const images = [];
       products.forEach(function (p) {
-        (p.photos || []).forEach(function (ph) {
-          if (ph.is_video || !ph.url) return;
+        const list = (p.photos || [])
+          .filter(function (ph) {
+            return ph && !ph.is_video && ph.url;
+          })
+          .slice()
+          .sort(function (a, b) {
+            return (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0);
+          });
+        if (onePerProduct) {
+          const ph = list[0];
+          if (ph) {
+            images.push({
+              product_id: p.id,
+              product_name: p.name,
+              url: ph.url,
+              thumb_url: ph.thumb_url || null
+            });
+          }
+          return;
+        }
+        list.forEach(function (ph) {
           images.push({
             product_id: p.id,
             product_name: p.name,
@@ -153,6 +184,7 @@ module.exports = async function handler(req, res) {
         });
       });
       res.status(200).json({
+        mode: onePerProduct ? 'one_image_per_product' : 'all_photos_per_product',
         total_images: images.length,
         exported_at: new Date().toISOString(),
         images: images
