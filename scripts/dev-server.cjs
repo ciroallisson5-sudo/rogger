@@ -176,7 +176,7 @@ const server = http.createServer(async function (req, res) {
 server.listen(PORT, function () {
   const hasKey = !!(process.env.ASAAS_API_KEY || process.env.ASAAS_API_KEY_SANDBOX);
   console.log('Conforta dev server: http://localhost:' + PORT);
-  console.log('API routes: /api/asaas-proxy, /api/asaas-webhook, /api/order-payment-sync, /api/openai-chat, /api/gerar-3d, /api/cep-freight, /api/admin-delivery-ceps');
+  console.log('API routes: /api/asaas-proxy, /api/asaas-webhook, /api/order-payment-sync, /api/openai-chat, /api/gerar-3d, /api/cep-freight, /api/admin-delivery-ceps, /api/n8n-products');
   if (!hasKey) {
     console.warn('AVISO: ASAAS_API_KEY nao definida — crie .env na raiz do projeto (veja .env.example)');
   }
