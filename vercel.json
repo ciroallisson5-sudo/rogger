@@ -17,6 +17,10 @@
   "functions": {
     "api/gerar-3d.js": { "maxDuration": 60 },
     "api/asaas-proxy.js": { "maxDuration": 30 },
-    "api/openai-chat.js": { "maxDuration": 30 }
+    "api/openai-chat.js": { "maxDuration": 30 },
+    "api/asaas-webhook.js": { "maxDuration": 30 },
+    "api/order-payment-sync.js": { "maxDuration": 30 },
+    "api/cep-freight.js": { "maxDuration": 15 },
+    "api/admin-delivery-ceps.js": { "maxDuration": 15 }
   }
 }

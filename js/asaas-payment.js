@@ -473,6 +473,69 @@ async function processBoletoPayment(orderData) {
   }
 }
 
+function isAsaasPaymentPaidStatus(status) {
+  const s = String(status || '').toUpperCase();
+  return s === 'RECEIVED' || s === 'CONFIRMED' || s === 'RECEIVED_IN_CASH';
+}
+
+/** Atualiza pedido no Supabase apos pagamento (webhook ou polling). */
+async function syncOrderPaymentFromAsaas(orderId, asaasPaymentId) {
+  try {
+    const sb = getSupabase();
+    if (!sb || !orderId || !asaasPaymentId) return null;
+    const sessR = await sb.auth.getSession();
+    const token = sessR.data && sessR.data.session && sessR.data.session.access_token;
+    if (!token) return null;
+    const env = normalizeAsaasEnv(await getSetting('asaas_environment'));
+    const res = await fetch('/api/order-payment-sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token
+      },
+      body: JSON.stringify({
+        order_id: orderId,
+        asaas_payment_id: asaasPaymentId,
+        environment: env
+      })
+    });
+    return await res.json().catch(function () {
+      return null;
+    });
+  } catch (e) {
+    logPaymentDev('syncOrderPaymentFromAsaas', e);
+    return null;
+  }
+}
+
+var _pixPollTimer = null;
+
+function stopPixPaymentPolling() {
+  if (_pixPollTimer) {
+    clearInterval(_pixPollTimer);
+    _pixPollTimer = null;
+  }
+}
+
+/** Enquanto o cliente esta na tela do PIX, verifica pagamento e atualiza o pedido. */
+function startPixPaymentPolling(orderId, asaasPaymentId, onPaid) {
+  stopPixPaymentPolling();
+  if (!orderId || !asaasPaymentId) return;
+  var tries = 0;
+  var maxTries = 120;
+  _pixPollTimer = setInterval(async function () {
+    tries++;
+    var st = await checkPaymentStatus(asaasPaymentId);
+    if (st && isAsaasPaymentPaidStatus(st.status)) {
+      var sync = await syncOrderPaymentFromAsaas(orderId, asaasPaymentId);
+      stopPixPaymentPolling();
+      if (typeof onPaid === 'function') onPaid(st, sync);
+      return;
+    }
+    if (tries >= maxTries) stopPixPaymentPolling();
+  }, 5000);
+}
+
 async function checkPaymentStatus(paymentId) {
   const result = await callAsaasProxy('/payments/' + paymentId, 'GET');
   if (!result) return null;

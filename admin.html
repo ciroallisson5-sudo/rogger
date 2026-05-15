@@ -303,6 +303,10 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         <span>Pedidos</span>
       </a>
+      <a class="sidebar-item" data-section="delivery-ceps" href="#">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span>CEP / Frete</span>
+      </a>
       <a class="sidebar-item" data-section="settings" href="#">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Configuracoes</span>
@@ -346,9 +350,15 @@
       <!-- PRODUCTS -->
       <div class="section" id="section-products">
         <div class="toolbar">
-          <div class="toolbar-left">
+          <div class="toolbar-left" style="flex-wrap:wrap;gap:8px;">
             <button class="btn btn-primary" onclick="openProductModal()">+ Novo Produto</button>
             <button type="button" class="btn btn-ghost" id="btnBulkTripo3d" onclick="bulkGenerateTripo3dMissing()" title="Usa a primeira foto de cada produto (sem video)">Gerar 3D nos que faltam</button>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding-left:4px;border-left:1px solid var(--border);margin-left:4px;">
+              <label class="form-label" style="margin:0;font-size:0.75rem;white-space:nowrap;">Rascunhos em massa</label>
+              <input type="number" class="form-input" id="bulkDraftQty" min="1" max="50" value="5" title="Quantidade de produtos inativos para editar depois" style="width:56px;padding:6px 8px;font-size:0.85rem;">
+              <select class="form-select" id="bulkDraftCategory" title="Categoria opcional dos rascunhos" style="width:auto;max-width:200px;padding:6px 10px;font-size:0.85rem;"></select>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.createProductDrafts()">Criar</button>
+            </span>
           </div>
           <div class="toolbar-right">
             <input class="search-input" id="productSearch" placeholder="Buscar produtos..." oninput="debounceSearch()">
@@ -483,6 +493,51 @@
         <div id="ordersList"></div>
       </div>
 
+      <!-- CEP / FRETE -->
+      <div class="section" id="section-delivery-ceps">
+        <div style="display:flex;flex-direction:column;gap:22px;max-width:980px;">
+          <div class="settings-section">
+            <h3>Mensagem para CEP fora da area</h3>
+            <p style="font-size:0.8rem;color:var(--text2);line-height:1.5;margin:-4px 0 10px;">
+              Exibida na pagina do produto e no checkout quando o cliente consulta um CEP que <strong>nao</strong> esta na tabela abaixo.
+              Tambem aumenta o contador de consultas apenas para CEPs cadastrados.
+            </p>
+            <textarea class="form-textarea" id="cepNoDeliveryMessage" rows="4" placeholder="Infelizmente nao realizamos entrega neste CEP..."></textarea>
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <button type="button" class="btn btn-primary" onclick="window.saveCepNoDeliveryMessage()">Salvar mensagem</button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Adicionar CEP com frete</h3>
+            <p style="font-size:0.8rem;color:var(--text2);margin:-4px 0 12px;line-height:1.5;">
+              Valor cobrado do frete ate o endereco (frete gratis por pedido acima do minimo continua valendo conforme Configuracoes da loja).
+            </p>
+            <div class="form-row" style="flex-wrap:wrap;">
+              <div class="form-group" style="min-width:140px;">
+                <label class="form-label">CEP (8 digitos)</label>
+                <input type="text" class="form-input" id="adminNewCep" inputmode="numeric" placeholder="00000000">
+              </div>
+              <div class="form-group" style="min-width:140px;">
+                <label class="form-label">Frete (R$)</label>
+                <input type="number" class="form-input" id="adminNewCepFreight" step="0.01" min="0" placeholder="0">
+              </div>
+              <div class="form-group" style="flex:1;min-width:180px;">
+                <label class="form-label">Regiao / observacao (opcional)</label>
+                <input type="text" class="form-input" id="adminNewCepLabel" placeholder="Ex.: Serra - Jardin Limoeiro">
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="window.addDeliveryCepAdmin()">Salvar CEP</button>
+          </div>
+
+          <div class="settings-section">
+            <h3>CEPs atendidos</h3>
+            <p style="font-size:0.8rem;color:var(--text2);margin:-4px 0 12px;">Coluna &quot;Consultas&quot;: vezes que clientes/uso da loja chamaram esse CEP na API de frete.</p>
+            <div class="table-wrap"><table><thead><tr><th>CEP</th><th>Regiao</th><th>Frete</th><th>Consultas</th><th style="width:100px;"></th></tr></thead><tbody id="deliveryCepsTableBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
       <!-- SETTINGS -->
       <div class="section" id="section-settings">
         <div class="settings-section">
@@ -499,6 +554,11 @@
             Aqui voce so escolhe o ambiente (sandbox ou producao).
           </div>
           <div class="form-row"><div class="form-group"><label class="form-label">Ambiente</label><select class="form-select" id="setAsaasEnv"><option value="sandbox">Sandbox (testes)</option><option value="production">Producao</option></select></div></div>
+          <div class="form-group" style="margin-top:12px;">
+            <label class="form-label">Webhook Asaas (pedido pago automatico)</label>
+            <div class="endpoint-url" style="margin-top:6px;"><code id="asaasWebhookUrl">Carregando...</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyAsaasWebhookUrl()">Copiar</button></div>
+            <p style="font-size:0.78rem;color:var(--text2);margin-top:8px;line-height:1.5;">Asaas → Integracoes → Webhooks: cole esta URL. Eventos: PAYMENT_RECEIVED e PAYMENT_CONFIRMED.</p>
+          </div>
         </div>
         <div class="settings-section">
           <h3>Integracao n8n</h3>
@@ -882,11 +942,12 @@
         if (secEl) secEl.classList.add('active');
         renderSidebar();
 
-        var titles = { dashboard:'Dashboard', products:'Produtos', home:'Home (vitrine)', categories:'Categorias', banners:'Banners', orders:'Pedidos', settings:'Configuracoes', n8n:'API n8n' };
+        var titles = { dashboard:'Dashboard', products:'Produtos', home:'Home (vitrine)', categories:'Categorias', banners:'Banners', orders:'Pedidos', 'delivery-ceps':'CEP / Frete', settings:'Configuracoes', n8n:'API n8n' };
         document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
 
         if (section === 'dashboard') loadDashboard();
         else if (section === 'products') loadProducts();
+        else if (section === 'delivery-ceps') loadDeliveryAdmin();
         else if (section === 'home') loadHomeAdmin();
         else if (section === 'categories') loadCategories();
         else if (section === 'banners') loadBanners();
@@ -1715,7 +1776,7 @@
       }
 
       async function loadCategoriesDropdowns() {
-        var selects = ['prodCategory', 'bannerProduct', 'productCategoryFilter'];
+        var selects = ['prodCategory', 'bannerProduct', 'productCategoryFilter', 'bulkDraftCategory'];
         selects.forEach(function(id) {
           var el = document.getElementById(id);
           if (!el) return;
@@ -1724,6 +1785,8 @@
             el.innerHTML = '<option value="">Nenhum</option>';
           } else if (id === 'productCategoryFilter') {
             el.innerHTML = '<option value="">Todas categorias</option>';
+          } else if (id === 'bulkDraftCategory') {
+            el.innerHTML = '<option value="">Sem categoria (opcional)</option>';
           } else {
             el.innerHTML = '<option value="">Selecione uma categoria</option>';
           }
@@ -2119,6 +2182,12 @@
           document.getElementById('setPrimaryColorPicker').value = document.getElementById('setPrimaryColor').value;
           document.getElementById('setAsaasEnv').value = (map.asaas_environment && typeof map.asaas_environment === 'object' ? map.asaas_environment : map.asaas_environment) || 'sandbox';
           document.getElementById('setN8nUrl').value = (map.n8n_webhook_url && typeof map.n8n_webhook_url === 'object' ? map.n8n_webhook_url : map.n8n_webhook_url) || '';
+          var whEl = document.getElementById('asaasWebhookUrl');
+          if (whEl) {
+            var origin = '';
+            try { origin = window.location.origin || ''; } catch (e0) { void e0; }
+            whEl.textContent = origin ? origin + '/api/asaas-webhook' : '/api/asaas-webhook';
+          }
 
           var delivery = null;
           if (map.delivery_info) {
@@ -2160,6 +2229,203 @@
           showToast('Configuracoes salvas com sucesso', 'success');
         } catch(e) { showToast('Erro ao salvar: ' + (e.message || e), 'error'); }
       }
+
+      // ===================== CEP / FRETE (API server + site_settings) =====================
+      async function getAdminJwt() {
+        if (!sb) return '';
+        try {
+          var sessR = await sb.auth.getSession();
+          return (sessR.data && sessR.data.session && sessR.data.session.access_token) || '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function formatCepDisplay(digits) {
+        var s = String(digits || '').replace(/\D/g, '');
+        if (s.length !== 8) return s || '—';
+        return s.slice(0, 5) + '-' + s.slice(5);
+      }
+
+      async function loadDeliveryAdmin() {
+        if (!sb) return;
+        try {
+          var msgRes = await sb.from('site_settings').select('value').eq('key', 'cep_no_delivery_message').maybeSingle();
+          var ta = document.getElementById('cepNoDeliveryMessage');
+          var txt = '';
+          if (msgRes.data && msgRes.data.value != null) {
+            var raw = msgRes.data.value;
+            txt = typeof raw === 'string' ? raw : (raw && raw.text) || '';
+          }
+          if (ta) ta.value = txt;
+
+          var tok = await getAdminJwt();
+          if (!tok) {
+            var tbody0 = document.getElementById('deliveryCepsTableBody');
+            if (tbody0) tbody0.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text2);">Faca login novamente para gerenciar CEPs.</td></tr>';
+            return;
+          }
+
+          var apiBase = '';
+          try { apiBase = window.location.origin || ''; } catch (eO) { void eO; }
+
+          var resp = await fetch(apiBase + '/api/admin-delivery-ceps', {
+            headers: { Authorization: 'Bearer ' + tok }
+          });
+          var j = await resp.json().catch(function () { return {}; });
+          var tbody = document.getElementById('deliveryCepsTableBody');
+          if (!tbody) return;
+
+          if (!resp.ok) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text2);">' +
+              escHtml(j.error || ('Erro HTTP ' + resp.status)) +
+              '. Rode <code>database/delivery_cep_rates.sql</code> no Supabase e defina <code>SUPABASE_SERVICE_ROLE_KEY</code> na Vercel.</td></tr>';
+            return;
+          }
+
+          var rows = j.rows || [];
+          if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text2);">Nenhum CEP cadastrado ainda. Enquanto isso, todas as consultas na loja recebem a mensagem configurada acima.</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = rows.map(function (row) {
+            var rid = String(row.id || '');
+            return '<tr>' +
+              '<td><strong>' + escHtml(formatCepDisplay(row.cep)) + '</strong></td>' +
+              '<td>' + escHtml(row.label || '—') + '</td>' +
+              '<td>' + formatMoney(row.freight_amount) + '</td>' +
+              '<td>' + escHtml(String(row.lookup_count != null ? row.lookup_count : 0)) + '</td>' +
+              '<td><button type="button" class="btn btn-sm btn-danger" onclick="window.removeDeliveryCep(\'' + escHtml(rid) + '\')">Remover</button></td>' +
+              '</tr>';
+          }).join('');
+        } catch (e) {
+          showToast('Erro ao carregar CEP / frete: ' + (e.message || e), 'error');
+        }
+      }
+
+      window.saveCepNoDeliveryMessage = async function() {
+        try {
+          var ta = document.getElementById('cepNoDeliveryMessage');
+          await upsertSetting('cep_no_delivery_message', ta ? String(ta.value || '') : '');
+          showToast('Mensagem salva.', 'success');
+        } catch (e) {
+          showToast('Erro: ' + (e.message || e), 'error');
+        }
+      };
+
+      window.addDeliveryCepAdmin = async function() {
+        var cepIn = document.getElementById('adminNewCep');
+        var valIn = document.getElementById('adminNewCepFreight');
+        var labIn = document.getElementById('adminNewCepLabel');
+        var cep = String(cepIn && cepIn.value || '').replace(/\D/g, '');
+        var amt = parseFloat(valIn && valIn.value || '');
+        var label = labIn ? String(labIn.value || '').trim() : '';
+        if (cep.length !== 8 || !isFinite(amt) || amt < 0) {
+          showToast('Informe um CEP valido (8 digitos) e o valor do frete.', 'error');
+          return;
+        }
+        try {
+          var tok = await getAdminJwt();
+          if (!tok) {
+            showToast('Sessao expirada.', 'error');
+            return;
+          }
+          var apiBase = '';
+          try { apiBase = window.location.origin || ''; } catch (eO) { void eO; }
+
+          var resp = await fetch(apiBase + '/api/admin-delivery-ceps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+            body: JSON.stringify({ cep: cep, freight_amount: amt, label: label || null })
+          });
+          var jout = await resp.json().catch(function () { return {}; });
+          if (!resp.ok) {
+            showToast(jout.error || 'Falha ao salvar CEP', 'error');
+            return;
+          }
+          if (cepIn) cepIn.value = '';
+          if (valIn) valIn.value = '';
+          if (labIn) labIn.value = '';
+          showToast('CEP cadastrado.', 'success');
+          loadDeliveryAdmin();
+        } catch (e) {
+          showToast('Erro: ' + (e.message || e), 'error');
+        }
+      };
+
+      window.removeDeliveryCep = async function(id) {
+        var sid = String(id || '').trim();
+        if (!sid || !confirm('Remover este CEP da lista?')) return;
+        try {
+          var tok = await getAdminJwt();
+          if (!tok) {
+            showToast('Sessao expirada.', 'error');
+            return;
+          }
+          var apiBase = '';
+          try { apiBase = window.location.origin || ''; } catch (eO) { void eO; }
+
+          var resp = await fetch(apiBase + '/api/admin-delivery-ceps', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+            body: JSON.stringify({ id: sid })
+          });
+          var j = await resp.json().catch(function () { return {}; });
+          if (!resp.ok) {
+            showToast(j.error || 'Falha ao remover', 'error');
+            return;
+          }
+          showToast('CEP removido.', 'success');
+          loadDeliveryAdmin();
+        } catch (e) {
+          showToast('Erro: ' + (e.message || e), 'error');
+        }
+      };
+
+      window.createProductDrafts = async function() {
+        var qtyEl = document.getElementById('bulkDraftQty');
+        var n = parseInt(qtyEl && qtyEl.value || '0', 10);
+        if (!isFinite(n) || n < 1 || n > 50) {
+          showToast('Use uma quantidade entre 1 e 50.', 'error');
+          return;
+        }
+        var catSel = document.getElementById('bulkDraftCategory');
+        var catId = catSel && catSel.value ? catSel.value : null;
+        try {
+          var created = 0;
+          for (var i = 0; i < n; i++) {
+            var stamp = Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 8);
+            var slug = slugify('rascunho ' + stamp);
+            if (!slug) slug = 'rascunho-' + stamp;
+            var data = {
+              name: 'Novo produto (editar)',
+              slug: slug,
+              description: '',
+              category_id: catId,
+              base_price: 0,
+              discount_price: null,
+              stock: 0,
+              tags: [],
+              featured: false,
+              active: false,
+              weight: null,
+              dimensions: null,
+              material: null,
+              warranty: null,
+              seo_title: null,
+              seo_description: null
+            };
+            var ins = await sb.from('products').insert(data).select();
+            if (ins.error) throw ins.error;
+            created++;
+          }
+          showToast(created + ' rascunho(s) criado(s), inativos. Edite pelo botao Editar na lista.', 'success');
+          loadProducts();
+        } catch (e) {
+          showToast('Erro ao criar rascunhos: ' + (e.message || e), 'error');
+        }
+      };
 
       // ===================== HOME (vitrine) =====================
       async function loadHomeAdmin() {
@@ -2383,6 +2649,11 @@
       window.copyN8nOpenaiChatUrl = function() {
         var el = document.getElementById('n8nOpenaiChatUrl');
         if (el && el.textContent) copyToClipboard(el.textContent, 'URL openai-chat copiada');
+      };
+
+      window.copyAsaasWebhookUrl = function() {
+        var el = document.getElementById('asaasWebhookUrl');
+        if (el && el.textContent) copyToClipboard(el.textContent, 'Webhook Asaas copiado');
       };
 
       window.copyN8nUrl = function() {

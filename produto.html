@@ -1819,9 +1819,59 @@
         if (input) input.value = selectedQty;
       }
 
-      function handleCep() {
+      async function handleCep() {
+        var input = document.getElementById('cepInput');
         var msg = document.getElementById('cepMessage');
-        if (msg) msg.textContent = 'Entrega rapida em Serra, Vitoria e regiao. Para este CEP, confirme prazo exato com nossa equipe.';
+        if (!msg) return;
+        var raw = input ? String(input.value || '') : '';
+        var cep = raw.replace(/\D/g, '');
+        if (cep.length !== 8) {
+          msg.textContent = 'Digite um CEP com 8 digitos.';
+          return;
+        }
+        msg.textContent = 'Consultando frete...';
+        var subtotal = 0;
+        try {
+          var photo = currentPhoto();
+          if (productData && photo) {
+            var unit = parseFloat(displayPrice(photo, productData)) || 0;
+            subtotal = unit * (selectedQty || 1);
+          }
+        } catch (eSub) {
+          void eSub;
+        }
+        try {
+          var r = await fetch('/api/cep-freight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cep: cep, subtotal: subtotal })
+          });
+          var j = await r.json().catch(function () {
+            return {};
+          });
+          if (!r.ok && j.error) {
+            msg.textContent = 'Nao foi possivel consultar o CEP agora. Tente de novo em instantes.';
+            return;
+          }
+          if (j.delivered === false) {
+            msg.textContent = j.message || 'Infelizmente nao realizamos entrega para este CEP.';
+            return;
+          }
+          if (j.delivered) {
+            var fr = parseFloat(j.freight_amount) || 0;
+            var parts = [];
+            if (fr <= 0) parts.push('Frete gratis para este valor.');
+            else parts.push('Frete estimado: ' + formatPrice(fr));
+            if (j.label) parts.push(j.label);
+            if (j.free_shipping_applied) parts.push('(pedido acima do minimo para frete gratis)');
+            msg.textContent = parts.join(' ');
+            return;
+          }
+          msg.textContent = 'Resposta incompleta. Tente novamente.';
+        } catch (e) {
+          void e;
+          msg.textContent = 'Erro de rede ao consultar o CEP.';
+        }
       }
 
       async function addToCartOnly() {

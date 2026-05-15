@@ -222,6 +222,99 @@
       var userAddresses = [];
       var selectedAddressId = null;
       var processingOrder = false;
+      var checkoutFreightDelivered = true;
+      var checkoutFreightAmount = 0;
+      var checkoutFreightMsg = '';
+
+      function getAddressCep(addr) {
+        if (!addr) return '';
+        var z = addr.zip_code != null ? addr.zip_code : addr.cep;
+        var d = String(z || '').replace(/\D/g, '');
+        return d.length === 8 ? d : '';
+      }
+
+      function checkoutGrandTotal() {
+        var sub = checkoutTotal();
+        if (!checkoutFreightDelivered) return sub;
+        return sub + checkoutFreightAmount;
+      }
+
+      async function refreshCheckoutFreight() {
+        var addr = selectedAddress();
+        var cep = getAddressCep(addr);
+        checkoutFreightDelivered = true;
+        checkoutFreightAmount = 0;
+        checkoutFreightMsg = '';
+        if (!cep) {
+          updateCheckoutFreightDom();
+          return;
+        }
+        try {
+          var r = await fetch('/api/cep-freight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cep: cep, subtotal: checkoutTotal() })
+          });
+          var j = await r.json().catch(function () {
+            return {};
+          });
+          if (j && j.delivered === false) {
+            checkoutFreightDelivered = false;
+            checkoutFreightMsg = j.message || 'CEP fora da area de entrega.';
+          } else if (j && j.delivered) {
+            checkoutFreightAmount = parseFloat(j.freight_amount) || 0;
+          }
+        } catch (e1) {
+          void e1;
+          checkoutFreightDelivered = true;
+          checkoutFreightAmount = 0;
+        }
+        updateCheckoutFreightDom();
+      }
+
+      function updateCheckoutFreightDom() {
+        if (processingOrder) return;
+        var elF = document.getElementById('summaryFreightValue');
+        var elT = document.getElementById('summaryGrandValue');
+        var elInst = document.getElementById('summaryInstallment');
+        var warn = document.getElementById('checkoutCepWarn');
+        var btn = document.getElementById('placeOrderBtn');
+        var sub = checkoutTotal();
+        var grand = checkoutGrandTotal();
+        if (elInst) elInst.textContent = installmentText(grand);
+        if (warn) {
+          if (!checkoutFreightDelivered) {
+            warn.style.display = 'block';
+            warn.textContent = checkoutFreightMsg;
+          } else {
+            warn.style.display = 'none';
+          }
+        }
+        if (elF && elT) {
+          if (!checkoutFreightDelivered) {
+            elF.textContent = '—';
+            elT.textContent = formatPrice(sub);
+          } else {
+            elF.textContent = checkoutFreightAmount <= 0 ? 'Gratis' : formatPrice(checkoutFreightAmount);
+            elT.textContent = formatPrice(grand);
+          }
+        }
+        var mTot = document.getElementById('mobileSubmitTotal');
+        if (mTot) mTot.textContent = formatPrice(checkoutFreightDelivered ? grand : sub);
+        var mbtn = document.getElementById('mobilePlaceOrderBtn');
+        if (mbtn) {
+          mbtn.textContent = 'Confirmar pedido - ' + formatPrice(checkoutFreightDelivered ? grand : sub);
+          mbtn.disabled = !checkoutFreightDelivered && !!getAddressCep(selectedAddress());
+        }
+        if (btn) {
+          var block = !checkoutFreightDelivered && !!getAddressCep(selectedAddress());
+          btn.disabled = block;
+          var btot = checkoutFreightDelivered ? grand : sub;
+          btn.textContent = 'Confirmar pedido - ' + formatPrice(btot);
+        }
+        var review = document.getElementById('reviewBox');
+        if (review) review.innerHTML = renderReview(selectedAddress(), sub);
+      }
 
       var PAYMENT_FALLBACK = {
         id: 'mock-payment-' + Date.now(),
@@ -306,7 +399,7 @@
           '<h2 id="checkoutModalAddressTitle">Endereco de entrega</h2>' +
           (addresses.length > 0
             ? '<div class="form-group"><label for="addressSelect">Endereco cadastrado</label><select class="form-select" id="addressSelect" onchange="window.selectAddress(this.value)">' + addrOptions + '</select></div>' +
-              '<div class="address-preview" id="addressPreview"><strong>Entrega selecionada</strong><br>' + escHtml(addressLine(addr)) + '<br><span>Entrega rapida em Serra, Vitoria e regiao.</span></div>' +
+              '<div class="address-preview" id="addressPreview"><strong>Entrega selecionada</strong><br>' + escHtml(addressLine(addr)) + '<br><span>O frete e calculado automaticamente pelo CEP (areas cadastradas).</span></div>' +
               '<a class="btn btn-outline btn-block" style="margin-top:14px" href="perfil.html#section-enderecos">Gerenciar enderecos no perfil</a>'
             : '<div class="address-preview"><strong>Nenhum endereco cadastrado.</strong><br>Cadastre um endereco no perfil para continuar.</div>' +
               '<a class="btn btn-primary btn-block" style="margin-top:14px" href="perfil.html#section-enderecos">Cadastrar endereco no perfil</a>'
@@ -638,6 +731,8 @@
           renderSummary(items, total) +
           '<div class="checkout-left">' +
 
+          '<div id="checkoutCepWarn" style="display:none;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;padding:10px 12px;border-radius:8px;font-size:0.82rem;margin-bottom:14px;"></div>' +
+
           '<div class="checkout-section">' +
           '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">Escolha uma forma de pagamento disponivel para este pedido.</p></div></div>' +
           '<div class="payment-methods" id="paymentMethods"></div>' +
@@ -656,12 +751,37 @@
           '</button>' +
           '</div>' +
           '</div>' +
-          '<div class="mobile-submit-bar"><div><span>Total</span><strong>' + formatPrice(total) + '</strong></div><button class="btn btn-primary" onclick="window.placeOrder()">Confirmar pedido</button></div>' +
+          '<div class="mobile-submit-bar"><div><span>Total</span><strong id="mobileSubmitTotal">' + formatPrice(total) + '</strong></div><button type="button" class="btn btn-primary" id="mobilePlaceOrderBtn" onclick="window.placeOrder()">Confirmar pedido</button></div>' +
           renderCheckoutModals(user, addresses, addrOptions, addr);
 
         hydrateCustomerFields();
         bindMasks();
         wireCheckoutModals();
+        void refreshCheckoutFreight();
+      }
+
+      function buildReviewHtml(addr) {
+        var sub = checkoutTotal();
+        var fr = checkoutFreightDelivered
+          ? (checkoutFreightAmount <= 0 ? 'Frete: Gratis' : 'Frete: ' + formatPrice(checkoutFreightAmount))
+          : 'Frete: nao disponivel para este CEP';
+        var tot = checkoutFreightDelivered ? checkoutGrandTotal() : sub;
+        return (
+          '<strong>Dados finais</strong><br>' +
+          '<span id="reviewCustomer">Cliente: dados do perfil</span><br>' +
+          '<span>Entrega: ' +
+          escHtml(addr ? addressLine(addr) : 'cadastre um endereco no perfil') +
+          '</span><br>' +
+          '<span>Pagamento: ' +
+          escHtml(paymentLabel(selectedMethod)) +
+          '</span><br>' +
+          '<span>' +
+          fr +
+          '</span><br>' +
+          '<span>Total: ' +
+          formatPrice(tot) +
+          '</span>'
+        );
       }
 
       function hydrateCustomerFields() {
@@ -669,11 +789,8 @@
       }
 
       function renderReview(addr, total) {
-        return '<strong>Dados finais</strong><br>' +
-          '<span id="reviewCustomer">Cliente: dados do perfil</span><br>' +
-          '<span>Entrega: ' + escHtml(addr ? addressLine(addr) : 'cadastre um endereco no perfil') + '</span><br>' +
-          '<span>Pagamento: ' + escHtml(paymentLabel(selectedMethod)) + '</span><br>' +
-          '<span>Total: ' + formatPrice(total) + '</span>';
+        void total;
+        return buildReviewHtml(addr);
       }
 
       function renderSummary(items, total) {
@@ -698,9 +815,9 @@
           '<div class="order-summary-totals">' +
           '<div class="total-line"><span>Subtotal</span><span>' + formatPrice(total) + '</span></div>' +
           '<div class="total-line"><span>Desconto</span><span>R$ 0,00</span></div>' +
-          '<div class="total-line"><span>Frete</span><span>A confirmar</span></div>' +
-          '<div class="total-line total"><span>Total</span><span>' + formatPrice(total) + '</span></div>' +
-          '<div class="summary-installment">' + installmentText(total) + '</div>' +
+          '<div class="total-line"><span>Frete</span><span id="summaryFreightValue">Calculando...</span></div>' +
+          '<div class="total-line total"><span>Total</span><span id="summaryGrandValue">' + formatPrice(total) + '</span></div>' +
+          '<div class="summary-installment" id="summaryInstallment">' + installmentText(total) + '</div>' +
           '<div class="trust-list"><span>Compra segura</span><span>Dados protegidos</span></div>' +
           '</div></div></div>';
       }
@@ -777,7 +894,7 @@
               cardForm.style.display = selectedMethod === 'CREDIT_CARD' ? 'block' : 'none';
             }
             var review = document.getElementById('reviewBox');
-            if (review) review.innerHTML = renderReview(selectedAddress(), checkoutTotal());
+            if (review) review.innerHTML = buildReviewHtml(selectedAddress());
           });
         });
       }
@@ -808,9 +925,8 @@
         selectedAddressId = addressId;
         var preview = document.getElementById('addressPreview');
         var addr = selectedAddress();
-        if (preview && addr) preview.innerHTML = '<strong>Entrega selecionada</strong><br>' + escHtml(addressLine(addr)) + '<br><span>Entrega rapida em Serra, Vitoria e regiao.</span>';
-        var review = document.getElementById('reviewBox');
-        if (review) review.innerHTML = renderReview(addr, checkoutTotal());
+        if (preview && addr) preview.innerHTML = '<strong>Entrega selecionada</strong><br>' + escHtml(addressLine(addr)) + '<br><span>O frete sera calculado pelo CEP ao confirmar.</span>';
+        void refreshCheckoutFreight();
         updateWhatsappLinks();
       };
 
@@ -818,12 +934,18 @@
         if (processingOrder) return;
         clearFieldErrors();
         var btn = document.getElementById('placeOrderBtn');
-        var total = checkoutTotal();
+        var subtotal = checkoutTotal();
+        var grandTotal = checkoutGrandTotal();
 
         try {
           var user = await checkAuth();
           if (!user) {
             showToast('Faca login para finalizar a compra.', 'error');
+            return;
+          }
+
+          if (!checkoutFreightDelivered && getAddressCep(selectedAddress())) {
+            showToast(checkoutFreightMsg || 'CEP fora da area de entrega.', 'error');
             return;
           }
 
@@ -886,14 +1008,15 @@
 
           var orderNumber = generateOrderNumber();
 
+          var shipAmt = checkoutFreightDelivered ? checkoutFreightAmount : 0;
           var orderData = {
             user_id: user.id,
             order_number: orderNumber,
             status: 'pending',
             payment_status: 'pending',
             payment_method: selectedMethod,
-            total_amount: total,
-            shipping_amount: 0,
+            total_amount: grandTotal,
+            shipping_amount: shipAmt,
             discount_amount: 0,
             shipping_address_id: selectedAddressId || null,
             notes: ''
@@ -955,7 +1078,7 @@
 
           var orderPaymentData = {
             customer: customerData,
-            total: total,
+            total: grandTotal,
             orderNumber: orderNumber,
             orderId: order.id,
             card: selectedMethod === 'CREDIT_CARD' ? {
@@ -986,6 +1109,18 @@
             return;
           }
 
+          if (paymentResult.id && typeof syncOrderPaymentFromAsaas === 'function') {
+            var paidNow =
+              paymentResult.status && /^(RECEIVED|CONFIRMED|RECEIVED_IN_CASH)$/i.test(String(paymentResult.status));
+            if (paidNow) {
+              try {
+                await syncOrderPaymentFromAsaas(order.id, paymentResult.id);
+              } catch (syncErr) {
+                void syncErr;
+              }
+            }
+          }
+
           try { await clearCart(); } catch(e) {}
 
           if (selectedMethod === 'CREDIT_CARD' && paymentResult) {
@@ -999,10 +1134,14 @@
           showOrderConfirmation(order, paymentResult);
 
         } catch(e) {
-          showCheckoutFailure(e, total);
-          if (btn) { btn.disabled = false; btn.textContent = 'Confirmar pedido - ' + formatPrice(total); }
+          showCheckoutFailure(e, grandTotal);
+          var restoreTot = checkoutGrandTotal();
+          if (btn) { btn.disabled = false; btn.textContent = 'Confirmar pedido - ' + formatPrice(restoreTot); }
+          var mb = document.getElementById('mobilePlaceOrderBtn');
+          if (mb) mb.textContent = 'Confirmar pedido - ' + formatPrice(restoreTot);
         } finally {
           processingOrder = false;
+          updateCheckoutFreightDom();
         }
       };
 
@@ -1019,7 +1158,8 @@
         } else {
           switch (selectedMethod) {
             case 'PIX':
-              statusMsg = 'Pagamento via PIX pendente. Escaneie o QR Code abaixo para pagar.';
+              statusMsg =
+                'Pagamento via PIX pendente. Escaneie o QR Code abaixo. Quando o pagamento cair, o status do pedido atualiza sozinho.';
               paymentInfo = payment.pixKey
                 ? '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:20px;text-align:center;margin:16px 0;">' +
                   (payment.pixQrCode ? '<img src="data:image/png;base64,' + payment.pixQrCode + '" style="width:200px;height:200px;margin:0 auto 16px;" alt="QR Code PIX">' : '') +
@@ -1059,7 +1199,16 @@
           '<a href="perfil.html" class="btn btn-outline">Acompanhar pedido</a>' +
           '<a href="produtos.html" class="btn btn-primary">Continuar comprando</a>' +
           '</div>' +
+          '<p id="pixPaidBanner" style="display:none;margin-top:14px;padding:12px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;color:#166534;font-size:0.88rem;font-weight:600;">Pagamento confirmado! Seu pedido ja esta como pago.</p>' +
           '</div>';
+
+        if (selectedMethod === 'PIX' && payment && payment.id && typeof startPixPaymentPolling === 'function') {
+          startPixPaymentPolling(order.id, payment.id, function () {
+            var banner = document.getElementById('pixPaidBanner');
+            if (banner) banner.style.display = 'block';
+            if (typeof showToast === 'function') showToast('PIX recebido! Pedido atualizado.', 'success');
+          });
+        }
       }
 
       function showCheckoutFailure(error, total) {
