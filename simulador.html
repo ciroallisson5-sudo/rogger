@@ -4,19 +4,273 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
-  <title>Visualização 3D - Conforta Colchões</title>
+  <title>Simulação 3D - Conforta Colchões</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <style>
+    :root { --sim-ink: #0f172a; --sim-muted: #64748b; --sim-line: #e2e8f0; --sim-brand: #1a56db; --sim-soft: #eff6ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; color: var(--sim-ink); min-height: 100vh; }
+    .sim-header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #0f172a; color: #fff; }
+    .sim-header a { color: #dbeafe; font-weight: 700; font-size: 0.88rem; }
+    .sim-header a:hover { text-decoration: underline; }
+    .sim-header h1 { margin: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: -0.02em; }
+    .sim-wrap { max-width: 960px; margin: 0 auto; padding: 16px 16px 40px; }
+    .sim-stage { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--sim-line); background: #0f172a; aspect-ratio: 1 / 0.88; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12); }
+    .sim-stage model-viewer { width: 100%; height: 100%; min-height: 280px; display: block; touch-action: none; --poster-color: transparent; }
+    .sim-stage model-viewer::part(default-ar-button) { border-radius: 12px; }
+    .sim-panel { margin-top: 14px; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--sim-line); background: #fff; }
+    .sim-panel strong { display: block; font-size: 0.9rem; font-weight: 800; }
+    .sim-panel p { margin: 8px 0 0; font-size: 0.82rem; color: var(--sim-muted); line-height: 1.45; }
+    .sim-panel em { font-style: normal; font-weight: 800; color: var(--sim-brand); }
+    .sim-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .sim-chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--sim-line); background: #fff; font-size: 0.8rem; font-weight: 800; color: #475569; cursor: pointer; font-family: inherit; transition: border-color 0.15s, background 0.15s; }
+    .sim-chip:hover { border-color: #94a3b8; }
+    .sim-chip.active { border-color: var(--sim-brand); background: var(--sim-soft); color: #0f3a8e; }
+    .sim-loading, .sim-error { text-align: center; padding: 48px 20px; color: var(--sim-muted); font-weight: 600; }
+    .sim-error { color: #b91c1c; }
+    .sim-error a { color: var(--sim-brand); font-weight: 800; }
+  </style>
+</head>
+<body>
+  <header class="sim-header">
+    <a id="simBackLink" href="produtos.html">← Voltar</a>
+    <h1 id="simTitle">Simulação 3D</h1>
+    <span style="width:72px"></span>
+  </header>
+  <main class="sim-wrap">
+    <div id="simLoading" class="sim-loading">Carregando modelo…</div>
+    <div id="simError" class="sim-error" style="display:none"></div>
+    <div id="simViewerRoot" style="display:none">
+      <div class="sim-stage">
+        <model-viewer id="simModelViewer" touch-action="none" ar ar-modes="webxr scene-viewer quick-look" camera-controls
+          loading="eager" shadow-intensity="1.2" exposure="1.08"
+          style="width:100%;height:100%;touch-action:none"></model-viewer>
+      </div>
+      <div class="sim-panel">
+        <strong>Ambiente da simulação</strong>
+        <p>Quarto em 360° (iluminação realista). No celular, use <em>Ver na sua área</em> para ver no seu espaço (AR).</p>
+        <div class="sim-chips" role="group" aria-label="Cenário 3D">
+          <button type="button" class="sim-chip active" data-scene="bedroom">Quarto</button>
+          <button type="button" class="sim-chip" data-scene="studio">Estúdio</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/supabase-config.js"></script>
   <script>
     (function() {
-      var q = window.location.search || '';
-      var dest = 'produto.html' + q;
-      if (window.location.replace) window.location.replace(dest);
-      else window.location.href = dest;
+      'use strict';
+
+      var BEDROOM_HDR = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/hotel_room_1k.hdr';
+
+      function escHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      }
+
+      function absolutizeMediaUrl(u) {
+        if (u == null || u === '') return '';
+        var s = String(u).trim();
+        if (!s) return '';
+        if (/^https?:\/\//i.test(s)) return s;
+        try {
+          return new URL(s, window.location.href).href;
+        } catch (_) {
+          return s;
+        }
+      }
+
+      function getParams() {
+        var q = new URLSearchParams(window.location.search || '');
+        var id = (q.get('id') || q.get('produto') || '').trim();
+        var photo = (q.get('photo') || '').trim();
+        if (id) {
+          try {
+            id = decodeURIComponent(id);
+          } catch (_) { /* ignore */ }
+        }
+        if (photo) {
+          try {
+            photo = decodeURIComponent(photo);
+          } catch (_) { /* ignore */ }
+        }
+        return { id: id, photoId: photo };
+      }
+
+      function resolveSupabaseDefaultModelGlb(product) {
+        if (!product || !product.id) return '';
+        var base = '';
+        if (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG && SUPABASE_CONFIG.url) {
+          base = String(SUPABASE_CONFIG.url).replace(/\/$/, '');
+        }
+        if (!base) return '';
+        return base + '/storage/v1/object/public/modelos-3d/' + encodeURIComponent(String(product.id)) + '.glb';
+      }
+
+      function resolveModelGlbSrc(config, product) {
+        if (!config || !product) return '';
+        var direct = (config.model_glb_url || '').trim();
+        if (direct) return absolutizeMediaUrl(direct);
+        var sup = resolveSupabaseDefaultModelGlb(product);
+        if (sup) return absolutizeMediaUrl(sup);
+        var slug = String(product.slug || 'produto').replace(/[^a-z0-9-_]/gi, '_').toLowerCase().replace(/_+/g, '_').replace(/^_|_$/g, '') || 'produto';
+        var id = String(config.id || '').replace(/-/g, '');
+        var shortId = id.slice(0, 12);
+        if (!shortId) return '';
+        return absolutizeMediaUrl('assets/models/' + slug + '-' + shortId + '.glb');
+      }
+
+      function resolveModelUsdzSrc(config) {
+        if (!config) return '';
+        var direct = (config.model_usdz_url || '').trim();
+        if (!direct) return '';
+        return absolutizeMediaUrl(direct);
+      }
+
+      function buildPhotoMap(list) {
+        var map = {};
+        (list || []).forEach(function(p) {
+          map[p.id] = p;
+        });
+        return map;
+      }
+
+      function getPhotoConfig(photo, map) {
+        if (!photo) return null;
+        if (photo.same_as_photo_id && map[photo.same_as_photo_id]) return getPhotoConfig(map[photo.same_as_photo_id], map);
+        return photo;
+      }
+
+      function applyScene(mv, scene) {
+        if (!mv) return;
+        if (scene === 'studio') {
+          mv.setAttribute('environment-image', 'neutral');
+          mv.removeAttribute('skybox-image');
+          mv.setAttribute('exposure', '1');
+          mv.setAttribute('shadow-intensity', '1');
+        } else {
+          mv.setAttribute('environment-image', BEDROOM_HDR);
+          mv.setAttribute('skybox-image', BEDROOM_HDR);
+          mv.setAttribute('exposure', '1.08');
+          mv.setAttribute('shadow-intensity', '1.2');
+        }
+      }
+
+      function bindChips(mv) {
+        document.querySelectorAll('.sim-chip').forEach(function(chip) {
+          chip.addEventListener('click', function() {
+            document.querySelectorAll('.sim-chip').forEach(function(c) {
+              c.classList.remove('active');
+            });
+            chip.classList.add('active');
+            applyScene(mv, chip.getAttribute('data-scene') || 'bedroom');
+          });
+        });
+      }
+
+      function showError(html) {
+        document.getElementById('simLoading').style.display = 'none';
+        var el = document.getElementById('simError');
+        el.style.display = 'block';
+        el.innerHTML = html;
+        document.getElementById('simViewerRoot').style.display = 'none';
+      }
+
+      async function run() {
+        var params = getParams();
+        if (!params.id) {
+          showError('Produto não informado. <a href="produtos.html">Ir para a vitrine</a>');
+          return;
+        }
+
+        try {
+          if (typeof initSupabase === 'function') initSupabase();
+          var sb = typeof getSupabase === 'function' ? getSupabase() : null;
+          if (!sb) throw new Error('Supabase indisponível');
+
+          var prodResp = await sb.from('products').select('*, product_photos(*)').eq('id', params.id).maybeSingle();
+          if (prodResp.error) throw prodResp.error;
+          if (!prodResp.data) throw new Error('Produto não encontrado');
+
+          var product = prodResp.data;
+          var photos = (product.product_photos || []).slice().sort(function(a, b) {
+            return (a.sort_order || 0) - (b.sort_order || 0);
+          });
+          var map = buildPhotoMap(photos);
+          var photo = null;
+          if (params.photoId && map[params.photoId]) photo = map[params.photoId];
+          else if (photos[0]) photo = photos[0];
+
+          var config = getPhotoConfig(photo, map);
+          if (config && config.is_video) {
+            showError(
+              'Esta mídia é um vídeo. Abra outra foto do produto e tente de novo. <a href="produto.html?id=' +
+                encodeURIComponent(params.id) +
+                '">Voltar ao produto</a>'
+            );
+            return;
+          }
+
+          var glb = resolveModelGlbSrc(config, product);
+          if (!glb) {
+            showError(
+              'Não há modelo 3D para esta variação. <a href="produto.html?id=' +
+                encodeURIComponent(params.id) +
+                '">Voltar ao produto</a>'
+            );
+            return;
+          }
+
+          var poster = config && (config.url || '').trim() ? absolutizeMediaUrl(config.url) : '';
+          var usdz = resolveModelUsdzSrc(config);
+          var alt = [product.name, config && config.color_name, config && config.size].filter(Boolean).join(' — ') || 'Produto';
+
+          var back = document.getElementById('simBackLink');
+          back.href = 'produto.html?id=' + encodeURIComponent(params.id) + (params.photoId ? '&photo=' + encodeURIComponent(params.photoId) : '');
+
+          var title = document.getElementById('simTitle');
+          title.textContent = '3D — ' + (product.name || 'Produto');
+
+          document.getElementById('simLoading').style.display = 'none';
+          document.getElementById('simError').style.display = 'none';
+          document.getElementById('simViewerRoot').style.display = 'block';
+
+          var mv = document.getElementById('simModelViewer');
+          if (poster) mv.setAttribute('poster', poster);
+          else mv.removeAttribute('poster');
+          if (usdz) mv.setAttribute('ios-src', usdz);
+          else mv.removeAttribute('ios-src');
+          mv.setAttribute('alt', alt);
+          mv.setAttribute('src', glb);
+          applyScene(mv, 'bedroom');
+          bindChips(mv);
+
+          mv.addEventListener(
+            'error',
+            function once() {
+              mv.removeEventListener('error', once);
+              showError(
+                'Não foi possível carregar o modelo 3D (arquivo ausente ou link inválido). <a href="produto.html?id=' +
+                  encodeURIComponent(params.id) +
+                  '">Voltar ao produto</a>'
+              );
+            },
+            { once: true }
+          );
+        } catch (e) {
+          showError((e && e.message) || 'Erro ao carregar. <a href="produtos.html">Vitrine</a>');
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', run);
     })();
   </script>
-</head>
-<body style="font-family:system-ui,sans-serif;padding:24px;background:#f8fafc;color:#334155;">
-  <p>Redirecionando para a página do produto…</p>
-  <p><a href="produto.html">Abrir produto</a></p>
 </body>
 </html>

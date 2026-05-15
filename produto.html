@@ -13,7 +13,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -270,8 +269,6 @@
     .pdp-main-media { position: relative; overflow: hidden; border-radius: 28px; border: 1px solid var(--line); background: linear-gradient(135deg, #eff6ff, #f8fafc); aspect-ratio: 1 / 0.92; box-shadow: var(--shadow-soft); }
     .pdp-main-media img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.35s ease; }
     .pdp-main-media.zoomable:hover img { transform: scale(1.08); }
-    .pdp-main-media model-viewer { width: 100%; height: 100%; min-height: 260px; display: block; background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%); touch-action: none; }
-    .pdp-main-media model-viewer::part(default-ar-button) { border-radius: 12px; }
     .pdp-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #94a3b8; text-align: center; padding: 24px; }
     .pdp-placeholder strong { color: #475569; font-size: 1rem; }
     .pdp-thumbs { display: flex; gap: 10px; margin-top: 14px; overflow-x: auto; padding-bottom: 4px; }
@@ -1527,57 +1524,9 @@
         return absolutizeMediaUrl('assets/models/' + slug + '-' + shortId + '.glb');
       }
 
-      function resolveModelUsdzSrc(config) {
-        if (!config) return '';
-        var direct = (config.model_usdz_url || '').trim();
-        if (!direct) return '';
-        return absolutizeMediaUrl(direct);
-      }
-
-      function modelViewerAltText(config, product) {
-        var bits = [product && product.name ? String(product.name) : 'Produto'];
-        if (config && config.color_name) bits.push(String(config.color_name));
-        if (config && config.size) bits.push(String(config.size));
-        return bits.join(' — ');
-      }
-
-      function buildModelViewerTag(config, product) {
-        if (!config || config.is_video) return '';
-        var glb = resolveModelGlbSrc(config, product);
-        if (!glb) return '';
-        var poster = (config.url || '').trim();
-        var posterAttr = poster ? ' poster="' + escHtml(absolutizeMediaUrl(poster)) + '"' : '';
-        var usdz = resolveModelUsdzSrc(config);
-        var iosAttr = usdz ? ' ios-src="' + escHtml(usdz) + '"' : '';
-        var alt = escHtml(modelViewerAltText(config, product));
-        return '<model-viewer id="pdpModelViewer" touch-action="none" ar ar-modes="webxr scene-viewer quick-look" camera-controls' +
-          posterAttr + iosAttr +
-          ' alt="' + alt + '"' +
-          ' loading="eager" shadow-intensity="1" environment-image="neutral"' +
-          ' src="' + escHtml(glb) + '"' +
-          ' style="width:100%;height:100%;touch-action:none"></model-viewer>';
-      }
-
-      function bindModelViewerFallback() {
-        var mv = document.getElementById('pdpModelViewer');
-        if (!mv || mv.dataset.boundFallback === '1') return;
-        mv.dataset.boundFallback = '1';
-        mv.addEventListener('error', function onModelErr() {
-          mv.removeEventListener('error', onModelErr);
-          var ph = currentPhoto();
-          var cfg = getPhotoConfig(ph);
-          var wrap = document.getElementById('mainMedia');
-          if (!wrap || !cfg || !cfg.url) return;
-          wrap.classList.add('zoomable');
-          wrap.innerHTML = '<img src="' + escHtml(absolutizeMediaUrl(cfg.url)) + '" alt="' + escHtml(productData && productData.name || 'Produto') + '" id="mainProductImage" decoding="async">';
-          attachImageFallbacks();
-        });
-      }
-
       function renderGallery(product) {
         var photo = currentPhoto();
         var media = mainMediaHtml(photo, product);
-        var isModel = media.indexOf('<model-viewer') >= 0;
         var thumbs = photos.length > 1
           ? '<div class="pdp-thumbs">' + photos.map(function(ph) {
               var config = getPhotoConfig(ph);
@@ -1588,7 +1537,7 @@
             }).join('') + '</div>'
           : '';
         return '<section class="pdp-gallery">' +
-          '<div class="pdp-main-media' + (photo && !photo.is_video && !isModel ? ' zoomable' : '') + '" id="mainMedia">' + media + '</div>' +
+          '<div class="pdp-main-media' + (photo && !photo.is_video ? ' zoomable' : '') + '" id="mainMedia">' + media + '</div>' +
           thumbs +
         '</section>';
       }
@@ -1600,8 +1549,6 @@
           if (/youtube\.com|youtu\.be|vimeo\.com/i.test(src)) return '<iframe src="' + escHtml(src) + '" title="' + escHtml(product.name) + '" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:0;"></iframe>';
           if (src) return '<video src="' + escHtml(src) + '" controls playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video>';
         }
-        var mv = buildModelViewerTag(config, product);
-        if (mv) return mv;
         if (config && config.url) return '<img src="' + escHtml(absolutizeMediaUrl(config.url)) + '" alt="' + escHtml(product.name) + '" id="mainProductImage" decoding="async">';
         return '<div class="pdp-placeholder">' + placeholderSvg() + '<strong>' + escHtml(categoryName(product) || product.name) + '</strong><span>Imagem indisponivel no momento</span></div>';
       }
@@ -1675,12 +1622,35 @@
       }
 
       function renderActions(unavailable) {
-        return '<div class="pdp-actions">' +
-          '<button class="btn btn-primary" type="button" id="buyNowBtn" ' + (unavailable ? 'disabled' : '') + '>Comprar agora</button>' +
-          '<button class="btn btn-outline" type="button" id="addToCartBtn" ' + (unavailable ? 'disabled' : '') + '>Adicionar ao carrinho</button>' +
-          '<a class="btn btn-outline" id="simulatorPdpLink" href="simulador.html?id=' + encodeURIComponent(productId || '') + '&photo=' + encodeURIComponent(selectedPhotoId || '') + '">Visualizar em 3D</a>' +
-          '<a class="btn btn-whatsapp js-whatsapp" id="whatsappBtn" data-product="' + escHtml(productData.name) + '" href="' + whatsappHref(productData.name) + '">' + (unavailable ? 'Consultar disponibilidade' : 'Tirar duvida no WhatsApp') + '</a>' +
-        '</div>';
+        var cfg = getPhotoConfig(currentPhoto());
+        var has3d = !!(cfg && productData && !cfg.is_video && resolveModelGlbSrc(cfg, productData));
+        var simHref =
+          'simulador.html?id=' +
+          encodeURIComponent(productId || '') +
+          '&photo=' +
+          encodeURIComponent(selectedPhotoId || '');
+        return (
+          '<div class="pdp-actions">' +
+          '<button class="btn btn-primary" type="button" id="buyNowBtn" ' +
+          (unavailable ? 'disabled' : '') +
+          '>Comprar agora</button>' +
+          '<button class="btn btn-outline" type="button" id="addToCartBtn" ' +
+          (unavailable ? 'disabled' : '') +
+          '>Adicionar ao carrinho</button>' +
+          (has3d
+            ? '<a class="btn btn-outline" id="simulatorPdpLink" href="' +
+              escHtml(simHref) +
+              '">Simulacao 3D no quarto</a>'
+            : '') +
+          '<a class="btn btn-whatsapp js-whatsapp" id="whatsappBtn" data-product="' +
+          escHtml(productData.name) +
+          '" href="' +
+          whatsappHref(productData.name) +
+          '">' +
+          (unavailable ? 'Consultar disponibilidade' : 'Tirar duvida no WhatsApp') +
+          '</a>' +
+          '</div>'
+        );
       }
 
       function renderBenefits(product) {
@@ -1764,7 +1734,6 @@
           });
         });
         attachImageFallbacks();
-        bindModelViewerFallback();
       }
 
       function attachImageFallbacks() {
