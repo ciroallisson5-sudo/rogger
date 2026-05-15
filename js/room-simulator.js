@@ -2,9 +2,10 @@
  * Editor de quarto 3D (Three.js): piso, paredes, janela, porta, móveis + produto GLB.
  * Câmera: orbitar OU andar (WASD + mouse). Móveis cinzas: arrastar no piso; extras adicionar/remover.
  */
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+/* Import map em simulador.html resolve "three" e "three/addons/" para o navegador. */
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 function makeWoodCanvasTexture() {
   const c = document.createElement('canvas');

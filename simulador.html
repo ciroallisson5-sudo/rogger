@@ -2,15 +2,22 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
   <title>Monte seu quarto 3D - Conforta Colchões</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
     :root {
@@ -23,47 +30,182 @@
       --radius: 18px;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(180deg, #f1f5f9 0%, #e8eef6 100%); color: var(--ink); min-height: 100vh; }
-    .sim-header {
-      position: sticky; top: 0; z-index: 20;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 14px 18px; background: linear-gradient(135deg, #0f172a, #0f3a8e 55%, #1a56db);
-      color: #fff; box-shadow: 0 8px 28px rgba(15, 23, 42, 0.18);
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0f172a;
+      color: var(--ink);
     }
-    .sim-header a { color: #dbeafe; font-weight: 700; font-size: 0.88rem; }
-    .sim-header a:hover { text-decoration: underline; }
-    .sim-header h1 { margin: 0; font-size: 0.98rem; font-weight: 800; letter-spacing: -0.03em; max-width: 52vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sim-wrap { max-width: 1240px; margin: 0 auto; padding: 18px 16px 48px; }
-    .sim-root { display: block; }
-    .sim-tab-bar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+    .sim-overlay-msg {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(180deg, #f1f5f9 0%, #e8eef6 100%);
+    }
+    .sim-root-full {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0f172a;
+    }
+    .sim-back-fab {
+      position: fixed;
+      top: max(10px, env(safe-area-inset-top, 0px));
+      left: max(10px, env(safe-area-inset-left, 0px));
+      z-index: 60;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.78);
+      color: #e2e8f0;
+      font-weight: 800;
+      font-size: 1.15rem;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+    }
+    .sim-back-fab:hover { background: rgba(30, 41, 59, 0.92); color: #fff; }
+    .sim-tab-bar {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      padding: max(10px, env(safe-area-inset-top, 0px)) 12px 10px 64px;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
     .sim-tab {
-      flex: 1; min-width: 160px; cursor: pointer; border: none; font-family: inherit;
-      padding: 12px 16px; border-radius: 14px; font-weight: 800; font-size: 0.82rem;
-      background: #e2e8f0; color: #475569; transition: background 0.15s, color 0.15s, transform 0.15s;
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.74rem;
+      line-height: 1.25;
+      background: rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      transition: background 0.15s, color 0.15s, transform 0.15s;
     }
-    .sim-tab:hover { transform: translateY(-1px); background: #cbd5e1; }
-    .sim-tab.active { background: #fff; color: #0f3a8e; box-shadow: 0 8px 24px rgba(26, 86, 219, 0.18); border: 2px solid var(--brand); }
-    .sim-panel { margin-bottom: 8px; }
+    .sim-tab:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+    .sim-tab.active {
+      background: #fff;
+      color: #0f3a8e;
+      box-shadow: 0 6px 22px rgba(26, 86, 219, 0.22);
+    }
+    .sim-panel-fill {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
     .sim-stage-mv {
-      position: relative; border-radius: 22px; overflow: hidden;
-      border: 1px solid rgba(148, 163, 184, 0.4);
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 0;
       background: #0f172a;
-      aspect-ratio: 1 / 0.82; min-height: 340px;
-      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.14);
+      overflow: hidden;
     }
-    .sim-stage-mv model-viewer { width: 100%; height: 100%; min-height: 340px; display: block; touch-action: none; --poster-color: transparent; }
+    .sim-stage-mv model-viewer {
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      display: block;
+      touch-action: none;
+      --poster-color: transparent;
+    }
     .sim-stage-mv model-viewer::part(default-ar-button) { border-radius: 12px; }
-    .sim-layout { display: grid; grid-template-columns: 1fr minmax(300px, 360px); gap: 22px; align-items: start; }
-    @media (max-width: 960px) { .sim-layout { grid-template-columns: 1fr; } }
     .sim-stage {
-      position: relative; border-radius: 22px; overflow: hidden;
-      border: 1px solid rgba(148, 163, 184, 0.35);
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 0;
       background: #0f172a;
-      aspect-ratio: 1 / 0.82; min-height: 320px;
-      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(255,255,255,0.06) inset;
+      overflow: hidden;
     }
-    .sim-hint { margin: 10px 4px 0; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-align: center; line-height: 1.45; }
-    .sim-sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .sim-hint-floating {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 8;
+      max-width: min(560px, 94vw);
+      margin: 0;
+      padding: 8px 16px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      line-height: 1.4;
+      text-align: center;
+      color: #e2e8f0;
+      background: rgba(15, 23, 42, 0.82);
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+    }
+    .sim-controls-fab {
+      position: absolute;
+      right: max(12px, env(safe-area-inset-right, 0px));
+      bottom: max(12px, calc(12px + env(safe-area-inset-bottom, 0px)));
+      z-index: 40;
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #0f3a8e, #1a56db);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.78rem;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 10px 32px rgba(26, 86, 219, 0.45);
+    }
+    .sim-controls-fab:hover { filter: brightness(1.06); }
+    .sim-controls-sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 38;
+      max-height: min(68vh, 520px);
+      display: flex;
+      flex-direction: column;
+      background: #f8fafc;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -14px 48px rgba(0, 0, 0, 0.4);
+      transform: translateY(calc(100% + 8px));
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sim-controls-sheet.open { transform: translateY(0); }
+    .sim-sheet-handle {
+      width: 44px;
+      height: 5px;
+      margin: 10px auto 4px;
+      border-radius: 99px;
+      background: #cbd5e1;
+      flex-shrink: 0;
+    }
+    .sim-sheet-inner {
+      overflow-y: auto;
+      padding: 6px 14px max(22px, calc(16px + env(safe-area-inset-bottom, 0px)));
+      -webkit-overflow-scrolling: touch;
+    }
     .sim-card {
       background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
       padding: 16px 16px 14px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
@@ -98,124 +240,122 @@
     .sim-extra-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
     .sim-extra-list li:last-child { border-bottom: none; }
     .sim-extra-list button { padding: 4px 10px; border-radius: 8px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; font-weight: 800; font-size: 0.72rem; cursor: pointer; font-family: inherit; }
-    .sim-loading, .sim-error { text-align: center; padding: 52px 20px; font-weight: 600; }
-    .sim-error { color: #b91c1c; }
-    .sim-error a { color: var(--brand); font-weight: 800; }
+    .sim-sheet-inner .sim-card { margin-bottom: 12px; }
+    .sim-sheet-inner .sim-card:last-child { margin-bottom: 0; }
+    .sim-panel-edit { display: flex; flex-direction: column; }
+    @media (max-width: 480px) {
+      .sim-tab { font-size: 0.68rem; padding: 9px 8px; }
+    }
   </style>
 </head>
 <body>
-  <header class="sim-header">
-    <a id="simBackLink" href="produtos.html">← Voltar</a>
-    <h1 id="simTitle">Monte seu quarto 3D</h1>
-    <span style="width:64px"></span>
-  </header>
-  <main class="sim-wrap">
-    <div id="simLoading" class="sim-loading">Carregando…</div>
-    <div id="simError" class="sim-error" style="display:none"></div>
-    <div id="simRoot" style="display:none" class="sim-root">
-      <div class="sim-tab-bar" role="tablist" aria-label="Modo de visualização">
-        <button type="button" class="sim-tab active" role="tab" aria-selected="true" data-panel="hd">Quarto HD — colchão no centro</button>
-        <button type="button" class="sim-tab" role="tab" aria-selected="false" data-panel="edit">Montar quarto — andar e mover móveis</button>
-      </div>
+  <a class="sim-back-fab" id="simBackLink" href="produtos.html" aria-label="Voltar">←</a>
 
-      <div id="panelHd" class="sim-panel sim-panel-hd">
-        <div class="sim-stage-mv" id="mvHost">
-          <model-viewer
-            id="mvShowcase"
-            touch-action="none"
-            camera-controls
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            loading="eager"
-            shadow-intensity="1.2"
-            exposure="1.06"
-            style="width:100%;height:100%;touch-action:none"
-          ></model-viewer>
-        </div>
-        <p class="sim-hint">Ambiente fotográfico 360° (HDRI). Gire o colchão com o mouse. No celular: <strong>Ver na sua área</strong> (AR).</p>
-      </div>
+  <div id="simLoading" class="sim-loading sim-overlay-msg">Carregando…</div>
+  <div id="simError" class="sim-error sim-overlay-msg" style="display:none"></div>
 
-      <div id="panelEdit" class="sim-panel sim-panel-edit" style="display:none">
-        <div class="sim-layout">
-          <div class="sim-stage-wrap">
-            <div id="simCanvasHost" class="sim-stage" aria-label="Editor 3D do quarto"></div>
-            <p class="sim-hint">Modo <strong>Orbitar</strong>: arraste na cena. <strong>Andar</strong>: clique na cena, WASD + mouse; ESC solta o mouse. <strong>Mover móveis</strong>: arraste o guarda-roupa, a mesa ou os extras no piso.</p>
+  <div id="simRoot" style="display:none" class="sim-root-full">
+    <div class="sim-tab-bar" role="tablist" aria-label="Modo de visualização">
+      <button type="button" class="sim-tab active" role="tab" aria-selected="true" data-panel="hd">Quarto HD</button>
+      <button type="button" class="sim-tab" role="tab" aria-selected="false" data-panel="edit">Montar quarto</button>
+    </div>
+
+    <div id="panelHd" class="sim-panel-fill sim-panel-hd">
+      <div class="sim-stage-mv" id="mvHost">
+        <model-viewer
+          id="mvShowcase"
+          touch-action="none"
+          camera-controls
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          loading="eager"
+          shadow-intensity="1.2"
+          exposure="1.06"
+          style="width:100%;height:100%;touch-action:none"
+        ></model-viewer>
+      </div>
+      <p class="sim-hint-floating">HDRI 360° — gire o colchão. No celular: <strong>Ver na sua área</strong> (AR).</p>
+    </div>
+
+    <div id="panelEdit" class="sim-panel-fill sim-panel-edit" style="display:none">
+      <div id="simCanvasHost" class="sim-stage" aria-label="Editor 3D do quarto"></div>
+      <button type="button" class="sim-controls-fab" id="simControlsToggle" aria-expanded="false" aria-controls="simControlsSheet">Ajustes do quarto</button>
+      <div id="simControlsSheet" class="sim-controls-sheet" role="dialog" aria-modal="false" aria-label="Ajustes" aria-hidden="true">
+        <div class="sim-sheet-handle" aria-hidden="true"></div>
+        <div class="sim-sheet-inner">
+          <div class="sim-card">
+            <h2>Câmera e cena</h2>
+            <p class="sim-note" style="margin-top:0;margin-bottom:10px"><strong>Orbitar</strong>: arraste. <strong>Andar</strong>: clique na cena, WASD + mouse; ESC solta. <strong>Mover móveis</strong>: arraste no piso (só em Orbitar). Shift corre.</p>
+            <div class="sim-floor-pick" role="radiogroup" aria-label="Modo de câmera">
+              <label><input type="radio" name="camMode" value="orbit" checked><span>Orbitar</span></label>
+              <label><input type="radio" name="camMode" value="walk"><span>Andar (WASD)</span></label>
+            </div>
           </div>
-          <aside class="sim-sidebar" id="simSidebar">
-            <div class="sim-card">
-              <h2>Câmera</h2>
-              <div class="sim-floor-pick" role="radiogroup" aria-label="Modo de câmera">
-                <label><input type="radio" name="camMode" value="orbit" checked><span>Orbitar</span></label>
-                <label><input type="radio" name="camMode" value="walk"><span>Andar (WASD)</span></label>
-              </div>
-              <p class="sim-note">No modo andar use Shift para correr. Arrastar móveis só funciona em Orbitar.</p>
+          <div class="sim-card">
+            <h2>Extras no quarto</h2>
+            <div class="sim-extra-btns">
+              <button type="button" id="btnAddCriado">+ Criado-mudo</button>
+              <button type="button" id="btnAddPuff">+ Puff</button>
+              <button type="button" id="btnAddEstante">+ Estante</button>
             </div>
-            <div class="sim-card">
-              <h2>Extras no quarto</h2>
-              <div class="sim-extra-btns">
-                <button type="button" id="btnAddCriado">+ Criado-mudo</button>
-                <button type="button" id="btnAddPuff">+ Puff</button>
-                <button type="button" id="btnAddEstante">+ Estante</button>
-              </div>
-              <ul class="sim-extra-list" id="extraList"></ul>
+            <ul class="sim-extra-list" id="extraList"></ul>
+          </div>
+          <div class="sim-card">
+            <h2>Piso</h2>
+            <div class="sim-floor-pick" role="radiogroup" aria-label="Tipo de piso">
+              <label><input type="radio" name="floorMat" value="wood" checked><span>Madeira</span></label>
+              <label><input type="radio" name="floorMat" value="pvc"><span>PVC</span></label>
             </div>
-            <div class="sim-card">
-              <h2>Piso</h2>
-              <div class="sim-floor-pick" role="radiogroup" aria-label="Tipo de piso">
-                <label><input type="radio" name="floorMat" value="wood" checked><span>Madeira</span></label>
-                <label><input type="radio" name="floorMat" value="pvc"><span>PVC</span></label>
-              </div>
+          </div>
+          <div class="sim-card">
+            <h2>Tamanho do quarto (m)</h2>
+            <div class="sim-row">
+              <div class="sim-label"><span>Largura</span><span class="sim-val" id="vW">4.80 m</span></div>
+              <input type="range" id="rngW" min="2.5" max="10" step="0.1" value="4.8">
             </div>
-            <div class="sim-card">
-              <h2>Tamanho do quarto (m)</h2>
-              <div class="sim-row">
-                <div class="sim-label"><span>Largura</span><span class="sim-val" id="vW">4.80 m</span></div>
-                <input type="range" id="rngW" min="2.5" max="10" step="0.1" value="4.8">
-              </div>
-              <div class="sim-row">
-                <div class="sim-label"><span>Comprimento</span><span class="sim-val" id="vD">4.80 m</span></div>
-                <input type="range" id="rngD" min="2.5" max="10" step="0.1" value="4.8">
-              </div>
-              <div class="sim-row">
-                <div class="sim-label"><span>Pé-direito</span><span class="sim-val" id="vH">2.75 m</span></div>
-                <input type="range" id="rngH" min="2.2" max="3.2" step="0.05" value="2.75">
-              </div>
+            <div class="sim-row">
+              <div class="sim-label"><span>Comprimento</span><span class="sim-val" id="vD">4.80 m</span></div>
+              <input type="range" id="rngD" min="2.5" max="10" step="0.1" value="4.8">
             </div>
-            <div class="sim-card">
-              <h2>Guarda-roupa (m)</h2>
-              <div class="sim-row">
-                <div class="sim-label"><span>Largura</span><span class="sim-val" id="vWW">1.85 m</span></div>
-                <input type="range" id="rngWW" min="0.9" max="3" step="0.05" value="1.85">
-              </div>
-              <div class="sim-row">
-                <div class="sim-label"><span>Profundidade</span><span class="sim-val" id="vWD">0.62 m</span></div>
-                <input type="range" id="rngWD" min="0.45" max="1.1" step="0.02" value="0.62">
-              </div>
-              <div class="sim-row">
-                <div class="sim-label"><span>Altura</span><span class="sim-val" id="vWH">2.15 m</span></div>
-                <input type="range" id="rngWH" min="1.5" max="2.6" step="0.05" value="2.15">
-              </div>
+            <div class="sim-row">
+              <div class="sim-label"><span>Pé-direito</span><span class="sim-val" id="vH">2.75 m</span></div>
+              <input type="range" id="rngH" min="2.2" max="3.2" step="0.05" value="2.75">
             </div>
-            <div class="sim-card">
-              <h2>Escrivaninha (m)</h2>
-              <div class="sim-row">
-                <div class="sim-label"><span>Largura tampo</span><span class="sim-val" id="vDW">1.28 m</span></div>
-                <input type="range" id="rngDW" min="0.75" max="2.2" step="0.05" value="1.28">
-              </div>
-              <div class="sim-row">
-                <div class="sim-label"><span>Profundidade</span><span class="sim-val" id="vDD">0.62 m</span></div>
-                <input type="range" id="rngDD" min="0.45" max="1" step="0.02" value="0.62">
-              </div>
-              <div class="sim-row">
-                <div class="sim-label"><span>Altura</span><span class="sim-val" id="vDH">0.78 m</span></div>
-                <input type="range" id="rngDH" min="0.66" max="1.05" step="0.02" value="0.78">
-              </div>
+          </div>
+          <div class="sim-card">
+            <h2>Guarda-roupa (m)</h2>
+            <div class="sim-row">
+              <div class="sim-label"><span>Largura</span><span class="sim-val" id="vWW">1.85 m</span></div>
+              <input type="range" id="rngWW" min="0.9" max="3" step="0.05" value="1.85">
             </div>
-          </aside>
+            <div class="sim-row">
+              <div class="sim-label"><span>Profundidade</span><span class="sim-val" id="vWD">0.62 m</span></div>
+              <input type="range" id="rngWD" min="0.45" max="1.1" step="0.02" value="0.62">
+            </div>
+            <div class="sim-row">
+              <div class="sim-label"><span>Altura</span><span class="sim-val" id="vWH">2.15 m</span></div>
+              <input type="range" id="rngWH" min="1.5" max="2.6" step="0.05" value="2.15">
+            </div>
+          </div>
+          <div class="sim-card">
+            <h2>Escrivaninha (m)</h2>
+            <div class="sim-row">
+              <div class="sim-label"><span>Largura tampo</span><span class="sim-val" id="vDW">1.28 m</span></div>
+              <input type="range" id="rngDW" min="0.75" max="2.2" step="0.05" value="1.28">
+            </div>
+            <div class="sim-row">
+              <div class="sim-label"><span>Profundidade</span><span class="sim-val" id="vDD">0.62 m</span></div>
+              <input type="range" id="rngDD" min="0.45" max="1" step="0.02" value="0.62">
+            </div>
+            <div class="sim-row">
+              <div class="sim-label"><span>Altura</span><span class="sim-val" id="vDH">0.78 m</span></div>
+              <input type="range" id="rngDH" min="0.66" max="1.05" step="0.02" value="0.78">
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </main>
+  </div>
 
   <script src="js/supabase-config.js"></script>
   <script type="module">
@@ -228,6 +368,25 @@
       if (value === null || value === undefined) return '';
       return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
+
+    function setupControlsSheet() {
+      const fab = document.getElementById('simControlsToggle');
+      const sheet = document.getElementById('simControlsSheet');
+      const handle = document.getElementById('simSheetHandle');
+      if (!fab || !sheet) return;
+      const sync = (open) => {
+        sheet.classList.toggle('open', open);
+        fab.textContent = open ? 'Fechar ajustes' : 'Ajustes do quarto';
+        fab.setAttribute('aria-expanded', open ? 'true' : 'false');
+        sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
+      };
+      fab.addEventListener('click', () => sync(!sheet.classList.contains('open')));
+      if (handle) handle.addEventListener('click', () => sync(false));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') sync(false);
+      });
+    }
+    setupControlsSheet();
 
     function absolutizeMediaUrl(u) {
       if (u == null || u === '') return '';
@@ -302,7 +461,7 @@
     function showError(html) {
       document.getElementById('simLoading').style.display = 'none';
       const el = document.getElementById('simError');
-      el.style.display = 'block';
+      el.style.display = 'flex';
       el.innerHTML = html;
       document.getElementById('simRoot').style.display = 'none';
     }
@@ -469,11 +628,11 @@
 
         document.getElementById('simBackLink').href =
           'produto.html?id=' + encodeURIComponent(params.id) + (params.photoId ? '&photo=' + encodeURIComponent(params.photoId) : '');
-        document.getElementById('simTitle').textContent = 'Quarto 3D — ' + (product.name || 'Produto');
+        document.title = 'Quarto 3D — ' + (product.name || 'Produto') + ' | Conforta';
 
         document.getElementById('simLoading').style.display = 'none';
         document.getElementById('simError').style.display = 'none';
-        document.getElementById('simRoot').style.display = 'block';
+        document.getElementById('simRoot').style.display = 'flex';
 
         const mv = document.getElementById('mvShowcase');
         setupHdViewer(mv, glb, posterUrl, altText);
@@ -504,15 +663,23 @@
             });
             const hd = document.getElementById('panelHd');
             const ed = document.getElementById('panelEdit');
+            const sheet = document.getElementById('simControlsSheet');
+            const fab = document.getElementById('simControlsToggle');
             if (panel === 'hd') {
-              hd.style.display = 'block';
+              if (sheet) sheet.classList.remove('open');
+              if (fab) {
+                fab.textContent = 'Ajustes do quarto';
+                fab.setAttribute('aria-expanded', 'false');
+              }
+              if (sheet) sheet.setAttribute('aria-hidden', 'true');
+              hd.style.display = 'flex';
               ed.style.display = 'none';
               requestAnimationFrame(() => {
                 window.dispatchEvent(new Event('resize'));
               });
             } else {
               hd.style.display = 'none';
-              ed.style.display = 'block';
+              ed.style.display = 'flex';
               mountEditorOnce();
               requestAnimationFrame(() => {
                 window.dispatchEvent(new Event('resize'));

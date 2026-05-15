@@ -26,8 +26,10 @@ function safeProductJson(product) {
 /** Anexa dados do produto ao system (ou cria system) para evitar precos inventados. */
 function injectProductContext(messages, product) {
   const block =
-    '\n\n[Dados oficiais do catalogo — use SOMENTE estes valores para precos (base_price, discount_price, etc.). ' +
+    '\n\n[Dados oficiais do catalogo — use SOMENTE estes valores para precos (base_price, discount_price, preco_exibido_vitrine, etc.). ' +
     'Nao invente valores. Se algo nao constar no JSON, diga que o cliente deve conferir no site. ' +
+    'Orcamento total com frete: so no checkout/carrinho; nao invente total fechado. ' +
+    'Parcelamento: parcela = referencia dividindo o preco a vista oficial; condicao final depende do meio de pagamento. ' +
     'Seja objetivo; evite repetir a mesma palavra em sequencia.]\n' +
     safeProductJson(product);
   const arr = messages.map(function(m) {
@@ -55,7 +57,22 @@ function normalizeRequestBody(raw) {
       return {};
     }
   }
+  if (Array.isArray(b) && b.length > 0 && typeof b[0] === 'object' && !Array.isArray(b[0])) {
+    b = b[0];
+  }
   if (typeof b !== 'object' || Array.isArray(b)) return {};
+  if (b.input && typeof b.input === 'object' && !Array.isArray(b.input)) {
+    const in0 = b.input;
+    if (in0.messages != null || in0.mensagens != null || in0.product != null || in0.produto != null) {
+      b = Object.assign({}, b, in0);
+    }
+  }
+  if (b.data && typeof b.data === 'object' && !Array.isArray(b.data)) {
+    const d0 = b.data;
+    if (d0.messages != null || d0.mensagens != null || d0.product != null || d0.produto != null) {
+      b = Object.assign({}, b, d0);
+    }
+  }
   if (b.body && typeof b.body === 'object' && !Array.isArray(b.body)) {
     const inner = b.body;
     const hasInner =

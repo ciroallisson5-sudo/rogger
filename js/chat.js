@@ -178,6 +178,7 @@ async function sendChatMessage() {
     const webhookUrl = await getSetting('n8n_webhook_url') || '';
     const products = await getProductContext();
     const sortedProducts = sortProductsByPrice(products);
+    const pageProduct = getPageProductForChat();
 
     let response;
     if (webhookUrl) {
@@ -189,6 +190,8 @@ async function sendChatMessage() {
           session_id: chatSessionId,
           user_id: user?.id,
           user_name: user?.user_metadata?.full_name,
+          product: pageProduct,
+          current_product: pageProduct,
           products: sortedProducts.slice(0, 20),
           context: {
             store: 'Conforta',
@@ -199,7 +202,7 @@ async function sendChatMessage() {
       });
       response = await res.json();
     } else {
-      var openAiReply = await tryOpenAiChat(message, sortedProducts);
+      var openAiReply = await tryOpenAiChat(message, sortedProducts, pageProduct);
       if (openAiReply) {
         response = { reply: openAiReply };
       } else {
@@ -310,6 +313,8 @@ function buildCatalogSystemPrompt(sortedProducts) {
     'Voce é um atendente da Conforta Colchões (colchões, camas, sofás e móveis). Fale como uma pessoa prestativa da loja: natural, caloroso, sem soar robotizado. Use "eu" quando fizer sentido.\n' +
     'Responda em portugues do Brasil. Frases curtas quando couber; confirme o que entendeu antes de longas explicacoes.\n' +
     'Use SOMENTE o catalogo abaixo para nomes, precos e links. Nao invente produtos, precos nem URLs.\n' +
+    'Orcamento / total com frete: o valor final e no carrinho e checkout; nao prometa total fechado nem frete exato sem o cliente simular la.\n' +
+    'Parcelamento: se citar parcela, use apenas divisao do preco a vista do catalogo (referencia); juros e maximo de parcelas dependem do meio de pagamento no checkout.\n' +
     'Se o cliente pedir link, pagina, "manda ai", "sim" depois de voce oferecer o produto, envie o link completo da linha do produto.\n' +
     'Se nao souber algo (garantia legal, nota fiscal, status de pedido especifico), diga com honestidade e oriente a falar no WhatsApp ou na loja — nao invente.\n' +
     cheapestLine +
@@ -318,7 +323,15 @@ function buildCatalogSystemPrompt(sortedProducts) {
   );
 }
 
-async function tryOpenAiChat(userMessage, sortedProducts) {
+function getPageProductForChat() {
+  try {
+    var p = window.CONFORTA_PAGE_PRODUCT_FOR_CHAT;
+    if (p && typeof p === 'object' && p.id) return p;
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
+async function tryOpenAiChat(userMessage, sortedProducts, pageProduct) {
   try {
     var probe = await fetch('/api/openai-chat', { method: 'GET' }).catch(function() { return null; });
     if (!probe || !probe.ok) return null;
@@ -331,10 +344,13 @@ async function tryOpenAiChat(userMessage, sortedProducts) {
     var hist = window.__chatGptHistory.slice(-12);
     var messages = [{ role: 'system', content: systemContent }].concat(hist, [{ role: 'user', content: userMessage }]);
 
+    var postBody = { messages: messages };
+    if (pageProduct && pageProduct.id) postBody.product = pageProduct;
+
     var res = await fetch('/api/openai-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: messages })
+      body: JSON.stringify(postBody)
     });
     var data = await res.json().catch(function() { return {}; });
     if (!res.ok || !data.reply) {
@@ -352,9 +368,11 @@ async function getProductContext() {
     const sb = getSupabase();
     if (!sb) return [];
     const { data } = await sb.from('products')
-      .select('id, name, slug, description, base_price, discount_price, category_id, tags, material')
+      .select('id, name, slug, description, base_price, discount_price, category_id, tags, material, featured')
       .eq('active', true)
-      .limit(100);
+      .order('featured', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(250);
     return data || [];
   } catch { return []; }
 }
@@ -468,19 +486,24 @@ function getLocalResponse(message, products) {
   }
 
   if (msg.includes('preço') || msg.includes('preco') || msg.includes('valor') || msg.includes('custa') || msg.includes('quanto')) {
-    if (sorted.length > 0) {
-      const p = sorted[Math.floor(Math.random() * Math.min(sorted.length, 5))];
-      const price = parseFloat(p.discount_price || p.base_price) || 0;
-      writeChatContext({ lastOfferedProductId: p.id, lastOfferedProductName: p.name || '' });
-      var uq = p.id ? productPageUrl(p.id) : '';
+    var pageP = getPageProductForChat();
+    if (pageP && pageP.id) {
+      var pv = parseFloat(pageP.preco_exibido_vitrine != null ? pageP.preco_exibido_vitrine : pageP.discount_price || pageP.base_price) || 0;
+      var uPage = productPageUrl(pageP.id);
+      writeChatContext({ lastOfferedProductId: pageP.id, lastOfferedProductName: pageP.name || '' });
       return (
-        'Um exemplo do catálogo: o ' +
-        p.name +
-        ' sai a partir de R$ ' +
-        price.toFixed(2).replace('.', ',') +
-        '.' +
-        (uq ? ' Link: ' + uq : '') +
-        ' Se quiser o mais barato de todos, pergunta "qual o mais barato?" que eu te digo na hora.'
+        'Na pagina que voce abriu agora, o ' +
+        (pageP.name || 'produto') +
+        ' esta com preco a partir de R$ ' +
+        pv.toFixed(2).replace('.', ',') +
+        ' (configuracao atual no site).' +
+        (uPage ? ' Link: ' + uPage : '') +
+        ' Orcamento com frete e parcelas exatas: confira no carrinho/checkout ou no WhatsApp da loja.'
+      );
+    }
+    if (sorted.length > 0) {
+      return (
+        'Para eu nao te passar preco errado de outro modelo, me diz o nome do produto como aparece no site, ou pergunta "qual o mais barato?" que eu te mando o item certo com link e valor.'
       );
     }
     return 'Temos várias faixas de preço no site. Abre em Produtos ou me diz casal/queen/king que eu te guio.';

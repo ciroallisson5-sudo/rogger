@@ -420,6 +420,7 @@
   <script src="js/utils.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/cart.js"></script>
+  <script src="js/chat.js"></script>
   <script type="text/plain" data-legacy-product-script>
     (function() {
       'use strict';
@@ -1389,6 +1390,9 @@
       }
 
       function renderErrorState() {
+        try {
+          window.CONFORTA_PAGE_PRODUCT_FOR_CHAT = null;
+        } catch (_) {}
         document.getElementById('productContent').innerHTML =
           '<div class="container error-state">' +
             '<svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg>' +
@@ -1474,6 +1478,7 @@
         bindGallery();
         bindDynamicButtons();
         updateWhatsappLinks();
+        syncChatPageProduct();
       }
 
       function renderBadges(product, discounted, unavailable) {
@@ -1724,6 +1729,53 @@
         if (qty < 1) qty = 1;
         if (stock !== null && stock > 0 && qty > stock) qty = stock;
         return qty;
+      }
+
+      /** Contexto para o chat / n8n: preco da variante selecionada (foto), sem inventar orcamento. */
+      function syncChatPageProduct() {
+        try {
+          if (!productData || !productData.id) {
+            window.CONFORTA_PAGE_PRODUCT_FOR_CHAT = null;
+            return;
+          }
+          var photo = currentPhoto();
+          var cfg = getPhotoConfig(photo);
+          var vitrine = displayPrice(photo, productData);
+          var orig = originalPrice(photo, productData);
+          var base = parseFloat(productData.base_price) || null;
+          var disc = productData.discount_price != null && productData.discount_price !== '' ? parseFloat(productData.discount_price) : null;
+          var path = 'produto.html?id=' + encodeURIComponent(String(productData.id));
+          var pageUrl = '';
+          try {
+            pageUrl = new URL(path, window.location.href).href;
+          } catch (_) {
+            pageUrl = path;
+          }
+          window.CONFORTA_PAGE_PRODUCT_FOR_CHAT = {
+            source: 'pdp',
+            id: productData.id,
+            name: productData.name,
+            slug: productData.slug,
+            sku: productData.sku || null,
+            base_price: base,
+            discount_price: disc,
+            preco_exibido_vitrine: vitrine,
+            preco_riscado_vitrine: orig > vitrine ? orig : null,
+            moeda: 'BRL',
+            photo_id: cfg && cfg.id ? cfg.id : null,
+            variante: {
+              cor: cfg && cfg.color_name ? cfg.color_name : null,
+              tamanho: cfg && cfg.size ? cfg.size : null,
+              etiqueta: cfg && cfg.custom_label ? cfg.custom_label : null
+            },
+            product_page_url: pageUrl,
+            nota_precos:
+              'O preco correto a citar para esta pagina e preco_exibido_vitrine (variante da foto selecionada). ' +
+              'Nao substitua por outro produto do catalogo. Orcamento com frete e condicao de parcelamento: checkout ou WhatsApp da loja.'
+          };
+        } catch (_) {
+          window.CONFORTA_PAGE_PRODUCT_FOR_CHAT = null;
+        }
       }
 
       function bindGallery() {
