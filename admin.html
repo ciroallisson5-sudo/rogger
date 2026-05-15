@@ -495,8 +495,7 @@
         <div class="settings-section">
           <h3>Pagamentos - Asaas</h3>
           <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.35);color:#fde68a;padding:10px 12px;border-radius:6px;font-size:0.82rem;line-height:1.5;margin-bottom:12px;">
-            <strong>Importante:</strong> a API Key do Asaas fica somente no servidor (Vercel),
-            como variavel de ambiente <code>ASAAS_API_KEY</code>. Nao guarde a chave aqui no admin.
+            <strong>Importante:</strong> chaves secretas (Asaas, OpenAI, Supabase service role) ficam somente na <strong>Vercel</strong> — nao em arquivo <code>.env</code> no site nem neste admin.
             Aqui voce so escolhe o ambiente (sandbox ou producao).
           </div>
           <div class="form-row"><div class="form-group"><label class="form-label">Ambiente</label><select class="form-select" id="setAsaasEnv"><option value="sandbox">Sandbox (testes)</option><option value="production">Producao</option></select></div></div>
@@ -547,19 +546,14 @@
               <li>Use a resposta JSON no modulo <strong>AI Agent</strong> ou <strong>OpenAI</strong> do n8n como contexto</li>
               <li>Voce tambem pode usar o webhook configurado nas Configuracoes para receber dados automaticamente</li>
               <li>O webhook envia <code>summary_line</code> (uma linha com nome, preço, categoria, tags, trecho da descricao) e o objeto <code>product</code> completo</li>
-              <li>Para gerar texto com a mesma IA do site: outro modulo <strong>HTTP Request</strong> com metodo <strong>POST</strong> para a URL abaixo.
+              <li><strong>Mesma IA do chat do site:</strong> HTTP Request <strong>POST</strong> na URL abaixo (catalogo completo no servidor — nao use OpenAI separado no n8n).
                 <div class="endpoint-url" style="margin:8px 0;"><code id="n8nOpenaiChatUrl">—</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyN8nOpenaiChatUrl()">Copiar</button></div>
-                <strong style="color:#fca5a5;display:block;margin-top:10px;">Importante:</strong> nao escreva <code>{{ $json }}</code> ou <code>{{ $json.product }}</code> dentro de um JSON estatico — o n8n vira a string <code>[object Object]</code> e o corpo deixa de ser JSON valido (erro no proprio n8n).
-                <span style="display:block;margin-top:8px;color:var(--text2);">Em <strong>Specify Body</strong> escolha JSON e, no campo do corpo, use <strong>uma expressao so</strong> (comece com <code>=</code>) que monte o objeto, por exemplo se o item atual ja e o produto:</span>
-                <code style="display:block;margin-top:8px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ n8n_product_blurb: true, product: $json }) }}</code>
-                <span style="display:block;margin-top:8px;color:var(--text2);">Se o produto estiver em <code>$json.product</code>:</span>
-                <code style="display:block;margin-top:6px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ n8n_product_blurb: true, product: $json.product }) }}</code>
-                <span style="display:block;margin-top:8px;color:var(--text2);">Alternativa (n8n recente): corpo em modo expressao com objeto (sem stringify), se o no aceitar:</span>
-                <code style="display:block;margin-top:6px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ { n8n_product_blurb: true, product: $json } }}</code>
-                <span style="display:block;margin-top:12px;color:#fbbf24;font-weight:600;">Precos fiéis (Make / n8n):</span>
-                <span style="display:block;margin-top:6px;color:var(--text2);">Só com <code>messages</code> e o nome do produto a IA <strong>não</strong> enxerga o banco e pode inventar valor (ex.: R$ 1.299 em vez de R$ 539). No mesmo POST envie também <code>product</code> (objeto do produto: preços, descrição, vindo do Supabase ou do módulo anterior). A API anexa esse JSON ao contexto do sistema.</span>
-                <code style="display:block;margin-top:6px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ messages: [{ role: 'system', content: '...' }, { role: 'user', content: '...' }], product: $json }) }}</code>
-                Opcional no objeto: <code>"catalog_hint"</code> (texto), <code>"instruction"</code> (texto). Use <code>produto</code> no lugar de <code>product</code> se preferir.</li>
+                <strong style="color:#fca5a5;display:block;margin-top:10px;">Chaves na Vercel</strong> (nao .env local): <code>OPENAI_API_KEY</code>, <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>.
+                <span style="display:block;margin-top:8px;color:var(--text2);">Corpo (expressao unica com <code>=</code>):</span>
+                <code style="display:block;margin-top:8px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ user_message: $json.pergunta || $json.message || 'Descreva o produto', product: $json.product || $json, include_catalog: true, site_base_url: 'https://confortacolchoes.vercel.app' }) }}</code>
+                <span style="display:block;margin-top:8px;color:var(--text2);">Legenda curta:</span>
+                <code style="display:block;margin-top:6px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ n8n_product_blurb: true, product: $json.product || $json, instruction: 'Legenda Instagram', include_catalog: true, site_base_url: 'https://confortacolchoes.vercel.app' }) }}</code>
+                <span style="display:block;margin-top:8px;color:var(--text2);">Resposta: <code>reply</code>. Webhook das Configuracoes so avisa produto salvo; o chat usa esta API.</span></li>
             </ol>
             <p style="margin-top:12px;">URL da API REST Supabase:</p>
             <div class="endpoint-url" style="margin:8px 0 0;">

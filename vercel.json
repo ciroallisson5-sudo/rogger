@@ -2,10 +2,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/favicon.ico", "destination": "/assets/logo.png" },
-    { "source": "/api/asaas-proxy", "destination": "/api/asaas-proxy.js" },
-    { "source": "/api/openai-chat", "destination": "/api/openai-chat.js" },
-    { "source": "/api/gerar-3d", "destination": "/api/gerar-3d.js" }
+    { "source": "/favicon.ico", "destination": "/assets/logo.png" }
   ],
   "headers": [
     {

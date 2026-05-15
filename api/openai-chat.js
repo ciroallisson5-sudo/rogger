@@ -1,51 +1,16 @@
-// Conforta Store — assistente (Vercel Serverless)
-// Env: OPENAI_API_KEY (obrigatório). Opcional: OPENAI_CHAT_MODEL (default gpt-4o-mini)
+// Conforta Store — IA unificada (chat do site + n8n HTTP POST)
+// Vercel: OPENAI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (ou SUPABASE_ANON_KEY)
+// Opcional: OPENAI_CHAT_MODEL, SITE_PUBLIC_URL
 //
-// POST normal: { "messages": [ { "role":"system"|"user"|"assistant", "content":"..." }, ... ] }
-// POST n8n (texto curto mesmo “cérebro” do chat): {
-//   "n8n_product_blurb": true,
-//   "product": { ... objeto vindo do webhook ... },
-//   "catalog_hint": "(opcional) texto com resumo de outros produtos",
-//   "instruction": "(opcional) ex: Gere legenda para Instagram"
-// }
-// Opcional com "messages": envie tambem "product" ou "produto" (objeto JSON do Supabase/Make)
-// para a IA usar precos reais — sem isso o modelo pode alucinar valores.
+// POST site / n8n (recomendado — mesmo cerebro, catalogo no servidor):
+//   { "user_message": "qual o mais barato?", "product": { ... }, "include_catalog": true }
+//   ou { "messages": [...], "product": {...} }
+//
+// POST legenda curta (WhatsApp / rede social):
+//   { "n8n_product_blurb": true, "product": {...}, "instruction": "..." }
 
+const brain = require('./ai-brain');
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-
-function safeProductJson(product) {
-  try {
-    const s = JSON.stringify(product);
-    if (s.length > 14000) return s.slice(0, 14000) + '\n...(truncado)';
-    return s;
-  } catch (_) {
-    return '{}';
-  }
-}
-
-/** Anexa dados do produto ao system (ou cria system) para evitar precos inventados. */
-function injectProductContext(messages, product) {
-  const block =
-    '\n\n[Dados oficiais do catalogo — use SOMENTE estes valores para precos (base_price, discount_price, preco_exibido_vitrine, etc.). ' +
-    'Nao invente valores. Se algo nao constar no JSON, diga que o cliente deve conferir no site. ' +
-    'Orcamento total com frete: so no checkout/carrinho; nao invente total fechado. ' +
-    'Parcelamento: parcela = referencia dividindo o preco a vista oficial; condicao final depende do meio de pagamento. ' +
-    'Seja objetivo; evite repetir a mesma palavra em sequencia.]\n' +
-    safeProductJson(product);
-  const arr = messages.map(function(m) {
-    return { role: m.role, content: String(m.content == null ? '' : m.content) };
-  });
-  if (arr.length > 0 && arr[0].role === 'system') {
-    arr[0].content = arr[0].content + block;
-    return arr;
-  }
-  arr.unshift({
-    role: 'system',
-    content:
-      'Voce e o assistente da Conforta Colchoes. Responda em portugues do Brasil, de forma clara e correta.' + block
-  });
-  return arr;
-}
 
 function normalizeRequestBody(raw) {
   let b = raw;
@@ -61,45 +26,74 @@ function normalizeRequestBody(raw) {
     b = b[0];
   }
   if (typeof b !== 'object' || Array.isArray(b)) return {};
-  if (b.input && typeof b.input === 'object' && !Array.isArray(b.input)) {
-    const in0 = b.input;
-    if (in0.messages != null || in0.mensagens != null || in0.product != null || in0.produto != null) {
-      b = Object.assign({}, b, in0);
+  ['input', 'data', 'body'].forEach(function (key) {
+    const inner = b[key];
+    if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+      if (
+        inner.messages != null ||
+        inner.mensagens != null ||
+        inner.product != null ||
+        inner.produto != null ||
+        inner.user_message != null ||
+        inner.n8n_product_blurb != null
+      ) {
+        b = Object.assign({}, b, inner);
+      }
     }
-  }
-  if (b.data && typeof b.data === 'object' && !Array.isArray(b.data)) {
-    const d0 = b.data;
-    if (d0.messages != null || d0.mensagens != null || d0.product != null || d0.produto != null) {
-      b = Object.assign({}, b, d0);
-    }
-  }
-  if (b.body && typeof b.body === 'object' && !Array.isArray(b.body)) {
-    const inner = b.body;
-    const hasInner =
-      inner.messages != null ||
-      inner.mensagens != null ||
-      inner.product != null ||
-      inner.produto != null ||
-      inner.n8n_product_blurb != null;
-    if (hasInner) {
-      b = Object.assign({}, b, inner);
-    }
-  }
+  });
   return b;
 }
 
-function truthyBlurb(v) {
+function truthy(v) {
   if (v === true || v === 1) return true;
-  const s = String(v == null ? '' : v)
+  const s = String(v == null ? '' : '')
     .trim()
     .toLowerCase();
   return s === 'true' || s === '1' || s === 'yes' || s === 'on' || s === 'sim';
 }
 
-/** Valor tipico quando se cola {{ $json }} dentro de JSON estatico no n8n/Make. */
 function isPlaceholderObjectString(v) {
   if (typeof v !== 'string') return false;
   return /^\[object\s+object\]$/i.test(v.trim());
+}
+
+function parseProductField(raw) {
+  if (raw == null) return null;
+  if (typeof raw === 'object' && !Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
+}
+
+function extractUserMessage(body, msgsRaw) {
+  const direct =
+    body.user_message ||
+    body.userMessage ||
+    body.pergunta ||
+    body.message ||
+    body.mensagem ||
+    '';
+  if (String(direct).trim()) return String(direct).trim();
+  if (Array.isArray(msgsRaw) && msgsRaw.length) {
+    for (let i = msgsRaw.length - 1; i >= 0; i--) {
+      if (msgsRaw[i].role === 'user' && msgsRaw[i].content) {
+        return String(msgsRaw[i].content).trim();
+      }
+    }
+  }
+  return '';
+}
+
+function historyFromMessages(msgsRaw) {
+  if (!Array.isArray(msgsRaw)) return [];
+  return msgsRaw.filter(function (m) {
+    return m && (m.role === 'user' || m.role === 'assistant');
+  });
 }
 
 module.exports = async function handler(req, res) {
@@ -113,8 +107,11 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    const configured = !!process.env.OPENAI_API_KEY;
-    res.status(200).json({ ok: true, configured });
+    res.status(200).json({
+      ok: true,
+      configured: !!process.env.OPENAI_API_KEY,
+      catalog_from_supabase: brain.isSupabaseConfigured()
+    });
     return;
   }
 
@@ -125,104 +122,121 @@ module.exports = async function handler(req, res) {
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    res.status(503).json({ error: 'OPENAI_API_KEY not configured', reply: null });
+    res.status(503).json({
+      error: 'OPENAI_API_KEY not configured (defina na Vercel, nao no .env do site)',
+      reply: null
+    });
     return;
   }
 
   try {
     const body = normalizeRequestBody(req.body);
+    const siteBase =
+      (typeof body.site_base_url === 'string' && body.site_base_url.trim()) ||
+      (typeof body.siteBaseUrl === 'string' && body.siteBaseUrl.trim()) ||
+      process.env.SITE_PUBLIC_URL ||
+      '';
 
     const rawProductField = body.product !== undefined ? body.product : body.produto;
     if (isPlaceholderObjectString(rawProductField)) {
       res.status(400).json({
         error:
-          'O campo "product" veio como a string "[object Object]" — o JSON enviado esta invalido (comum no n8n ao misturar expressao com texto JSON).',
-        n8n_corpo_correto_exemplo:
-          '={{ JSON.stringify({ n8n_product_blurb: true, product: $json }) }}',
-        n8n_dica:
-          'No HTTP Request use o corpo inteiro como UMA expressao (comece com =), ou use JSON.stringify; nao escreva {{ $json }} solto dentro de chaves JSON.'
+          'Campo "product" invalido ([object Object]). No n8n use o corpo inteiro como expressao com JSON.stringify.',
+        n8n_exemplo:
+          '={{ JSON.stringify({ user_message: $json.pergunta, product: $json.product, include_catalog: true }) }}'
       });
       return;
     }
 
-    let messages;
-    let blurbOn = truthyBlurb(body.n8n_product_blurb);
-    let productPayload = body.product != null ? body.product : body.produto;
-    if (typeof productPayload === 'string' && productPayload.trim()) {
-      try {
-        productPayload = JSON.parse(productPayload);
-      } catch (_) {
-        productPayload = null;
-      }
-    }
-
+    const productPayload = parseProductField(rawProductField);
     const msgsRaw = body.messages != null ? body.messages : body.mensagens;
-    if (!blurbOn && productPayload && typeof productPayload === 'object' && !Array.isArray(productPayload)) {
-      const hasMessages = Array.isArray(msgsRaw) && msgsRaw.length > 0;
-      if (!hasMessages) {
-        blurbOn = true;
+    const includeCatalog = body.include_catalog !== false && body.include_catalog !== 'false';
+    const blurbOn = truthy(body.n8n_product_blurb);
+    const userMessage = extractUserMessage(body, msgsRaw);
+
+    let messages;
+    let temperature = 0.5;
+    let catalogCount = 0;
+
+    if (blurbOn && productPayload) {
+      temperature = 0.35;
+      const instruction =
+        (typeof body.instruction === 'string' && body.instruction.trim()) ||
+        'Gere UMA mensagem curta (ate ~320 caracteres) para WhatsApp ou rede social sobre o produto em foco. Um paragrafo, sem lista.';
+      const assembled = await brain.assembleBrainMessages({
+        siteBase: siteBase,
+        includeCatalog: includeCatalog,
+        product: productPayload,
+        userMessage: instruction,
+        extraSystem:
+          'Tarefa extra: texto promocional curto. Use apenas dados do catalogo e do produto em foco. Nao invente precos nem links.'
+      });
+      messages = assembled.messages;
+      catalogCount = assembled.catalogCount;
+    } else if (Array.isArray(msgsRaw) && msgsRaw.length > 0) {
+      const history = historyFromMessages(msgsRaw);
+      const lastUser = userMessage || '';
+      const assembled = await brain.assembleBrainMessages({
+        siteBase: siteBase,
+        includeCatalog: includeCatalog,
+        product: productPayload,
+        history: history.filter(function (m, idx, arr) {
+          if (lastUser && m.role === 'user' && idx === arr.length - 1 && String(m.content).trim() === lastUser) {
+            return false;
+          }
+          return true;
+        }),
+        userMessage: lastUser || (history.length ? '' : 'Oi')
+      });
+      messages = assembled.messages;
+      catalogCount = assembled.catalogCount;
+      if (!lastUser && history.length) {
+        const last = history[history.length - 1];
+        if (last.role === 'user') messages[messages.length - 1] = last;
       }
+    } else if (userMessage) {
+      const assembled = await brain.assembleBrainMessages({
+        siteBase: siteBase,
+        includeCatalog: includeCatalog,
+        product: productPayload,
+        userMessage: userMessage
+      });
+      messages = assembled.messages;
+      catalogCount = assembled.catalogCount;
+    } else if (productPayload && !userMessage) {
+      const assembled = await brain.assembleBrainMessages({
+        siteBase: siteBase,
+        includeCatalog: includeCatalog,
+        product: productPayload,
+        userMessage: 'Descreva este produto para o cliente com preco e link corretos.'
+      });
+      messages = assembled.messages;
+      catalogCount = assembled.catalogCount;
+    } else {
+      res.status(400).json({
+        error: 'Envie user_message, messages ou n8n_product_blurb com product.',
+        exemplo_n8n: {
+          user_message: 'Qual o colchao mais barato?',
+          product: { id: 'uuid', name: 'Colchao X', base_price: 999 },
+          include_catalog: true,
+          site_base_url: 'https://confortacolchoes.vercel.app'
+        },
+        exemplo_site: {
+          messages: [
+            { role: 'user', content: 'Tem entrega em Serra?' }
+          ],
+          include_catalog: true
+        }
+      });
+      return;
     }
 
-    let temperature = 0.55;
-
-    if (blurbOn && productPayload && typeof productPayload === 'object' && !Array.isArray(productPayload)) {
-      temperature = 0.35;
-      const catalogHint =
-        typeof body.catalog_hint === 'string' ? body.catalog_hint.trim().slice(0, 12000) : '';
-      const sys =
-        'Voce e atendente da Conforta Colchoes, no mesmo tom do chat do site: natural, prestativo, portugues do Brasil.\n' +
-        'Tarefa: escrever UMA unica mensagem curta (no maximo cerca de 320 caracteres) para WhatsApp ou legenda de rede social sobre o produto em foco.\n' +
-        'Use apenas dados fornecidos; nao invente precos, garantias nem links que nao estiverem nos dados.\n' +
-        'Evite repetir a mesma palavra em sequencia (ex.: conforto conforto).\n' +
-        (catalogHint
-          ? 'Contexto opcional de outros produtos da loja (para alinhar tom, nao copie nomes aleatoriamente):\n' +
-            catalogHint +
-            '\n\n'
-          : '') +
-        'Produto em foco (JSON):\n' +
-        safeProductJson(productPayload);
-      const userMsg =
-        typeof body.instruction === 'string' && body.instruction.trim()
-          ? body.instruction.trim()
-          : 'Gere a mensagem promocional curta, convidativa, em um unico paragrafo, sem lista com tracos.';
-      messages = [
-        { role: 'system', content: sys },
-        { role: 'user', content: userMsg }
-      ];
-    } else {
-      messages = msgsRaw;
-      if (!Array.isArray(messages) || messages.length === 0) {
-        res.status(400).json({
-          error:
-            'Envie "messages" (array) ou "mensagens", ou use n8n_product_blurb: true com objeto "product" (ou "produto").',
-          exemplo_chat: {
-            messages: [
-              { role: 'system', content: 'Voce e o assistente da loja.' },
-              { role: 'user', content: 'Oi!' }
-            ]
-          },
-          exemplo_n8n_blurb: {
-            n8n_product_blurb: true,
-            product: { name: 'Colchao King', base_price: 3999, description: '...' }
-          },
-          exemplo_n8n_blurb_pt: {
-            n8n_product_blurb: true,
-            produto: { name: 'Colchao King', base_price: 3999 }
-          },
-          dica_precos:
-            'Para a IA acertar preco e descricao, envie no mesmo POST o objeto "product" (dados do produto vindos do Supabase ou do modulo anterior no Make), junto com "messages".'
-        });
-        return;
-      }
-      if (productPayload && typeof productPayload === 'object' && !Array.isArray(productPayload)) {
-        messages = injectProductContext(messages, productPayload);
-        temperature = 0.35;
-      }
+    if (!messages || messages.length < 2) {
+      res.status(400).json({ error: 'Nao foi possivel montar a conversa.', reply: null });
+      return;
     }
 
     const model = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
-
     const openaiRes = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: {
@@ -230,14 +244,16 @@ module.exports = async function handler(req, res) {
         Authorization: 'Bearer ' + apiKey
       },
       body: JSON.stringify({
-        model,
-        messages: messages.slice(0, 24),
-        max_tokens: 600,
+        model: model,
+        messages: messages.slice(0, 26),
+        max_tokens: 650,
         temperature: temperature
       })
     });
 
-    const data = await openaiRes.json().catch(function() { return {}; });
+    const data = await openaiRes.json().catch(function () {
+      return {};
+    });
 
     if (!openaiRes.ok) {
       const errMsg = data.error?.message || data.message || 'OpenAI request failed';
@@ -248,16 +264,20 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const reply = data.choices && data.choices[0] && data.choices[0].message
-      ? String(data.choices[0].message.content || '').trim()
-      : '';
+    const reply =
+      data.choices && data.choices[0] && data.choices[0].message
+        ? String(data.choices[0].message.content || '').trim()
+        : '';
 
     if (!reply) {
       res.status(502).json({ error: 'Empty response from model', reply: null });
       return;
     }
 
-    res.status(200).json({ reply });
+    res.status(200).json({
+      reply: reply,
+      catalog_products: catalogCount
+    });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Internal error', reply: null });
   }

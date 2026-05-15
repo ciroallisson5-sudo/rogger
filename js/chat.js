@@ -175,39 +175,16 @@ async function sendChatMessage() {
   showTypingIndicator();
 
   try {
-    const webhookUrl = await getSetting('n8n_webhook_url') || '';
     const products = await getProductContext();
     const sortedProducts = sortProductsByPrice(products);
     const pageProduct = getPageProductForChat();
 
     let response;
-    if (webhookUrl) {
-      const res = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          session_id: chatSessionId,
-          user_id: user?.id,
-          user_name: user?.user_metadata?.full_name,
-          product: pageProduct,
-          current_product: pageProduct,
-          products: sortedProducts.slice(0, 20),
-          context: {
-            store: 'Conforta',
-            page: window.location.pathname,
-            timestamp: new Date().toISOString()
-          }
-        })
-      });
-      response = await res.json();
+    var openAiReply = await tryOpenAiChat(message, pageProduct);
+    if (openAiReply) {
+      response = { reply: openAiReply };
     } else {
-      var openAiReply = await tryOpenAiChat(message, sortedProducts, pageProduct);
-      if (openAiReply) {
-        response = { reply: openAiReply };
-      } else {
-        response = { reply: getLocalResponse(message, sortedProducts) };
-      }
+      response = { reply: getLocalResponse(message, sortedProducts) };
     }
 
     removeTypingIndicator();
@@ -218,7 +195,7 @@ async function sendChatMessage() {
     } catch (e2) { /* silent */ }
     addChatMessage('assistant', reply);
 
-    if (!webhookUrl && window.__chatGptHistory) {
+    if (window.__chatGptHistory) {
       window.__chatGptHistory.push({ role: 'user', content: message });
       window.__chatGptHistory.push({ role: 'assistant', content: reply });
       if (window.__chatGptHistory.length > 16) {
@@ -331,7 +308,7 @@ function getPageProductForChat() {
   return null;
 }
 
-async function tryOpenAiChat(userMessage, sortedProducts, pageProduct) {
+async function tryOpenAiChat(userMessage, pageProduct) {
   try {
     var probe = await fetch('/api/openai-chat', { method: 'GET' }).catch(function() { return null; });
     if (!probe || !probe.ok) return null;
@@ -340,11 +317,12 @@ async function tryOpenAiChat(userMessage, sortedProducts, pageProduct) {
 
     if (!window.__chatGptHistory) window.__chatGptHistory = [];
 
-    var systemContent = buildCatalogSystemPrompt(sortedProducts);
     var hist = window.__chatGptHistory.slice(-12);
-    var messages = [{ role: 'system', content: systemContent }].concat(hist, [{ role: 'user', content: userMessage }]);
-
-    var postBody = { messages: messages };
+    var postBody = {
+      include_catalog: true,
+      site_base_url: window.location.origin || '',
+      messages: hist.concat([{ role: 'user', content: userMessage }])
+    };
     if (pageProduct && pageProduct.id) postBody.product = pageProduct;
 
     var res = await fetch('/api/openai-chat', {

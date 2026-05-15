@@ -22,10 +22,30 @@ function extractAsaasProxyMessage(result) {
 
 async function probeAsaasProxyUrl(url) {
   const r = await fetch(url, { method: 'GET' });
+  if (r.status === 404) return { ok: false, configured: false, notFound: true };
   const ct = r.headers.get('content-type') || '';
+  if (r.status === 401 && !ct.includes('application/json')) {
+    return { ok: false, configured: false, vercelAuth: true };
+  }
   if (!ct.includes('application/json')) return { ok: false, configured: false };
   const meta = await r.json().catch(function () { return {}; });
   return { ok: r.ok, configured: !!meta.configured };
+}
+
+function warnVercelPreviewAuth() {
+  var hint =
+    'Este link de preview da Vercel exige login (Deployment Protection) e bloqueia /api/*. Teste no dominio de producao (ex.: confortacolchoes.vercel.app) ou desative em Vercel → Settings → Deployment Protection.';
+  logPaymentDev(hint, null);
+  if (typeof showToast === 'function') showToast(hint, 'error');
+  if (typeof window !== 'undefined') window.__confortaAsaasApiHint = hint;
+}
+
+function warnAsaasProxyNotFound() {
+  var hint =
+    'Rota /api/asaas-proxy nao encontrada. Local: pare o servidor e rode "npm run dev" (nao use Live Server nem npm run dev:static). Producao: deploy na Vercel com a pasta api/ e ASAAS_API_KEY.';
+  logPaymentDev(hint, null);
+  if (typeof showToast === 'function') showToast(hint, 'error');
+  if (typeof window !== 'undefined') window.__confortaAsaasApiHint = hint;
 }
 
 /** Alinha com o proxy: sandbox | production (evita URL errada e 401 por ambiente). */
@@ -54,14 +74,20 @@ async function isAsaasProxyAvailable() {
   if (window.__asaasProxyAvailable !== undefined) return window.__asaasProxyAvailable;
   window.__asaasProxyUrl = ASAAS_PROXY_URLS[0];
   try {
+    var saw404 = false;
+    var sawVercelAuth = false;
     for (var i = 0; i < ASAAS_PROXY_URLS.length; i++) {
       var probe = await probeAsaasProxyUrl(ASAAS_PROXY_URLS[i]);
+      if (probe.notFound) saw404 = true;
+      if (probe.vercelAuth) sawVercelAuth = true;
       if (probe.ok) {
         window.__asaasProxyUrl = ASAAS_PROXY_URLS[i];
         window.__asaasProxyAvailable = probe.configured;
         return window.__asaasProxyAvailable;
       }
     }
+    if (sawVercelAuth) warnVercelPreviewAuth();
+    else if (saw404) warnAsaasProxyNotFound();
     window.__asaasProxyAvailable = false;
   } catch {
     window.__asaasProxyAvailable = false;
@@ -110,7 +136,11 @@ async function callAsaasProxy(endpoint, method, body) {
       });
       const ct = res.headers.get('content-type') || '';
       if (!ct.includes('application/json')) {
-        if (res.status === 404 && u < urls.length - 1) continue;
+        if (res.status === 404) {
+          if (u < urls.length - 1) continue;
+          warnAsaasProxyNotFound();
+          throw new Error('gateway');
+        }
         logPaymentDev('Resposta nao-JSON do proxy', ct);
         throw new Error('gateway');
       }
@@ -119,8 +149,12 @@ async function callAsaasProxy(endpoint, method, body) {
 
       if (!res.ok) {
         const msg = extractAsaasProxyMessage(result);
-        if (res.status === 404 && !Array.isArray(result.errors)) {
-          showToast('Servico de pagamento nao encontrado no servidor. Confira o deploy na Vercel (pasta api/).', 'error');
+        if (typeof window !== 'undefined') window.__asaasLastHttpStatus = res.status;
+        if (res.status === 404) {
+          showToast(
+            'Asaas nao encontrou o cliente ou a cobranca. Se voce mudou sandbox/producao no admin, tente de novo (o cadastro sera atualizado).',
+            'error'
+          );
         } else if (res.status === 401 || res.status === 403) {
           showToast(
             'Asaas recusou a chave. Na Vercel use ASAAS_API_KEY ou ASAAS_API_KEY_SANDBOX / ASAAS_API_KEY_PRODUCTION e o mesmo ambiente no admin.',
@@ -134,6 +168,7 @@ async function callAsaasProxy(endpoint, method, body) {
         throw new Error('HTTP ' + res.status + ': ' + msg);
       }
       window.__asaasProxyUrl = urls[u];
+      if (typeof window !== 'undefined') window.__asaasLastHttpStatus = 0;
       return result;
     } catch (e) {
       lastErr = e;
@@ -153,18 +188,27 @@ async function callAsaasProxy(endpoint, method, body) {
   return null;
 }
 
-async function createCustomer(userData) {
+async function clearAsaasCustomerCache(userId) {
+  const sb = getSupabase();
+  if (!sb || !userId) return;
+  await sb.from('asaas_customers').delete().eq('user_id', userId).catch(function () {});
+}
+
+async function createCustomer(userData, opts) {
+  opts = opts || {};
   try {
     const sb = getSupabase();
     if (!sb) throw new Error('Supabase not initialized');
 
-    const { data: existing } = await sb.from('asaas_customers')
-      .select('asaas_id')
-      .eq('user_id', userData.user_id)
-      .maybeSingle();
+    if (!opts.skipCache) {
+      const { data: existing } = await sb.from('asaas_customers')
+        .select('asaas_id')
+        .eq('user_id', userData.user_id)
+        .maybeSingle();
 
-    if (existing?.asaas_id) {
-      return { asaas_id: existing.asaas_id, cached: true };
+      if (existing?.asaas_id) {
+        return { asaas_id: existing.asaas_id, cached: true };
+      }
     }
 
     var doc = String(userData.document || '').replace(/\D/g, '');
@@ -207,16 +251,29 @@ async function createCustomer(userData) {
   }
 }
 
+async function resolveAsaasCustomerForPayment(customerData) {
+  var cust = await createCustomer(customerData) || {};
+  if (!cust.asaas_id) return cust;
+  if (typeof window !== 'undefined') window.__asaasLastHttpStatus = 0;
+  return cust;
+}
+
+async function retryCustomerAfterAsaas404(customerData, cust) {
+  if (!cust.cached || (typeof window !== 'undefined' && window.__asaasLastHttpStatus !== 404)) return null;
+  await clearAsaasCustomerCache(customerData.user_id);
+  return createCustomer(customerData, { skipCache: true });
+}
+
 async function processPixPayment(orderData) {
   try {
-    const { asaas_id } = await createCustomer(orderData.customer) || {};
-    if (!asaas_id) {
+    var cust = await resolveAsaasCustomerForPayment(orderData.customer);
+    if (!cust.asaas_id) {
       logPaymentDev('PIX: cliente Asaas nao disponivel', null);
       return null;
     }
 
-    const result = await callAsaasProxy('/payments', 'POST', {
-      customer: asaas_id,
+    var result = await callAsaasProxy('/payments', 'POST', {
+      customer: cust.asaas_id,
       billingType: 'PIX',
       value: orderData.total,
       dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -224,6 +281,22 @@ async function processPixPayment(orderData) {
       externalReference: orderData.orderId,
       postalService: false
     });
+
+    if (!result) {
+      var retryCust = await retryCustomerAfterAsaas404(orderData.customer, cust);
+      if (retryCust && retryCust.asaas_id) {
+        cust = retryCust;
+        result = await callAsaasProxy('/payments', 'POST', {
+          customer: cust.asaas_id,
+          billingType: 'PIX',
+          value: orderData.total,
+          dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          description: 'Pedido ' + orderData.orderNumber,
+          externalReference: orderData.orderId,
+          postalService: false
+        });
+      }
+    }
 
     if (!result || !result.id) throw new Error('Falha ao gerar PIX');
 
@@ -257,14 +330,14 @@ async function processPixPayment(orderData) {
 
 async function processCreditCardPayment(orderData) {
   try {
-    const { asaas_id } = await createCustomer(orderData.customer) || {};
-    if (!asaas_id) {
+    var cust = await resolveAsaasCustomerForPayment(orderData.customer);
+    if (!cust.asaas_id) {
       logPaymentDev('Cartao: cliente Asaas nao disponivel', null);
       return null;
     }
 
-    const result = await callAsaasProxy('/payments', 'POST', {
-      customer: asaas_id,
+    var result = await callAsaasProxy('/payments', 'POST', {
+      customer: cust.asaas_id,
       billingType: 'CREDIT_CARD',
       value: orderData.total,
       dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -281,6 +354,31 @@ async function processCreditCardPayment(orderData) {
       },
       creditCardToken: orderData.cardToken || null
     });
+
+    if (!result) {
+      var retryCustCard = await retryCustomerAfterAsaas404(orderData.customer, cust);
+      if (retryCustCard && retryCustCard.asaas_id) {
+        cust = retryCustCard;
+        result = await callAsaasProxy('/payments', 'POST', {
+          customer: cust.asaas_id,
+          billingType: 'CREDIT_CARD',
+          value: orderData.total,
+          dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          description: 'Pedido ' + orderData.orderNumber,
+          externalReference: orderData.orderId,
+          creditCard: orderData.card,
+          creditCardHolderInfo: {
+            name: orderData.customer.name,
+            email: orderData.customer.email,
+            cpfCnpj: orderData.customer.document,
+            postalCode: orderData.customer.zipcode,
+            addressNumber: orderData.customer.number,
+            phone: orderData.customer.phone
+          },
+          creditCardToken: orderData.cardToken || null
+        });
+      }
+    }
 
     if (!result || !result.id) throw new Error('Falha no cartao de credito');
 
@@ -308,14 +406,14 @@ async function processCreditCardPayment(orderData) {
 
 async function processBoletoPayment(orderData) {
   try {
-    const { asaas_id } = await createCustomer(orderData.customer) || {};
-    if (!asaas_id) {
+    var custBoleto = await resolveAsaasCustomerForPayment(orderData.customer);
+    if (!custBoleto.asaas_id) {
       logPaymentDev('Boleto: cliente Asaas nao disponivel', null);
       return null;
     }
 
-    const result = await callAsaasProxy('/payments', 'POST', {
-      customer: asaas_id,
+    var resultBoleto = await callAsaasProxy('/payments', 'POST', {
+      customer: custBoleto.asaas_id,
       billingType: 'BOLETO',
       value: orderData.total,
       dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -324,7 +422,24 @@ async function processBoletoPayment(orderData) {
       postalService: false
     });
 
-    if (!result || !result.id) throw new Error('Falha ao criar boleto');
+    if (!resultBoleto) {
+      var retryCustBoleto = await retryCustomerAfterAsaas404(orderData.customer, custBoleto);
+      if (retryCustBoleto && retryCustBoleto.asaas_id) {
+        custBoleto = retryCustBoleto;
+        resultBoleto = await callAsaasProxy('/payments', 'POST', {
+          customer: custBoleto.asaas_id,
+          billingType: 'BOLETO',
+          value: orderData.total,
+          dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          description: 'Pedido ' + orderData.orderNumber,
+          externalReference: orderData.orderId,
+          postalService: false
+        });
+      }
+    }
+
+    if (!resultBoleto || !resultBoleto.id) throw new Error('Falha ao criar boleto');
+    var result = resultBoleto;
 
     await supabaseInsert('payments', {
       order_id: orderData.orderId,
