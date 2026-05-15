@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
-  <title>Simulação 3D - Conforta Colchões</title>
+  <title>Monte seu quarto 3D - Conforta Colchões</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,264 +13,523 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
-    :root { --sim-ink: #0f172a; --sim-muted: #64748b; --sim-line: #e2e8f0; --sim-brand: #1a56db; --sim-soft: #eff6ff; }
+    :root {
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --brand: #1a56db;
+      --soft: #eff6ff;
+      --card: #ffffff;
+      --radius: 18px;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; color: var(--sim-ink); min-height: 100vh; }
-    .sim-header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #0f172a; color: #fff; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(180deg, #f1f5f9 0%, #e8eef6 100%); color: var(--ink); min-height: 100vh; }
+    .sim-header {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 18px; background: linear-gradient(135deg, #0f172a, #0f3a8e 55%, #1a56db);
+      color: #fff; box-shadow: 0 8px 28px rgba(15, 23, 42, 0.18);
+    }
     .sim-header a { color: #dbeafe; font-weight: 700; font-size: 0.88rem; }
     .sim-header a:hover { text-decoration: underline; }
-    .sim-header h1 { margin: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: -0.02em; }
-    .sim-wrap { max-width: 960px; margin: 0 auto; padding: 16px 16px 40px; }
-    .sim-stage { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--sim-line); background: #0f172a; aspect-ratio: 1 / 0.88; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12); }
-    .sim-stage model-viewer { width: 100%; height: 100%; min-height: 280px; display: block; touch-action: none; --poster-color: transparent; }
-    .sim-stage model-viewer::part(default-ar-button) { border-radius: 12px; }
-    .sim-panel { margin-top: 14px; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--sim-line); background: #fff; }
-    .sim-panel strong { display: block; font-size: 0.9rem; font-weight: 800; }
-    .sim-panel p { margin: 8px 0 0; font-size: 0.82rem; color: var(--sim-muted); line-height: 1.45; }
-    .sim-panel em { font-style: normal; font-weight: 800; color: var(--sim-brand); }
-    .sim-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .sim-chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--sim-line); background: #fff; font-size: 0.8rem; font-weight: 800; color: #475569; cursor: pointer; font-family: inherit; transition: border-color 0.15s, background 0.15s; }
-    .sim-chip:hover { border-color: #94a3b8; }
-    .sim-chip.active { border-color: var(--sim-brand); background: var(--sim-soft); color: #0f3a8e; }
-    .sim-loading, .sim-error { text-align: center; padding: 48px 20px; color: var(--sim-muted); font-weight: 600; }
+    .sim-header h1 { margin: 0; font-size: 0.98rem; font-weight: 800; letter-spacing: -0.03em; max-width: 52vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sim-wrap { max-width: 1240px; margin: 0 auto; padding: 18px 16px 48px; }
+    .sim-root { display: block; }
+    .sim-tab-bar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+    .sim-tab {
+      flex: 1; min-width: 160px; cursor: pointer; border: none; font-family: inherit;
+      padding: 12px 16px; border-radius: 14px; font-weight: 800; font-size: 0.82rem;
+      background: #e2e8f0; color: #475569; transition: background 0.15s, color 0.15s, transform 0.15s;
+    }
+    .sim-tab:hover { transform: translateY(-1px); background: #cbd5e1; }
+    .sim-tab.active { background: #fff; color: #0f3a8e; box-shadow: 0 8px 24px rgba(26, 86, 219, 0.18); border: 2px solid var(--brand); }
+    .sim-panel { margin-bottom: 8px; }
+    .sim-stage-mv {
+      position: relative; border-radius: 22px; overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: #0f172a;
+      aspect-ratio: 1 / 0.82; min-height: 340px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.14);
+    }
+    .sim-stage-mv model-viewer { width: 100%; height: 100%; min-height: 340px; display: block; touch-action: none; --poster-color: transparent; }
+    .sim-stage-mv model-viewer::part(default-ar-button) { border-radius: 12px; }
+    .sim-layout { display: grid; grid-template-columns: 1fr minmax(300px, 360px); gap: 22px; align-items: start; }
+    @media (max-width: 960px) { .sim-layout { grid-template-columns: 1fr; } }
+    .sim-stage {
+      position: relative; border-radius: 22px; overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: #0f172a;
+      aspect-ratio: 1 / 0.82; min-height: 320px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(255,255,255,0.06) inset;
+    }
+    .sim-hint { margin: 10px 4px 0; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-align: center; line-height: 1.45; }
+    .sim-sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .sim-card {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 16px 16px 14px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+    .sim-card h2 { margin: 0 0 12px; font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #475569; }
+    .sim-row { margin-bottom: 12px; }
+    .sim-row:last-child { margin-bottom: 0; }
+    .sim-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; font-size: 0.8rem; font-weight: 700; color: #334155; }
+    .sim-val { font-variant-numeric: tabular-nums; color: var(--brand); font-weight: 800; font-size: 0.78rem; }
+    input[type="range"] { width: 100%; accent-color: var(--brand); }
+    .sim-floor-pick { display: flex; gap: 8px; flex-wrap: wrap; }
+    .sim-floor-pick label {
+      flex: 1; min-width: 120px; cursor: pointer; text-align: center; padding: 10px 12px; border-radius: 12px;
+      border: 2px solid var(--line); font-weight: 800; font-size: 0.8rem; color: #475569; transition: border-color 0.15s, background 0.15s;
+      display: block; position: relative;
+    }
+    .sim-floor-pick input {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0, 0, 0, 0); border: 0; white-space: nowrap;
+    }
+    .sim-floor-pick label.is-on { border-color: var(--brand); background: var(--soft); color: #0f3a8e; }
+    .sim-floor-pick label span { display: block; }
+    .sim-floor-pick input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
+    .sim-note { font-size: 0.76rem; color: var(--muted); line-height: 1.45; margin-top: 10px; }
+    .sim-extra-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+    .sim-extra-btns button {
+      flex: 1; min-width: 100px; padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--line);
+      background: #fff; font-weight: 800; font-size: 0.76rem; color: #334155; cursor: pointer; font-family: inherit;
+    }
+    .sim-extra-btns button:hover { border-color: var(--brand); color: var(--brand); }
+    .sim-extra-list { list-style: none; margin: 10px 0 0; padding: 0; font-size: 0.8rem; }
+    .sim-extra-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .sim-extra-list li:last-child { border-bottom: none; }
+    .sim-extra-list button { padding: 4px 10px; border-radius: 8px; border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; font-weight: 800; font-size: 0.72rem; cursor: pointer; font-family: inherit; }
+    .sim-loading, .sim-error { text-align: center; padding: 52px 20px; font-weight: 600; }
     .sim-error { color: #b91c1c; }
-    .sim-error a { color: var(--sim-brand); font-weight: 800; }
+    .sim-error a { color: var(--brand); font-weight: 800; }
   </style>
 </head>
 <body>
   <header class="sim-header">
     <a id="simBackLink" href="produtos.html">← Voltar</a>
-    <h1 id="simTitle">Simulação 3D</h1>
-    <span style="width:72px"></span>
+    <h1 id="simTitle">Monte seu quarto 3D</h1>
+    <span style="width:64px"></span>
   </header>
   <main class="sim-wrap">
-    <div id="simLoading" class="sim-loading">Carregando modelo…</div>
+    <div id="simLoading" class="sim-loading">Carregando…</div>
     <div id="simError" class="sim-error" style="display:none"></div>
-    <div id="simViewerRoot" style="display:none">
-      <div class="sim-stage">
-        <model-viewer id="simModelViewer" touch-action="none" ar ar-modes="webxr scene-viewer quick-look" camera-controls
-          loading="eager" shadow-intensity="1.2" exposure="1.08"
-          style="width:100%;height:100%;touch-action:none"></model-viewer>
+    <div id="simRoot" style="display:none" class="sim-root">
+      <div class="sim-tab-bar" role="tablist" aria-label="Modo de visualização">
+        <button type="button" class="sim-tab active" role="tab" aria-selected="true" data-panel="hd">Quarto HD — colchão no centro</button>
+        <button type="button" class="sim-tab" role="tab" aria-selected="false" data-panel="edit">Montar quarto — andar e mover móveis</button>
       </div>
-      <div class="sim-panel">
-        <strong>Ambiente da simulação</strong>
-        <p>Quarto em 360° (iluminação realista). No celular, use <em>Ver na sua área</em> para ver no seu espaço (AR).</p>
-        <div class="sim-chips" role="group" aria-label="Cenário 3D">
-          <button type="button" class="sim-chip active" data-scene="bedroom">Quarto</button>
-          <button type="button" class="sim-chip" data-scene="studio">Estúdio</button>
+
+      <div id="panelHd" class="sim-panel sim-panel-hd">
+        <div class="sim-stage-mv" id="mvHost">
+          <model-viewer
+            id="mvShowcase"
+            touch-action="none"
+            camera-controls
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            loading="eager"
+            shadow-intensity="1.2"
+            exposure="1.06"
+            style="width:100%;height:100%;touch-action:none"
+          ></model-viewer>
+        </div>
+        <p class="sim-hint">Ambiente fotográfico 360° (HDRI). Gire o colchão com o mouse. No celular: <strong>Ver na sua área</strong> (AR).</p>
+      </div>
+
+      <div id="panelEdit" class="sim-panel sim-panel-edit" style="display:none">
+        <div class="sim-layout">
+          <div class="sim-stage-wrap">
+            <div id="simCanvasHost" class="sim-stage" aria-label="Editor 3D do quarto"></div>
+            <p class="sim-hint">Modo <strong>Orbitar</strong>: arraste na cena. <strong>Andar</strong>: clique na cena, WASD + mouse; ESC solta o mouse. <strong>Mover móveis</strong>: arraste o guarda-roupa, a mesa ou os extras no piso.</p>
+          </div>
+          <aside class="sim-sidebar" id="simSidebar">
+            <div class="sim-card">
+              <h2>Câmera</h2>
+              <div class="sim-floor-pick" role="radiogroup" aria-label="Modo de câmera">
+                <label><input type="radio" name="camMode" value="orbit" checked><span>Orbitar</span></label>
+                <label><input type="radio" name="camMode" value="walk"><span>Andar (WASD)</span></label>
+              </div>
+              <p class="sim-note">No modo andar use Shift para correr. Arrastar móveis só funciona em Orbitar.</p>
+            </div>
+            <div class="sim-card">
+              <h2>Extras no quarto</h2>
+              <div class="sim-extra-btns">
+                <button type="button" id="btnAddCriado">+ Criado-mudo</button>
+                <button type="button" id="btnAddPuff">+ Puff</button>
+                <button type="button" id="btnAddEstante">+ Estante</button>
+              </div>
+              <ul class="sim-extra-list" id="extraList"></ul>
+            </div>
+            <div class="sim-card">
+              <h2>Piso</h2>
+              <div class="sim-floor-pick" role="radiogroup" aria-label="Tipo de piso">
+                <label><input type="radio" name="floorMat" value="wood" checked><span>Madeira</span></label>
+                <label><input type="radio" name="floorMat" value="pvc"><span>PVC</span></label>
+              </div>
+            </div>
+            <div class="sim-card">
+              <h2>Tamanho do quarto (m)</h2>
+              <div class="sim-row">
+                <div class="sim-label"><span>Largura</span><span class="sim-val" id="vW">4.80 m</span></div>
+                <input type="range" id="rngW" min="2.5" max="10" step="0.1" value="4.8">
+              </div>
+              <div class="sim-row">
+                <div class="sim-label"><span>Comprimento</span><span class="sim-val" id="vD">4.80 m</span></div>
+                <input type="range" id="rngD" min="2.5" max="10" step="0.1" value="4.8">
+              </div>
+              <div class="sim-row">
+                <div class="sim-label"><span>Pé-direito</span><span class="sim-val" id="vH">2.75 m</span></div>
+                <input type="range" id="rngH" min="2.2" max="3.2" step="0.05" value="2.75">
+              </div>
+            </div>
+            <div class="sim-card">
+              <h2>Guarda-roupa (m)</h2>
+              <div class="sim-row">
+                <div class="sim-label"><span>Largura</span><span class="sim-val" id="vWW">1.85 m</span></div>
+                <input type="range" id="rngWW" min="0.9" max="3" step="0.05" value="1.85">
+              </div>
+              <div class="sim-row">
+                <div class="sim-label"><span>Profundidade</span><span class="sim-val" id="vWD">0.62 m</span></div>
+                <input type="range" id="rngWD" min="0.45" max="1.1" step="0.02" value="0.62">
+              </div>
+              <div class="sim-row">
+                <div class="sim-label"><span>Altura</span><span class="sim-val" id="vWH">2.15 m</span></div>
+                <input type="range" id="rngWH" min="1.5" max="2.6" step="0.05" value="2.15">
+              </div>
+            </div>
+            <div class="sim-card">
+              <h2>Escrivaninha (m)</h2>
+              <div class="sim-row">
+                <div class="sim-label"><span>Largura tampo</span><span class="sim-val" id="vDW">1.28 m</span></div>
+                <input type="range" id="rngDW" min="0.75" max="2.2" step="0.05" value="1.28">
+              </div>
+              <div class="sim-row">
+                <div class="sim-label"><span>Profundidade</span><span class="sim-val" id="vDD">0.62 m</span></div>
+                <input type="range" id="rngDD" min="0.45" max="1" step="0.02" value="0.62">
+              </div>
+              <div class="sim-row">
+                <div class="sim-label"><span>Altura</span><span class="sim-val" id="vDH">0.78 m</span></div>
+                <input type="range" id="rngDH" min="0.66" max="1.05" step="0.02" value="0.78">
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
   </main>
 
   <script src="js/supabase-config.js"></script>
-  <script>
-    (function() {
-      'use strict';
+  <script type="module">
+    import { mountRoomSimulator } from './js/room-simulator.js';
 
-      var BEDROOM_HDR = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/hotel_room_1k.hdr';
+    const HDR_URL = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/hotel_room_1k.hdr';
+    const EXTRA_LABELS = { criado: 'Criado-mudo', puff: 'Puff', estante: 'Estante' };
 
-      function escHtml(value) {
-        if (value === null || value === undefined) return '';
-        return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    function escHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    function absolutizeMediaUrl(u) {
+      if (u == null || u === '') return '';
+      const s = String(u).trim();
+      if (!s) return '';
+      if (/^https?:\/\//i.test(s)) return s;
+      try {
+        return new URL(s, window.location.href).href;
+      } catch {
+        return s;
       }
+    }
 
-      function absolutizeMediaUrl(u) {
-        if (u == null || u === '') return '';
-        var s = String(u).trim();
-        if (!s) return '';
-        if (/^https?:\/\//i.test(s)) return s;
+    function getParams() {
+      const q = new URLSearchParams(window.location.search || '');
+      let id = (q.get('id') || q.get('produto') || '').trim();
+      let photo = (q.get('photo') || '').trim();
+      if (id) {
         try {
-          return new URL(s, window.location.href).href;
-        } catch (_) {
-          return s;
-        }
+          id = decodeURIComponent(id);
+        } catch { /* ignore */ }
       }
-
-      function getParams() {
-        var q = new URLSearchParams(window.location.search || '');
-        var id = (q.get('id') || q.get('produto') || '').trim();
-        var photo = (q.get('photo') || '').trim();
-        if (id) {
-          try {
-            id = decodeURIComponent(id);
-          } catch (_) { /* ignore */ }
-        }
-        if (photo) {
-          try {
-            photo = decodeURIComponent(photo);
-          } catch (_) { /* ignore */ }
-        }
-        return { id: id, photoId: photo };
+      if (photo) {
+        try {
+          photo = decodeURIComponent(photo);
+        } catch { /* ignore */ }
       }
+      return { id, photoId: photo };
+    }
 
-      function resolveSupabaseDefaultModelGlb(product) {
-        if (!product || !product.id) return '';
-        var base = '';
-        if (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG && SUPABASE_CONFIG.url) {
-          base = String(SUPABASE_CONFIG.url).replace(/\/$/, '');
-        }
-        if (!base) return '';
-        return base + '/storage/v1/object/public/modelos-3d/' + encodeURIComponent(String(product.id)) + '.glb';
+    function resolveSupabaseDefaultModelGlb(product) {
+      if (!product || !product.id) return '';
+      let base = '';
+      if (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG && SUPABASE_CONFIG.url) {
+        base = String(SUPABASE_CONFIG.url).replace(/\/$/, '');
       }
+      if (!base) return '';
+      return base + '/storage/v1/object/public/modelos-3d/' + encodeURIComponent(String(product.id)) + '.glb';
+    }
 
-      function resolveModelGlbSrc(config, product) {
-        if (!config || !product) return '';
-        var direct = (config.model_glb_url || '').trim();
-        if (direct) return absolutizeMediaUrl(direct);
-        var sup = resolveSupabaseDefaultModelGlb(product);
-        if (sup) return absolutizeMediaUrl(sup);
-        var slug = String(product.slug || 'produto').replace(/[^a-z0-9-_]/gi, '_').toLowerCase().replace(/_+/g, '_').replace(/^_|_$/g, '') || 'produto';
-        var id = String(config.id || '').replace(/-/g, '');
-        var shortId = id.slice(0, 12);
-        if (!shortId) return '';
-        return absolutizeMediaUrl('assets/models/' + slug + '-' + shortId + '.glb');
-      }
+    function resolveModelGlbSrc(config, product) {
+      if (!config || !product) return '';
+      const direct = (config.model_glb_url || '').trim();
+      if (direct) return absolutizeMediaUrl(direct);
+      const sup = resolveSupabaseDefaultModelGlb(product);
+      if (sup) return absolutizeMediaUrl(sup);
+      const slug = String(product.slug || 'produto')
+        .replace(/[^a-z0-9-_]/gi, '_')
+        .toLowerCase()
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '') || 'produto';
+      const id = String(config.id || '').replace(/-/g, '');
+      const shortId = id.slice(0, 12);
+      if (!shortId) return '';
+      return absolutizeMediaUrl('assets/models/' + slug + '-' + shortId + '.glb');
+    }
 
-      function resolveModelUsdzSrc(config) {
-        if (!config) return '';
-        var direct = (config.model_usdz_url || '').trim();
-        if (!direct) return '';
-        return absolutizeMediaUrl(direct);
-      }
+    function buildPhotoMap(list) {
+      const map = {};
+      (list || []).forEach((p) => {
+        map[p.id] = p;
+      });
+      return map;
+    }
 
-      function buildPhotoMap(list) {
-        var map = {};
-        (list || []).forEach(function(p) {
-          map[p.id] = p;
+    function getPhotoConfig(photo, map) {
+      if (!photo) return null;
+      if (photo.same_as_photo_id && map[photo.same_as_photo_id]) return getPhotoConfig(map[photo.same_as_photo_id], map);
+      return photo;
+    }
+
+    function showError(html) {
+      document.getElementById('simLoading').style.display = 'none';
+      const el = document.getElementById('simError');
+      el.style.display = 'block';
+      el.innerHTML = html;
+      document.getElementById('simRoot').style.display = 'none';
+    }
+
+    function refreshExtraList(api) {
+      const ul = document.getElementById('extraList');
+      if (!ul) return;
+      ul.innerHTML = '';
+      (api.state.extras || []).forEach((ex) => {
+        const li = document.createElement('li');
+        const name = EXTRA_LABELS[ex.kind] || ex.kind;
+        li.appendChild(document.createTextNode(name + ' '));
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.textContent = 'Remover';
+        rm.addEventListener('click', () => {
+          api.removeExtra(ex.id);
+          refreshExtraList(api);
         });
-        return map;
-      }
+        li.appendChild(rm);
+        ul.appendChild(li);
+      });
+    }
 
-      function getPhotoConfig(photo, map) {
-        if (!photo) return null;
-        if (photo.same_as_photo_id && map[photo.same_as_photo_id]) return getPhotoConfig(map[photo.same_as_photo_id], map);
-        return photo;
-      }
-
-      function applyScene(mv, scene) {
-        if (!mv) return;
-        if (scene === 'studio') {
-          mv.setAttribute('environment-image', 'neutral');
-          mv.removeAttribute('skybox-image');
-          mv.setAttribute('exposure', '1');
-          mv.setAttribute('shadow-intensity', '1');
-        } else {
-          mv.setAttribute('environment-image', BEDROOM_HDR);
-          mv.setAttribute('skybox-image', BEDROOM_HDR);
-          mv.setAttribute('exposure', '1.08');
-          mv.setAttribute('shadow-intensity', '1.2');
-        }
-      }
-
-      function bindChips(mv) {
-        document.querySelectorAll('.sim-chip').forEach(function(chip) {
-          chip.addEventListener('click', function() {
-            document.querySelectorAll('.sim-chip').forEach(function(c) {
-              c.classList.remove('active');
-            });
-            chip.classList.add('active');
-            applyScene(mv, chip.getAttribute('data-scene') || 'bedroom');
+    function wireEditorControls(api) {
+      document.querySelectorAll('input[name="floorMat"]').forEach((inp) => {
+        const lab = inp.closest('label');
+        if (inp.checked && lab) lab.classList.add('is-on');
+        inp.addEventListener('change', () => {
+          document.querySelectorAll('input[name="floorMat"]').forEach((i) => {
+            const L = i.closest('label');
+            if (L) L.classList.toggle('is-on', i.checked);
           });
+          api.setFloor(inp.value);
         });
+      });
+
+      document.querySelectorAll('input[name="camMode"]').forEach((inp) => {
+        const lab = inp.closest('label');
+        if (inp.checked && lab) lab.classList.add('is-on');
+        inp.addEventListener('change', () => {
+          document.querySelectorAll('input[name="camMode"]').forEach((i) => {
+            const L = i.closest('label');
+            if (L) L.classList.toggle('is-on', i.checked);
+          });
+          api.setCameraMode(inp.value);
+        });
+      });
+
+      function bindRng(id, dispId, apply) {
+        const el = document.getElementById(id);
+        const disp = document.getElementById(dispId);
+        if (!el || !disp) return;
+        const tick = () => {
+          const v = parseFloat(el.value);
+          disp.textContent = v.toFixed(2) + ' m';
+          apply(v);
+        };
+        el.addEventListener('input', tick);
+        tick();
       }
 
-      function showError(html) {
-        document.getElementById('simLoading').style.display = 'none';
-        var el = document.getElementById('simError');
-        el.style.display = 'block';
-        el.innerHTML = html;
-        document.getElementById('simViewerRoot').style.display = 'none';
+      bindRng('rngW', 'vW', (v) => api.setRoom(v, null, null));
+      bindRng('rngD', 'vD', (v) => api.setRoom(null, v, null));
+      bindRng('rngH', 'vH', (v) => api.setRoom(null, null, v));
+      bindRng('rngWW', 'vWW', (v) => api.setWardrobe(v, null, null));
+      bindRng('rngWD', 'vWD', (v) => api.setWardrobe(null, v, null));
+      bindRng('rngWH', 'vWH', (v) => api.setWardrobe(null, null, v));
+      bindRng('rngDW', 'vDW', (v) => api.setDesk(v, null, null));
+      bindRng('rngDD', 'vDD', (v) => api.setDesk(null, v, null));
+      bindRng('rngDH', 'vDH', (v) => api.setDesk(null, null, v));
+
+      const bindAdd = (id, kind) => {
+        const b = document.getElementById(id);
+        if (b) {
+          b.addEventListener('click', () => {
+            api.addExtra(kind);
+            refreshExtraList(api);
+          });
+        }
+      };
+      bindAdd('btnAddCriado', 'criado');
+      bindAdd('btnAddPuff', 'puff');
+      bindAdd('btnAddEstante', 'estante');
+
+      refreshExtraList(api);
+    }
+
+    function setupHdViewer(mv, glbUrl, posterUrl, altText) {
+      mv.setAttribute('src', glbUrl);
+      mv.setAttribute('environment-image', HDR_URL);
+      mv.setAttribute('skybox-image', HDR_URL);
+      mv.setAttribute('alt', altText || 'Produto');
+      if (posterUrl) mv.setAttribute('poster', posterUrl);
+      else mv.removeAttribute('poster');
+      mv.addEventListener(
+        'error',
+        function onMvErr() {
+          mv.removeEventListener('error', onMvErr);
+          const wrap = document.getElementById('mvHost');
+          if (!wrap || wrap.querySelector('.mv-err-banner')) return;
+          const bar = document.createElement('div');
+          bar.className = 'mv-err-banner';
+          bar.style.cssText =
+            'position:absolute;inset:auto 12px 12px 12px;padding:12px 14px;border-radius:12px;background:rgba(15,23,42,0.92);color:#e2e8f0;font-size:0.82rem;font-weight:600;text-align:center;z-index:3';
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = 'Abrir modo Montar';
+          btn.style.cssText =
+            'margin-left:10px;padding:8px 12px;border-radius:10px;border:none;background:#1a56db;color:#fff;font-weight:800;cursor:pointer;font-family:inherit';
+          btn.addEventListener('click', () => {
+            document.querySelector('.sim-tab[data-panel="edit"]')?.click();
+          });
+          bar.appendChild(document.createTextNode('Não carregou no modo HD. '));
+          bar.appendChild(btn);
+          wrap.style.position = 'relative';
+          wrap.appendChild(bar);
+        },
+        { once: true }
+      );
+    }
+
+    async function run() {
+      const params = getParams();
+      if (!params.id) {
+        showError('Produto não informado. <a href="produtos.html">Ir para a vitrine</a>');
+        return;
       }
 
-      async function run() {
-        var params = getParams();
-        if (!params.id) {
-          showError('Produto não informado. <a href="produtos.html">Ir para a vitrine</a>');
+      try {
+        if (typeof initSupabase === 'function') initSupabase();
+        const sb = typeof getSupabase === 'function' ? getSupabase() : null;
+        if (!sb) throw new Error('Supabase indisponível');
+
+        const prodResp = await sb.from('products').select('*, product_photos(*)').eq('id', params.id).maybeSingle();
+        if (prodResp.error) throw prodResp.error;
+        if (!prodResp.data) throw new Error('Produto não encontrado');
+
+        const product = prodResp.data;
+        const photos = (product.product_photos || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        const map = buildPhotoMap(photos);
+        let photo = null;
+        if (params.photoId && map[params.photoId]) photo = map[params.photoId];
+        else if (photos[0]) photo = photos[0];
+
+        const config = getPhotoConfig(photo, map);
+        if (config && config.is_video) {
+          showError(
+            'Esta mídia é um vídeo. <a href="produto.html?id=' + encodeURIComponent(params.id) + '">Voltar ao produto</a>'
+          );
           return;
         }
 
-        try {
-          if (typeof initSupabase === 'function') initSupabase();
-          var sb = typeof getSupabase === 'function' ? getSupabase() : null;
-          if (!sb) throw new Error('Supabase indisponível');
-
-          var prodResp = await sb.from('products').select('*, product_photos(*)').eq('id', params.id).maybeSingle();
-          if (prodResp.error) throw prodResp.error;
-          if (!prodResp.data) throw new Error('Produto não encontrado');
-
-          var product = prodResp.data;
-          var photos = (product.product_photos || []).slice().sort(function(a, b) {
-            return (a.sort_order || 0) - (b.sort_order || 0);
-          });
-          var map = buildPhotoMap(photos);
-          var photo = null;
-          if (params.photoId && map[params.photoId]) photo = map[params.photoId];
-          else if (photos[0]) photo = photos[0];
-
-          var config = getPhotoConfig(photo, map);
-          if (config && config.is_video) {
-            showError(
-              'Esta mídia é um vídeo. Abra outra foto do produto e tente de novo. <a href="produto.html?id=' +
-                encodeURIComponent(params.id) +
-                '">Voltar ao produto</a>'
-            );
-            return;
-          }
-
-          var glb = resolveModelGlbSrc(config, product);
-          if (!glb) {
-            showError(
-              'Não há modelo 3D para esta variação. <a href="produto.html?id=' +
-                encodeURIComponent(params.id) +
-                '">Voltar ao produto</a>'
-            );
-            return;
-          }
-
-          var poster = config && (config.url || '').trim() ? absolutizeMediaUrl(config.url) : '';
-          var usdz = resolveModelUsdzSrc(config);
-          var alt = [product.name, config && config.color_name, config && config.size].filter(Boolean).join(' — ') || 'Produto';
-
-          var back = document.getElementById('simBackLink');
-          back.href = 'produto.html?id=' + encodeURIComponent(params.id) + (params.photoId ? '&photo=' + encodeURIComponent(params.photoId) : '');
-
-          var title = document.getElementById('simTitle');
-          title.textContent = '3D — ' + (product.name || 'Produto');
-
-          document.getElementById('simLoading').style.display = 'none';
-          document.getElementById('simError').style.display = 'none';
-          document.getElementById('simViewerRoot').style.display = 'block';
-
-          var mv = document.getElementById('simModelViewer');
-          if (poster) mv.setAttribute('poster', poster);
-          else mv.removeAttribute('poster');
-          if (usdz) mv.setAttribute('ios-src', usdz);
-          else mv.removeAttribute('ios-src');
-          mv.setAttribute('alt', alt);
-          mv.setAttribute('src', glb);
-          applyScene(mv, 'bedroom');
-          bindChips(mv);
-
-          mv.addEventListener(
-            'error',
-            function once() {
-              mv.removeEventListener('error', once);
-              showError(
-                'Não foi possível carregar o modelo 3D (arquivo ausente ou link inválido). <a href="produto.html?id=' +
-                  encodeURIComponent(params.id) +
-                  '">Voltar ao produto</a>'
-              );
-            },
-            { once: true }
+        const glb = resolveModelGlbSrc(config, product);
+        if (!glb) {
+          showError(
+            'Não há modelo 3D para esta variação. <a href="produto.html?id=' + encodeURIComponent(params.id) + '">Voltar ao produto</a>'
           );
-        } catch (e) {
-          showError((e && e.message) || 'Erro ao carregar. <a href="produtos.html">Vitrine</a>');
+          return;
         }
-      }
 
-      document.addEventListener('DOMContentLoaded', run);
-    })();
+        const posterUrl = config && (config.url || '').trim() ? absolutizeMediaUrl(config.url) : '';
+        const altText = [product.name, config && config.color_name, config && config.size].filter(Boolean).join(' — ') || 'Produto';
+
+        document.getElementById('simBackLink').href =
+          'produto.html?id=' + encodeURIComponent(params.id) + (params.photoId ? '&photo=' + encodeURIComponent(params.photoId) : '');
+        document.getElementById('simTitle').textContent = 'Quarto 3D — ' + (product.name || 'Produto');
+
+        document.getElementById('simLoading').style.display = 'none';
+        document.getElementById('simError').style.display = 'none';
+        document.getElementById('simRoot').style.display = 'block';
+
+        const mv = document.getElementById('mvShowcase');
+        setupHdViewer(mv, glb, posterUrl, altText);
+
+        let roomApi = null;
+        function mountEditorOnce() {
+          if (roomApi) return roomApi;
+          const host = document.getElementById('simCanvasHost');
+          roomApi = mountRoomSimulator(host, {
+            glbUrl: glb,
+            onError: () => {
+              showError(
+                'Não foi possível carregar o modelo no editor. <a href="produto.html?id=' + encodeURIComponent(params.id) + '">Voltar ao produto</a>'
+              );
+            }
+          });
+          wireEditorControls(roomApi);
+          return roomApi;
+        }
+
+        document.querySelectorAll('.sim-tab').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const panel = btn.getAttribute('data-panel');
+            document.querySelectorAll('.sim-tab').forEach((b) => {
+              const on = b === btn;
+              b.classList.toggle('active', on);
+              b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            const hd = document.getElementById('panelHd');
+            const ed = document.getElementById('panelEdit');
+            if (panel === 'hd') {
+              hd.style.display = 'block';
+              ed.style.display = 'none';
+              requestAnimationFrame(() => {
+                window.dispatchEvent(new Event('resize'));
+              });
+            } else {
+              hd.style.display = 'none';
+              ed.style.display = 'block';
+              mountEditorOnce();
+              requestAnimationFrame(() => {
+                window.dispatchEvent(new Event('resize'));
+              });
+            }
+          });
+        });
+
+        window.addEventListener('beforeunload', () => {
+          if (roomApi) roomApi.dispose();
+        });
+      } catch (e) {
+        showError(escHtml(e.message || 'Erro ao carregar.') + ' <a href="produtos.html">Vitrine</a>');
+      }
+    }
+
+    run();
   </script>
 </body>
 </html>
