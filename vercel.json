@@ -2,7 +2,10 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/favicon.ico", "destination": "/assets/logo.png" }
+    { "source": "/favicon.ico", "destination": "/assets/logo.png" },
+    { "source": "/api/asaas-proxy", "destination": "/api/asaas-proxy.js" },
+    { "source": "/api/openai-chat", "destination": "/api/openai-chat.js" },
+    { "source": "/api/gerar-3d", "destination": "/api/gerar-3d.js" }
   ],
   "headers": [
     {
@@ -15,6 +18,8 @@
     }
   ],
   "functions": {
-    "api/gerar-3d.js": { "maxDuration": 60 }
+    "api/gerar-3d.js": { "maxDuration": 60 },
+    "api/asaas-proxy.js": { "maxDuration": 30 },
+    "api/openai-chat.js": { "maxDuration": 30 }
   }
 }

@@ -1,8 +1,32 @@
 // Conforta Store - Asaas Payment Integration (via Vercel Proxy)
 
-const ASAAS_PROXY_URL = '/api/asaas-proxy';
+const ASAAS_PROXY_URLS = ['/api/asaas-proxy', '/api/asaas-proxy.js'];
 
 const MSG_PAYMENT_UNAVAILABLE = 'Pagamento online indisponivel no momento. Tente mais tarde ou fale com a loja.';
+
+function extractAsaasProxyMessage(result) {
+  if (!result || typeof result !== 'object') return 'Erro na requisicao';
+  if (typeof result.message === 'string' && result.message.trim()) return result.message.trim();
+  if (typeof result.error === 'string' && result.error.trim()) return result.error.trim();
+  if (result.error && typeof result.error.message === 'string') return result.error.message;
+  if (Array.isArray(result.errors) && result.errors.length) {
+    return result.errors
+      .map(function (e) {
+        return (e && (e.description || e.code)) || '';
+      })
+      .filter(Boolean)
+      .join('; ');
+  }
+  return 'Erro na requisicao';
+}
+
+async function probeAsaasProxyUrl(url) {
+  const r = await fetch(url, { method: 'GET' });
+  const ct = r.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) return { ok: false, configured: false };
+  const meta = await r.json().catch(function () { return {}; });
+  return { ok: r.ok, configured: !!meta.configured };
+}
 
 /** Alinha com o proxy: sandbox | production (evita URL errada e 401 por ambiente). */
 function normalizeAsaasEnv(raw) {
@@ -28,16 +52,17 @@ function logPaymentDev(reason, detail) {
 /** Detecta se o proxy serverless do Asaas esta disponivel (Vercel) e configurado. */
 async function isAsaasProxyAvailable() {
   if (window.__asaasProxyAvailable !== undefined) return window.__asaasProxyAvailable;
+  window.__asaasProxyUrl = ASAAS_PROXY_URLS[0];
   try {
-    const r = await fetch(ASAAS_PROXY_URL, { method: 'GET' });
-    const ct = r.headers.get('content-type') || '';
-    if (ct.includes('application/json')) {
-      const meta = await r.json().catch(function() { return {}; });
-      // O proxy existe e a chave esta no env do servidor
-      window.__asaasProxyAvailable = !!meta.configured;
-    } else {
-      window.__asaasProxyAvailable = false;
+    for (var i = 0; i < ASAAS_PROXY_URLS.length; i++) {
+      var probe = await probeAsaasProxyUrl(ASAAS_PROXY_URLS[i]);
+      if (probe.ok) {
+        window.__asaasProxyUrl = ASAAS_PROXY_URLS[i];
+        window.__asaasProxyAvailable = probe.configured;
+        return window.__asaasProxyAvailable;
+      }
     }
+    window.__asaasProxyAvailable = false;
   } catch {
     window.__asaasProxyAvailable = false;
   }
@@ -62,50 +87,70 @@ async function callAsaasProxy(endpoint, method, body) {
   const env = normalizeAsaasEnv(await getSetting('asaas_environment'));
   const available = await isAsaasProxyAvailable();
   if (!available) {
-    logPaymentDev('Proxy de pagamento nao configurado (defina ASAAS_API_KEY na Vercel)', ASAAS_PROXY_URL);
+    logPaymentDev('Proxy de pagamento nao configurado (defina ASAAS_API_KEY na Vercel)', window.__asaasProxyUrl || ASAAS_PROXY_URLS[0]);
     return null;
   }
-  try {
-    const res = await fetch(ASAAS_PROXY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        endpoint: endpoint,
-        method: method,
-        body: body || null,
-        environment: env
-      })
-    });
-    const ct = res.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) {
-      logPaymentDev('Resposta nao-JSON do proxy', ct);
-      throw new Error('gateway');
-    }
-    const result = await res.json();
-    if (!res.ok) {
-      const msg = result.error || result.message || 'Erro na requisicao';
-      if (res.status === 401 || res.status === 403) {
-        showToast(
-          'Asaas recusou a chave (401). Na Vercel use ASAAS_API_KEY ou chaves separadas ASAAS_API_KEY_SANDBOX / ASAAS_API_KEY_PRODUCTION e deixe o ambiente no admin igual ao da chave.',
-          'error'
-        );
-      } else {
-        showToast(MSG_PAYMENT_UNAVAILABLE, 'error');
+  const payload = JSON.stringify({
+    endpoint: endpoint,
+    method: method,
+    body: body || null,
+    environment: env
+  });
+  const urls = [window.__asaasProxyUrl || ASAAS_PROXY_URLS[0]].concat(
+    ASAAS_PROXY_URLS.filter(function (u) { return u !== (window.__asaasProxyUrl || ASAAS_PROXY_URLS[0]); })
+  );
+
+  var lastErr = null;
+  for (var u = 0; u < urls.length; u++) {
+    try {
+      const res = await fetch(urls[u], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        if (res.status === 404 && u < urls.length - 1) continue;
+        logPaymentDev('Resposta nao-JSON do proxy', ct);
+        throw new Error('gateway');
       }
-      throw new Error('HTTP ' + res.status + ': ' + msg);
-    }
-    return result;
-  } catch (e) {
-    if (e && e.message && /^HTTP\s(401|403):/.test(e.message)) {
-      logPaymentDev('Falha no proxy Asaas', e.message);
-    } else {
-      logPaymentDev('Falha no proxy Asaas', e && e.message);
-      if (!(e && e.message && /^HTTP\s(401|403):/.test(e.message))) {
-        showToast(MSG_PAYMENT_UNAVAILABLE, 'error');
+      const result = await res.json();
+      if (res.status === 404 && !Array.isArray(result.errors) && u < urls.length - 1) continue;
+
+      if (!res.ok) {
+        const msg = extractAsaasProxyMessage(result);
+        if (res.status === 404 && !Array.isArray(result.errors)) {
+          showToast('Servico de pagamento nao encontrado no servidor. Confira o deploy na Vercel (pasta api/).', 'error');
+        } else if (res.status === 401 || res.status === 403) {
+          showToast(
+            'Asaas recusou a chave. Na Vercel use ASAAS_API_KEY ou ASAAS_API_KEY_SANDBOX / ASAAS_API_KEY_PRODUCTION e o mesmo ambiente no admin.',
+            'error'
+          );
+        } else if (res.status === 400 && /cpf|cnpj|documento/i.test(msg)) {
+          showToast('CPF/CNPJ invalido ou ausente. Atualize em Meu perfil e tente de novo.', 'error');
+        } else {
+          showToast(MSG_PAYMENT_UNAVAILABLE, 'error');
+        }
+        throw new Error('HTTP ' + res.status + ': ' + msg);
       }
+      window.__asaasProxyUrl = urls[u];
+      return result;
+    } catch (e) {
+      lastErr = e;
+      if (e && e.message === 'gateway' && u < urls.length - 1) continue;
+      break;
     }
-    return null;
   }
+
+  if (lastErr && lastErr.message && /^HTTP\s(401|403):/.test(lastErr.message)) {
+    logPaymentDev('Falha no proxy Asaas', lastErr.message);
+  } else {
+    logPaymentDev('Falha no proxy Asaas', lastErr && lastErr.message);
+    if (!(lastErr && lastErr.message && /^HTTP\s(401|403):/.test(lastErr.message))) {
+      showToast(MSG_PAYMENT_UNAVAILABLE, 'error');
+    }
+  }
+  return null;
 }
 
 async function createCustomer(userData) {
@@ -122,11 +167,24 @@ async function createCustomer(userData) {
       return { asaas_id: existing.asaas_id, cached: true };
     }
 
+    var doc = String(userData.document || '').replace(/\D/g, '');
+    if (!doc || (doc.length !== 11 && doc.length !== 14)) {
+      logPaymentDev('createCustomer: CPF/CNPJ ausente ou incompleto', doc);
+      showToast('Cadastre um CPF ou CNPJ valido em Meu perfil antes de pagar.', 'error');
+      return null;
+    }
+    if (typeof isValidBrazilTaxId === 'function' && !isValidBrazilTaxId(doc)) {
+      logPaymentDev('createCustomer: CPF/CNPJ invalido', null);
+      showToast('CPF ou CNPJ invalido no perfil. Corrija em Meu perfil.', 'error');
+      return null;
+    }
+
     const result = await callAsaasProxy('/customers', 'POST', {
       name: userData.name,
       email: userData.email,
       phone: userData.phone,
-      cpfCnpj: userData.document,
+      cpfCnpj: doc,
+      mobilePhone: String(userData.phone || '').replace(/\D/g, '').slice(0, 11) || undefined,
       notificationDisabled: false,
       additionalEmails: [],
       externalReference: userData.user_id

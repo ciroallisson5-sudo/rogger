@@ -96,6 +96,17 @@ module.exports = async function handler(req, res) {
       data = { _raw: text };
     }
 
+    if (!asaasRes.ok && data && typeof data === 'object' && !data.message && !data.error) {
+      if (Array.isArray(data.errors) && data.errors.length) {
+        data.message = data.errors
+          .map(function (e) {
+            return e.description || e.code || '';
+          })
+          .filter(Boolean)
+          .join('; ');
+      }
+    }
+
     res.status(asaasRes.status >= 100 && asaasRes.status < 600 ? asaasRes.status : 502).json(data);
   } catch (err) {
     res.status(500).json({ error: err.message || 'Internal error' });

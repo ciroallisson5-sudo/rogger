@@ -18,6 +18,42 @@ function assetUrl(relativePath) {
   }
 }
 
+/** Valida CPF (11 digitos) ou CNPJ (14 digitos); string so com numeros. */
+function isValidBrazilTaxId(digits) {
+  if (!digits) return false;
+  if (digits.length === 11) return validaCPF(digits);
+  if (digits.length === 14) return validaCNPJ(digits);
+  return false;
+}
+
+function validaCPF(cpf) {
+  if (!cpf || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  var n = cpf.split('').map(function (x) { return parseInt(x, 10); });
+  var s = 0;
+  for (var i = 0; i < 9; i++) s += n[i] * (10 - i);
+  var d1 = (s % 11) < 2 ? 0 : 11 - (s % 11);
+  if (d1 !== n[9]) return false;
+  s = 0;
+  for (var j = 0; j < 10; j++) s += n[j] * (11 - j);
+  var d2 = (s % 11) < 2 ? 0 : 11 - (s % 11);
+  return d2 === n[10];
+}
+
+function validaCNPJ(cnpj) {
+  if (!cnpj || cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+  var n = cnpj.split('').map(function (x) { return parseInt(x, 10); });
+  var w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  var s = 0;
+  for (var i = 0; i < 12; i++) s += n[i] * w1[i];
+  var d1 = s % 11 < 2 ? 0 : 11 - (s % 11);
+  if (d1 !== n[12]) return false;
+  var w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  s = 0;
+  for (var j = 0; j < 13; j++) s += n[j] * w2[j];
+  var d2 = s % 11 < 2 ? 0 : 11 - (s % 11);
+  return d2 === n[13];
+}
+
 // Format price
 function formatPrice(value) {
   if (value === null || value === undefined || value === '') return 'R$ 0,00';
@@ -450,7 +486,7 @@ function getQuickNavActive(page) {
 }
 
 function injectPageQuickNavTop(page) {
-  if (page === 'index.html') {
+  if (page === 'index.html' || page === 'simulador.html') {
     document.querySelectorAll('.cc-page-quick-nav-top').forEach(function(el) {
       el.remove();
     });
@@ -636,6 +672,9 @@ function injectConfortaPolishStyles() {
     .cc-page-quick-nav-top a:hover { background:#f8fafc; border-color:#e2e8f0; color:var(--cc-ink); }
     .cc-page-quick-nav-top a.active { background:#eff6ff; color:#1a56db; border-color:#bfdbfe; }
     .cc-page-quick-nav-top svg { flex-shrink:0; }
+    @media (max-width: 768px) {
+      .cc-page-quick-nav-top { display:none !important; }
+    }
     body.cc-page-admin .cc-page-quick-nav-top { background:#1e293b; border-bottom-color:#334155; }
     body.cc-page-admin .cc-page-quick-nav-top a { color:#cbd5e1; }
     body.cc-page-admin .cc-page-quick-nav-top a:hover { background:#334155; border-color:#475569; color:#fff; }

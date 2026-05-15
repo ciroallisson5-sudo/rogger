@@ -59,10 +59,39 @@ async function getProfile(userId) {
 async function updateProfile(userId, updates) {
   const sb = getSupabase();
   if (!sb) throw new Error('Supabase not initialized');
-  const row = { id: userId, ...updates };
-  const { data, error } = await sb.from('profiles').upsert(row, { onConflict: 'id' }).select().maybeSingle();
-  if (error) throw error;
-  return data;
+  const patch = { ...updates };
+  delete patch.id;
+  delete patch.email;
+
+  const { data: updated, error: updateErr } = await sb
+    .from('profiles')
+    .update(patch)
+    .eq('id', userId)
+    .select()
+    .maybeSingle();
+
+  if (updateErr) {
+    const msg = String(updateErr.message || '');
+    const missingCol =
+      updateErr.code === 'PGRST204' ||
+      /cpf_cnpj/i.test(msg) ||
+      /column.*does not exist/i.test(msg);
+    if (missingCol && patch.cpf_cnpj != null) {
+      const err = new Error(
+        'Campo CPF/CNPJ ainda nao existe no banco. Execute o SQL database/profiles_cpf_cnpj.sql no Supabase.'
+      );
+      err.code = 'CPF_COLUMN_MISSING';
+      throw err;
+    }
+    throw updateErr;
+  }
+
+  if (updated) return updated;
+
+  const row = { id: userId, ...patch };
+  const { data: inserted, error: insertErr } = await sb.from('profiles').insert(row).select().maybeSingle();
+  if (insertErr) throw insertErr;
+  return inserted;
 }
 
 async function uploadAvatar(userId, file) {

@@ -77,6 +77,7 @@ export function mountRoomSimulator(hostEl, options) {
     deskH: Number(options.initialDeskH) || 0.78,
     offWardrobe: { x: 0, z: 0 },
     offDesk: { x: 0, z: 0 },
+    offProduct: { x: 0, z: 0 },
     extras: [],
     cameraMode: 'orbit',
     walkHeight: 1.62
@@ -365,6 +366,7 @@ export function mountRoomSimulator(hostEl, options) {
   scene.add(fill);
 
   const productGroup = new THREE.Group();
+  productGroup.userData.movableId = 'product';
   scene.add(productGroup);
 
   let productRoot = null;
@@ -407,6 +409,7 @@ export function mountRoomSimulator(hostEl, options) {
         }
       });
       productGroup.add(productRoot);
+      productGroup.position.set(state.offProduct.x, 0, state.offProduct.z);
     },
     undefined,
     function () {
@@ -469,6 +472,7 @@ export function mountRoomSimulator(hostEl, options) {
 
   function getMovables() {
     const list = [];
+    if (productRoot) list.push(productGroup);
     if (wardrobeMesh) list.push(wardrobeMesh);
     if (deskGroup) list.push(deskGroup);
     extraMeshes.forEach(function (m) {
@@ -539,6 +543,10 @@ export function mountRoomSimulator(hostEl, options) {
       state.offDesk.x = c.x - (-w0 / 2 + dw / 2 + 0.32);
       state.offDesk.z = c.z - (d0 / 2 - dd / 2 - 0.18);
       drag.obj.position.set(c.x, 0, c.z);
+    } else if (drag.obj === productGroup) {
+      state.offProduct.x = c.x;
+      state.offProduct.z = c.z;
+      drag.obj.position.set(c.x, drag.baseY, c.z);
     } else if (drag.obj.userData.extraId) {
       const id = drag.obj.userData.extraId;
       const ex = state.extras.find(function (x) {
