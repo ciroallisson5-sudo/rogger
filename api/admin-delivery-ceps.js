@@ -122,6 +122,47 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (req.method === 'PATCH') {
+      const body = parseBody(req.body);
+      const id = String(body.id || '').trim();
+      const amt = parseFloat(body.freight_amount);
+      if (!id || isNaN(amt) || amt < 0) {
+        res.status(400).json({ error: 'id e freight_amount validos sao obrigatorios' });
+        return;
+      }
+      const patch = {
+        freight_amount: amt,
+        label: typeof body.label === 'string' ? body.label.trim().slice(0, 120) || null : null
+      };
+      const newCep = normalizeCep(body.cep);
+      if (newCep) {
+        patch.cep = newCep;
+      }
+      const r = await fetch(base + '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: {
+          apikey: useSvc,
+          Authorization: 'Bearer ' + useSvc,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: JSON.stringify(patch)
+      }).catch(function () {
+        return null;
+      });
+      const data = r ? await r.json().catch(function () { return null; }) : null;
+      if (!r || !r.ok) {
+        res.status(r ? r.status : 503).json({
+          error: 'Falha ao atualizar. CEP pode estar duplicado ou id invalido.',
+          detail: data
+        });
+        return;
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      res.status(200).json({ row: row || { id } });
+      return;
+    }
+
     if (req.method === 'DELETE') {
       const body = parseBody(req.body);
       const id = String(body.id || '').trim();

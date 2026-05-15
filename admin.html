@@ -509,10 +509,11 @@
           </div>
 
           <div class="settings-section">
-            <h3>Adicionar CEP com frete</h3>
+            <h3 id="adminDeliveryCepFormTitle">Adicionar CEP com frete</h3>
             <p style="font-size:0.8rem;color:var(--text2);margin:-4px 0 12px;line-height:1.5;">
               Valor cobrado do frete ate o endereco (frete gratis por pedido acima do minimo continua valendo conforme Configuracoes da loja).
             </p>
+            <input type="hidden" id="adminEditCepId" value="">
             <div class="form-row" style="flex-wrap:wrap;">
               <div class="form-group" style="min-width:140px;">
                 <label class="form-label">CEP (8 digitos)</label>
@@ -527,13 +528,16 @@
                 <input type="text" class="form-input" id="adminNewCepLabel" placeholder="Ex.: Serra - Jardin Limoeiro">
               </div>
             </div>
-            <button type="button" class="btn btn-primary" onclick="window.addDeliveryCepAdmin()">Salvar CEP</button>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+              <button type="button" class="btn btn-primary" id="adminCepPrimaryBtn" onclick="window.addDeliveryCepAdmin()">Salvar CEP</button>
+              <button type="button" class="btn btn-ghost" id="adminCepCancelEdit" style="display:none;" onclick="window.cancelDeliveryCepEdit()">Cancelar edicao</button>
+            </div>
           </div>
 
           <div class="settings-section">
             <h3>CEPs atendidos</h3>
             <p style="font-size:0.8rem;color:var(--text2);margin:-4px 0 12px;">Coluna &quot;Consultas&quot;: vezes que clientes/uso da loja chamaram esse CEP na API de frete.</p>
-            <div class="table-wrap"><table><thead><tr><th>CEP</th><th>Regiao</th><th>Frete</th><th>Consultas</th><th style="width:100px;"></th></tr></thead><tbody id="deliveryCepsTableBody"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>CEP</th><th>Regiao</th><th>Frete</th><th>Consultas</th><th style="min-width:160px;">Acoes</th></tr></thead><tbody id="deliveryCepsTableBody"></tbody></table></div>
           </div>
         </div>
       </div>
@@ -799,7 +803,8 @@
         editingPhotoId: null,
         photoList: [],
         productSearchTimer: null,
-        orderSearchTimer: null
+        orderSearchTimer: null,
+        deliveryCepRows: []
       };
 
       /** Padronizar imagem: bucket + prefixo alinhados ao servidor /api/gerar-3d (env SUPABASE_IMAGE_*) */
@@ -2284,6 +2289,7 @@
           }
 
           var rows = j.rows || [];
+          state.deliveryCepRows = rows;
           if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text2);">Nenhum CEP cadastrado ainda. Enquanto isso, todas as consultas na loja recebem a mensagem configurada acima.</td></tr>';
             return;
@@ -2296,7 +2302,10 @@
               '<td>' + escHtml(row.label || '—') + '</td>' +
               '<td>' + formatMoney(row.freight_amount) + '</td>' +
               '<td>' + escHtml(String(row.lookup_count != null ? row.lookup_count : 0)) + '</td>' +
-              '<td><button type="button" class="btn btn-sm btn-danger" onclick="window.removeDeliveryCep(\'' + escHtml(rid) + '\')">Remover</button></td>' +
+              '<td><div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+              '<button type="button" class="btn btn-sm btn-ghost" onclick="window.beginEditDeliveryCep(\'' + escHtml(rid) + '\')">Editar</button>' +
+              '<button type="button" class="btn btn-sm btn-danger" onclick="window.removeDeliveryCep(\'' + escHtml(rid) + '\')">Remover</button>' +
+              '</div></td>' +
               '</tr>';
           }).join('');
         } catch (e) {
@@ -2314,7 +2323,62 @@
         }
       };
 
+      function resetDeliveryCepForm() {
+        var hid = document.getElementById('adminEditCepId');
+        var cepIn = document.getElementById('adminNewCep');
+        var valIn = document.getElementById('adminNewCepFreight');
+        var labIn = document.getElementById('adminNewCepLabel');
+        var title = document.getElementById('adminDeliveryCepFormTitle');
+        var btn = document.getElementById('adminCepPrimaryBtn');
+        var cancel = document.getElementById('adminCepCancelEdit');
+        if (hid) hid.value = '';
+        if (cepIn) {
+          cepIn.value = '';
+          cepIn.readOnly = false;
+        }
+        if (valIn) valIn.value = '';
+        if (labIn) labIn.value = '';
+        if (title) title.textContent = 'Adicionar CEP com frete';
+        if (btn) btn.textContent = 'Salvar CEP';
+        if (cancel) cancel.style.display = 'none';
+      }
+
+      window.cancelDeliveryCepEdit = function() {
+        resetDeliveryCepForm();
+      };
+
+      window.beginEditDeliveryCep = function(id) {
+        var rid = String(id || '').trim();
+        var row = (state.deliveryCepRows || []).find(function (r) { return String(r.id) === rid; });
+        if (!row) {
+          showToast('Linha nao encontrada. Recarregue a lista.', 'error');
+          return;
+        }
+        var hid = document.getElementById('adminEditCepId');
+        var cepIn = document.getElementById('adminNewCep');
+        var valIn = document.getElementById('adminNewCepFreight');
+        var labIn = document.getElementById('adminNewCepLabel');
+        var title = document.getElementById('adminDeliveryCepFormTitle');
+        var btn = document.getElementById('adminCepPrimaryBtn');
+        var cancel = document.getElementById('adminCepCancelEdit');
+        if (hid) hid.value = rid;
+        if (cepIn) {
+          cepIn.value = String(row.cep || '').replace(/\D/g, '');
+          cepIn.readOnly = false;
+        }
+        if (valIn) valIn.value = row.freight_amount != null ? String(row.freight_amount) : '';
+        if (labIn) labIn.value = row.label != null ? String(row.label) : '';
+        if (title) title.textContent = 'Editar CEP';
+        if (btn) btn.textContent = 'Salvar alteracoes';
+        if (cancel) cancel.style.display = 'inline-block';
+        showToast('Altere os campos acima e clique em Salvar alteracoes.', 'info');
+        try {
+          cepIn && cepIn.focus();
+        } catch (eF) { void eF; }
+      };
+
       window.addDeliveryCepAdmin = async function() {
+        var editId = String((document.getElementById('adminEditCepId') || {}).value || '').trim();
         var cepIn = document.getElementById('adminNewCep');
         var valIn = document.getElementById('adminNewCepFreight');
         var labIn = document.getElementById('adminNewCepLabel');
@@ -2334,20 +2398,23 @@
           var apiBase = '';
           try { apiBase = window.location.origin || ''; } catch (eO) { void eO; }
 
+          var isEdit = !!editId;
           var resp = await fetch(apiBase + '/api/admin-delivery-ceps', {
-            method: 'POST',
+            method: isEdit ? 'PATCH' : 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
-            body: JSON.stringify({ cep: cep, freight_amount: amt, label: label || null })
+            body: JSON.stringify(
+              isEdit
+                ? { id: editId, cep: cep, freight_amount: amt, label: label || null }
+                : { cep: cep, freight_amount: amt, label: label || null }
+            )
           });
           var jout = await resp.json().catch(function () { return {}; });
           if (!resp.ok) {
             showToast(jout.error || 'Falha ao salvar CEP', 'error');
             return;
           }
-          if (cepIn) cepIn.value = '';
-          if (valIn) valIn.value = '';
-          if (labIn) labIn.value = '';
-          showToast('CEP cadastrado.', 'success');
+          resetDeliveryCepForm();
+          showToast(isEdit ? 'CEP atualizado.' : 'CEP cadastrado.', 'success');
           loadDeliveryAdmin();
         } catch (e) {
           showToast('Erro: ' + (e.message || e), 'error');
@@ -2357,6 +2424,7 @@
       window.removeDeliveryCep = async function(id) {
         var sid = String(id || '').trim();
         if (!sid || !confirm('Remover este CEP da lista?')) return;
+        var editing = String((document.getElementById('adminEditCepId') || {}).value || '').trim();
         try {
           var tok = await getAdminJwt();
           if (!tok) {
@@ -2376,6 +2444,7 @@
             showToast(j.error || 'Falha ao remover', 'error');
             return;
           }
+          if (editing === sid) resetDeliveryCepForm();
           showToast('CEP removido.', 'success');
           loadDeliveryAdmin();
         } catch (e) {
