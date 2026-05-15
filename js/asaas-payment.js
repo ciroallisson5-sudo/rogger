@@ -70,6 +70,11 @@ function logPaymentDev(reason, detail) {
 }
 
 /** Detecta se o proxy serverless do Asaas esta disponivel (Vercel) e configurado. */
+/** Alias usado no checkout.html */
+async function isAsaasPaymentApiAvailable() {
+  return isAsaasProxyAvailable();
+}
+
 async function isAsaasProxyAvailable() {
   if (window.__asaasProxyAvailable !== undefined) return window.__asaasProxyAvailable;
   window.__asaasProxyUrl = ASAAS_PROXY_URLS[0];
@@ -236,6 +241,10 @@ async function createCustomer(userData, opts) {
 
     if (!result || !result.id) {
       logPaymentDev('createCustomer: resposta sem id', result);
+      if (result && Array.isArray(result.errors) && result.errors.length) {
+        var errDesc = result.errors.map(function (e) { return e.description || e.code; }).filter(Boolean).join('; ');
+        if (errDesc) showToast(errDesc, 'error');
+      }
       return null;
     }
 

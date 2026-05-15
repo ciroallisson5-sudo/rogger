@@ -5,9 +5,10 @@
 //   ASAAS_API_KEY (fallback)
 //   ASAAS_API_KEY_SANDBOX | ASAAS_API_KEY_PRODUCTION (opcional, preferidos por ambiente)
 
+// URLs oficiais Asaas v3 (docs.asaas.com)
 const BASE_URLS = {
-  sandbox: 'https://sandbox.asaas.com/api/v3',
-  production: 'https://api.asaas.com/api/v3'
+  sandbox: 'https://api-sandbox.asaas.com/v3',
+  production: 'https://api.asaas.com/v3'
 };
 
 function stripKey(raw) {
@@ -55,7 +56,19 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    let raw = req.body;
+    if (Buffer.isBuffer(raw)) raw = raw.toString('utf8');
+    let body = {};
+    if (typeof raw === 'string') {
+      try {
+        body = JSON.parse(raw || '{}');
+      } catch (_) {
+        res.status(400).json({ error: 'JSON invalido no corpo da requisicao' });
+        return;
+      }
+    } else if (raw && typeof raw === 'object') {
+      body = raw;
+    }
     const endpoint = String(body.endpoint || '').trim();
     const method = String(body.method || 'GET').toUpperCase();
     const envNorm = normalizeEnv(body.environment);
@@ -79,6 +92,7 @@ module.exports = async function handler(req, res) {
       method: m,
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'conforta-store/1.0',
         access_token: apiKey
       }
     };
