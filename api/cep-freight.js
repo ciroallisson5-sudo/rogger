@@ -1,27 +1,13 @@
 'use strict';
 
-// POST { cep, subtotal?: number }
-// Incrementa lookup_count na faixa quando ha entrega.
-// SUPABASE_SERVICE_ROLE_KEY obrigatorio
-
-function parseBody(raw) {
-  if (raw == null) return {};
-  if (Buffer.isBuffer(raw)) raw = raw.toString('utf8');
-  if (typeof raw === 'string') {
-    try {
-      return JSON.parse(raw || '{}');
-    } catch (_) {
-      return {};
-    }
-  }
-  if (typeof raw === 'object') return raw;
-  return {};
-}
+const { applyBrowserCors, handleOptions, parseBody } = require('./_http');
+const { rateLimitKey, allow, prune } = require('./_rate-limit');
 
 function normalizeCep(s) {
   const d = String(s || '').replace(/\D/g, '');
-  if (d.length === 8) return d;
-  return '';
+  if (d.length !== 8) return '';
+  if (d[0] === '0') return '';
+  return d;
 }
 
 async function fetchSettingSingle(key, base, service) {
@@ -39,24 +25,25 @@ async function fetchSettingSingle(key, base, service) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  prune();
+  applyBrowserCors(req, res);
+  if (handleOptions(req, res)) return;
 
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
+  const key = rateLimitKey(req, 'cep-freight');
+  if (!allow(key, 45, 60000)) {
+    res.status(429).json({ error: 'Muitas consultas de CEP. Aguarde um minuto.' });
+    return;
+  }
+
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   const base = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
   if (!service || !base) {
-    res.status(503).json({ error: 'Supabase server not configured' });
+    res.status(503).json({ error: 'Supabase não configurado no servidor.' });
     return;
   }
 
@@ -65,19 +52,22 @@ module.exports = async function handler(req, res) {
   const subtotal = parseFloat(body.subtotal) || 0;
 
   if (!cepNorm) {
-    res.status(400).json({ delivered: false, message: 'CEP invalido. Use 8 digitos.' });
+    res.status(400).json({ delivered: false, message: 'CEP invalido. Informe 8 digitos (sem comecar com 0).' });
     return;
   }
 
   try {
     const noMsgRaw = await fetchSettingSingle('cep_no_delivery_message', base, service);
     const defaultNoMsg =
-      'Infelizmente nao realizamos entrega para este CEP no momento. Fale com a loja pelo WhatsApp para consultar alternativas.';
+      'Infelizmente não realizamos entrega para este CEP no momento. Fale com a loja pelo WhatsApp para consultar alternativas.';
     const noMessage =
       typeof noMsgRaw === 'string' && noMsgRaw.trim() ? String(noMsgRaw).trim() : defaultNoMsg;
 
     const lookupRes = await fetch(
-      base + '/rest/v1/delivery_cep_rates?cep=eq.' + encodeURIComponent(cepNorm) + '&select=id,cep,freight_amount,label,lookup_count&limit=1',
+      base +
+        '/rest/v1/delivery_cep_rates?cep=eq.' +
+        encodeURIComponent(cepNorm) +
+        '&select=id,cep,freight_amount,label,lookup_count&limit=1',
       { headers: { apikey: service, Authorization: 'Bearer ' + service } }
     );
     const rows = await lookupRes.json().catch(function () {
@@ -115,6 +105,9 @@ module.exports = async function handler(req, res) {
     try {
       if (deliveryInfo && typeof deliveryInfo === 'object') {
         freeFrom = parseFloat(deliveryInfo.free_from) || 0;
+      } else if (deliveryInfo && typeof deliveryInfo === 'string') {
+        const di = JSON.parse(deliveryInfo);
+        freeFrom = parseFloat(di.free_from) || 0;
       }
     } catch (_) {
       /**/
@@ -135,7 +128,7 @@ module.exports = async function handler(req, res) {
       label: row.label || null
     });
   } catch (err) {
-    console.error('[cep-freight]', err);
-    res.status(500).json({ error: err.message || 'Erro ao consultar CEP' });
+    void err;
+    res.status(500).json({ error: 'Erro ao consultar CEP' });
   }
 };

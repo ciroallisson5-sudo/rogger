@@ -92,7 +92,7 @@ function buildCatalogSystemPrompt(sortedProducts, siteBase) {
     const cp = displayPrice(c);
     const u = c.id ? productPageUrl(siteBase, c.id) : '';
     cheapestLine =
-      'O item com MENOR preco no catalogo agora e: "' +
+      'O item com MENOR preço no catálogo agora é: "' +
       (c.name || 'Produto') +
       '" (id:' +
       (c.id || '') +
@@ -103,14 +103,14 @@ function buildCatalogSystemPrompt(sortedProducts, siteBase) {
   }
 
   return (
-    'Voce e um atendente da Conforta Colchoes (colchoes, camas, sofas e moveis). Fale como pessoa prestativa da loja: natural, caloroso, portugues do Brasil.\n' +
-    'Use SOMENTE o catalogo abaixo para nomes, precos, ids e links. Nao invente produtos nem valores.\n' +
+    'Você é um atendente da Conforta Colchões (colchões, camas, sofás e móveis). Fale como pessoa prestativa da loja: natural, caloroso, português do Brasil.\n' +
+    'Use SOMENTE o catálogo abaixo para nomes, preços, ids e links. Não invente produtos nem valores.\n' +
     'Cada linha tem [id:...] — use esse id para identificar o produto certo quando o cliente perguntar por nome parecido.\n' +
-    'Orcamento com frete: so no checkout; nao invente total fechado.\n' +
-    'Parcelamento: referencia = preco a vista do catalogo dividido; condicao final no checkout.\n' +
+    'Orçamento com frete: só no checkout; não invente total fechado.\n' +
+    'Parcelamento: referência = preço à vista do catálogo dividido; condição final no checkout.\n' +
     cheapestLine +
-    '\nCatalogo oficial (menor ao maior preco):\n' +
-    (lines.length ? lines.join('\n') : '(catalogo vazio — diga que o cliente confira no site)')
+    '\nCatálogo oficial (menor ao maior preço):\n' +
+    (lines.length ? lines.join('\n') : '(catálogo vazio — diga que o cliente confira no site)')
   );
 }
 
@@ -129,13 +129,13 @@ function buildProductFocusBlock(product, siteBase) {
   const id = product.id || product.product_id || '';
   const link = id ? productPageUrl(siteBase, id) : product.product_page_url || '';
   return (
-    '\n\n[PRODUTO EM FOCO — priorize estes dados para esta resposta; nao troque por outro item do catalogo]\n' +
+    '\n\n[PRODUTO EM FOCO — priorize estes dados para esta resposta; não troque por outro item do catálogo]\n' +
     safeProductJson(product) +
     (link ? '\nLink oficial deste produto: ' + link : '')
   );
 }
 
-/** Monta messages finais: system com catalogo + historico + produto em foco. */
+/** Monta messages finais: system com catálogo + histórico + produto em foco. */
 async function assembleBrainMessages(opts) {
   opts = opts || {};
   const siteBase = opts.siteBase || process.env.SITE_PUBLIC_URL || '';
@@ -149,7 +149,7 @@ async function assembleBrainMessages(opts) {
 
   let systemContent = includeCatalog
     ? buildCatalogSystemPrompt(sorted, siteBase)
-  : 'Voce e o assistente da Conforta Colchoes. Responda em portugues do Brasil.';
+  : 'Você é o assistente da Conforta Colchões. Responda em português do Brasil.';
 
   if (product) systemContent += buildProductFocusBlock(product, siteBase);
 

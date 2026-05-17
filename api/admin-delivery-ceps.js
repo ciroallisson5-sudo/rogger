@@ -1,6 +1,7 @@
 'use strict';
 
 const { verifySupabaseAdmin } = require('./_supabase-admin');
+const { applyBrowserCors, handleOptions } = require('./_http');
 
 function parseBody(raw) {
   if (raw == null) return {};
@@ -22,16 +23,10 @@ function normalizeCep(s) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  applyBrowserCors(req, res);
+  if (handleOptions(req, res)) return;
 
   try {
-    if (req.method === 'OPTIONS') {
-      res.status(200).end();
-      return;
-    }
-
     const auth = req.headers.authorization || '';
     const jwt = auth.replace(/^Bearer\s+/i, '').trim();
 

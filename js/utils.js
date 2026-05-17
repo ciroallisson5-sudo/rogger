@@ -54,6 +54,17 @@ function validaCNPJ(cnpj) {
   return d2 === n[13];
 }
 
+/** Escapa texto para uso em HTML (evita XSS). */
+function escapeHTML(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Format price
 function formatPrice(value) {
   if (value === null || value === undefined || value === '') return 'R$ 0,00';
@@ -122,7 +133,7 @@ function showToast(message, type = 'info') {
   const containerEl = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = message;
+  toast.textContent = typeof message === 'string' ? message : String(message);
   containerEl.appendChild(toast);
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(20px)'; }, 3000);
   setTimeout(() => toast.remove(), 3500);
@@ -406,7 +417,7 @@ function enhanceGlobalHeader(page) {
     const whats = document.createElement('a');
     whats.href = '#';
     whats.className = 'header-whatsapp js-global-whatsapp';
-    whats.setAttribute('data-message', 'Ola! Quero atendimento da Conforta Colchões.');
+    whats.setAttribute('data-message', 'Olá! Quero atendimento da Conforta Colchões.');
     whats.setAttribute('aria-label', 'Falar no WhatsApp');
     whats.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.3.3-1 .9-1 2.3s1 2.7 1.1 2.9c.1.2 2 3 4.7 4.2 1.6.7 2.3.7 3.1.6.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20m5.5-15.5A7.7 7.7 0 0 0 12 4a7.7 7.7 0 0 0-7.8 7.8c0 1.4.4 2.7 1.1 3.9L4.2 20l4.4-1.1c1.2.7 2.5 1 3.9 1a7.7 7.7 0 0 0 7.8-7.8c0-2-.8-4-2.3-5.6"/></svg><span>WhatsApp</span>';
     if (mobileBtn) actions.insertBefore(whats, mobileBtn);
@@ -428,7 +439,7 @@ function enhanceGlobalHeader(page) {
         '<a href="produtos.html">Produtos</a>',
         '<a href="produtos.html?ofertas=1">Ofertas</a>',
         '<a href="perfil.html">Meu Perfil</a>',
-        '<a href="#" class="js-global-whatsapp" data-message="Ola! Quero atendimento da Conforta Colchões.">Atendimento</a>'
+        '<a href="#" class="js-global-whatsapp" data-message="Olá! Quero atendimento da Conforta Colchões.">Atendimento</a>'
       ].join('');
     }
     mobileMenu.dataset.polished = 'true';
@@ -458,7 +469,7 @@ function getGlobalNavHtml(page) {
     '<a href="index.html"' + (active === 'home' ? ' class="active" aria-current="page"' : '') + '>Inicio</a>',
     '<a href="produtos.html"' + (active === 'products' ? ' class="active" aria-current="page"' : '') + '>Produtos</a>',
     '<a href="produtos.html?ofertas=1">Ofertas</a>',
-    '<a href="#" class="js-global-whatsapp" data-message="Ola! Quero atendimento da Conforta Colchões.">Atendimento</a>'
+    '<a href="#" class="js-global-whatsapp" data-message="Olá! Quero atendimento da Conforta Colchões.">Atendimento</a>'
   ].join('');
 }
 
@@ -597,7 +608,7 @@ async function configureGlobalWhatsappLinks() {
   } catch { /* silent */ }
 
   document.querySelectorAll('.js-global-whatsapp').forEach(function(link) {
-    const message = link.getAttribute('data-message') || 'Ola! Quero atendimento da Conforta Colchões.';
+    const message = link.getAttribute('data-message') || 'Olá! Quero atendimento da Conforta Colchões.';
     if (window.CONFORTA_WHATSAPP_URL) {
       link.href = `${window.CONFORTA_WHATSAPP_URL}?text=${encodeURIComponent(message)}`;
       link.target = '_blank';
@@ -608,7 +619,7 @@ async function configureGlobalWhatsappLinks() {
       e.preventDefault();
       if (typeof window.openChatWidget === 'function') window.openChatWidget();
       else if (typeof window.toggleChat === 'function') window.toggleChat();
-      else if (typeof showToast === 'function') showToast('Atendimento indisponivel no momento', 'info');
+      else if (typeof showToast === 'function') showToast('Atendimento indisponível no momento', 'info');
     });
   });
 }

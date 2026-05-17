@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Retorno do pagamento - Conforta Colchões</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; min-height: 100vh; }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 40px 20px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 28px; box-shadow: 0 12px 32px rgba(15,23,42,0.08); text-align: center; }
+    h1 { font-size: 1.35rem; font-weight: 800; color: #0f172a; margin: 0 0 12px; }
+    p { color: #64748b; font-size: 0.92rem; line-height: 1.55; margin: 0 0 16px; }
+    .muted { font-size: 0.82rem; color: #94a3b8; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 12px; font-weight: 800; font-size: 0.9rem; text-decoration: none; margin: 6px; }
+    .btn-primary { background: #1a56db; color: #fff; }
+    .btn-outline { background: #fff; color: #1a56db; border: 1.5px solid #e2e8f0; }
+    .state-ok { color: #166534; font-weight: 800; }
+    .state-warn { color: #b45309; font-weight: 800; }
+    .state-bad { color: #b91c1c; font-weight: 800; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="retornoCard">
+      <h1 id="retornoTitle">Verificando pagamento...</h1>
+      <p id="retornoMsg">Consultando o status real do seu pedido no servidor. O endereço na barra do navegador não confirma pagamento sozinho.</p>
+      <p class="muted" id="retornoDetail"></p>
+      <div id="retornoActions" style="margin-top: 20px; display: none;">
+        <a class="btn btn-primary" href="perfil.html">Meus pedidos</a>
+        <a class="btn btn-outline" href="index.html">Voltar à loja</a>
+      </div>
+    </div>
+  </div>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      function qs(name) {
+        try {
+          var u = new URL(window.location.href);
+          return String(u.searchParams.get(name) || '').trim();
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function esc(t) {
+        if (t == null) return '';
+        var d = document.createElement('div');
+        d.textContent = String(t);
+        return d.innerHTML;
+      }
+
+      async function main() {
+        var orderId = qs('order_id');
+        var urlStatus = qs('status');
+        var title = document.getElementById('retornoTitle');
+        var msg = document.getElementById('retornoMsg');
+        var detail = document.getElementById('retornoDetail');
+        var actions = document.getElementById('retornoActions');
+
+        if (!orderId) {
+          title.textContent = 'Pedido não informado';
+          msg.textContent = 'Abra o link enviado apos o checkout ou consulte seus pedidos no perfil.';
+          actions.style.display = 'block';
+          return;
+        }
+
+        if (typeof initSupabase === 'function') initSupabase();
+        var sb = typeof getSupabase === 'function' ? getSupabase() : null;
+        if (!sb) {
+          title.textContent = 'Erro de configuração';
+          msg.textContent = 'Não foi possível conectar. Atualize a página.';
+          return;
+        }
+
+        var sess = await sb.auth.getSession();
+        var tok = sess && sess.data && sess.data.session && sess.data.session.access_token;
+        if (!tok) {
+          title.textContent = 'Faça login';
+          msg.textContent = 'Entre na sua conta para ver o status deste pedido.';
+          actions.style.display = 'block';
+          return;
+        }
+
+        var tries = 0;
+        var maxTries = 8;
+        function mapPaymentLine(ps, mp) {
+          if (ps === 'paid') return { title: 'Pagamento aprovado', cls: 'state-ok', text: 'Seu pedido foi confirmado como pago. Acompanhe a separação em Meus pedidos.' };
+          if (ps === 'pending_payment' || ps === 'pending') {
+            if (urlStatus === 'failure') {
+              return { title: 'Pagamento não concluído', cls: 'state-bad', text: 'O Mercado Pago indicou que o pagamento não foi concluído. Você pode tentar de novo no perfil ou falar com a loja.' };
+            }
+            if (mp && mp.status && String(mp.status).toLowerCase() === 'rejected') {
+              return { title: 'Pagamento recusado', cls: 'state-bad', text: 'O pagamento foi recusado. Nenhum valor foi debitado.' };
+            }
+            return {
+              title: 'Pagamento em analise',
+              cls: 'state-warn',
+              text: 'Recebemos seu retorno do Mercado Pago, mas o pagamento ainda não foi confirmado no servidor. Isso é normal em Pix ou cartão: aguarde alguns instantes e atualize esta página.'
+            };
+          }
+          if (ps === 'failed' || ps === 'cancelled') {
+            return { title: 'Pagamento não aprovado', cls: 'state-bad', text: 'O pedido consta como não pago. Em caso de dúvida, fale com a loja.' };
+          }
+          return { title: 'Status do pedido', cls: 'state-warn', text: 'Pagamento: ' + esc(String(ps || '—')) };
+        }
+
+        async function poll() {
+          tries++;
+          var r = await fetch('/api/mercadopago-payment-status?order_id=' + encodeURIComponent(orderId), {
+            headers: { Authorization: 'Bearer ' + tok }
+          });
+          var j = await r.json().catch(function () {
+            return {};
+          });
+          if (!r.ok) {
+            title.textContent = 'Não foi possível consultar';
+            msg.textContent = (j && j.error) ? String(j.error) : 'Erro ao consultar status.';
+            actions.style.display = 'block';
+            return;
+          }
+          var ps = String(j.payment_status || '');
+          var mp = j.mercado_pago || {};
+          var m = mapPaymentLine(ps, mp);
+          title.textContent = m.title;
+          title.className = m.cls;
+          msg.textContent = m.text;
+          var extra = [];
+          if (j.order_number) extra.push('Pedido #' + esc(String(j.order_number)));
+          if (mp && mp.status) extra.push('Mercado Pago: ' + esc(String(mp.status)));
+          detail.textContent = extra.length ? extra.join(' · ') : '';
+          if (ps === 'paid' || ps === 'failed' || ps === 'cancelled' || tries >= maxTries) {
+            actions.style.display = 'block';
+            return;
+          }
+          setTimeout(poll, 2200);
+        }
+
+        void poll();
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', main);
+      else void main();
+    })();
+  </script>
+</body>
+</html>

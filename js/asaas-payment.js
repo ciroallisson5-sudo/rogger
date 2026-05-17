@@ -2,7 +2,7 @@
 
 const ASAAS_PROXY_URLS = ['/api/asaas-proxy', '/api/asaas-proxy.js'];
 
-const MSG_PAYMENT_UNAVAILABLE = 'Pagamento online indisponivel no momento. Tente mais tarde ou fale com a loja.';
+const MSG_PAYMENT_UNAVAILABLE = 'Pagamento online indisponível no momento. Tente mais tarde ou fale com a loja.';
 
 function extractAsaasProxyMessage(result) {
   if (!result || typeof result !== 'object') return 'Erro na requisicao';

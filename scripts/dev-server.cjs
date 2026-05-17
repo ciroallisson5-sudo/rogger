@@ -76,9 +76,6 @@ function createVercelRes(nodeRes) {
 
 function resolveApiModule(urlPath) {
   const aliases = {
-    '/api/asaas-proxy': 'asaas-proxy',
-    '/api/asaas-webhook': 'asaas-webhook',
-    '/api/order-payment-sync': 'order-payment-sync',
     '/api/openai-chat': 'openai-chat',
     '/api/gerar-3d': 'gerar-3d'
   };
@@ -174,10 +171,12 @@ const server = http.createServer(async function (req, res) {
 });
 
 server.listen(PORT, function () {
-  const hasKey = !!(process.env.ASAAS_API_KEY || process.env.ASAAS_API_KEY_SANDBOX);
+  const hasMp = !!(process.env.MERCADO_PAGO_ACCESS_TOKEN && process.env.APP_URL);
   console.log('Conforta dev server: http://localhost:' + PORT);
-  console.log('API routes: /api/asaas-proxy, /api/asaas-webhook, /api/order-payment-sync, /api/openai-chat, /api/gerar-3d, /api/cep-freight, /api/admin-delivery-ceps, /api/n8n-products');
-  if (!hasKey) {
-    console.warn('AVISO: ASAAS_API_KEY nao definida — crie .env na raiz do projeto (veja .env.example)');
+  console.log(
+    'API routes: /api/mercadopago-create-preference, /api/mercadopago-webhook, /api/mercadopago-payment-status, /api/openai-chat, /api/gerar-3d, /api/cep-freight, /api/admin-delivery-ceps, /api/n8n-products'
+  );
+  if (!hasMp) {
+    console.warn('AVISO: MERCADO_PAGO_ACCESS_TOKEN ou APP_URL ausentes — checkout Mercado Pago nao funcionara ate configurar .env');
   }
 });

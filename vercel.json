@@ -10,17 +10,26 @@
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.mercadopago.com https://cdn.jsdelivr.net https://unpkg.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+        }
       ]
     }
   ],
   "functions": {
     "api/gerar-3d.js": { "maxDuration": 60 },
-    "api/asaas-proxy.js": { "maxDuration": 30 },
     "api/openai-chat.js": { "maxDuration": 30 },
-    "api/asaas-webhook.js": { "maxDuration": 30 },
-    "api/order-payment-sync.js": { "maxDuration": 30 },
     "api/cep-freight.js": { "maxDuration": 15 },
-    "api/admin-delivery-ceps.js": { "maxDuration": 15 }
+    "api/admin-delivery-ceps.js": { "maxDuration": 15 },
+    "api/n8n-products.js": { "maxDuration": 30 },
+    "api/mercadopago-create-preference.js": { "maxDuration": 30 },
+    "api/mercadopago-webhook.js": { "maxDuration": 30 },
+    "api/mercadopago-payment-status.js": { "maxDuration": 20 },
+    "api/asaas-proxy.js": { "maxDuration": 5 },
+    "api/asaas-webhook.js": { "maxDuration": 5 },
+    "api/order-payment-sync.js": { "maxDuration": 5 }
   }
 }

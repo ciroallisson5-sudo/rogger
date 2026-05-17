@@ -28,7 +28,7 @@ async function addProductToCart(productId, photoId, quantity, unitPrice) {
     if (!productId) throw new Error('Produto invalido');
 
     const sb = getSupabase();
-    if (!sb) throw new Error('Servico indisponivel');
+    if (!sb) throw new Error('Serviço indisponível');
 
     // Default values
     photoId = photoId || null;
@@ -54,7 +54,7 @@ async function addProductToCart(productId, photoId, quantity, unitPrice) {
       if (prod) {
         unitPrice = parseFloat(prod.discount_price || prod.base_price) || 0;
       } else {
-        throw new Error('Produto nao encontrado');
+        throw new Error('Produto não encontrado');
       }
     }
 
@@ -331,7 +331,7 @@ function cartInstallmentText(total) {
 }
 
 function cartWhatsappHref(message) {
-  const text = message || 'Ola! Tenho duvidas sobre meu carrinho na Conforta Colchões. Pode me ajudar?';
+  const text = message || 'Olá! Tenho dúvidas sobre meu carrinho na Conforta Colchões. Pode me ajudar?';
   if (window.CONFORTA_WHATSAPP_URL) return `${window.CONFORTA_WHATSAPP_URL}?text=${encodeURIComponent(text)}`;
   return '#';
 }
@@ -351,7 +351,7 @@ function openCartWhatsapp(e) {
   if (e) e.preventDefault();
   if (typeof window.openChatWidget === 'function') window.openChatWidget();
   else if (typeof window.toggleChat === 'function') window.toggleChat();
-  else if (typeof showToast === 'function') showToast('Atendimento indisponivel no momento', 'info');
+  else if (typeof showToast === 'function') showToast('Atendimento indisponível no momento', 'info');
 }
 
 function updateCartWhatsappLinks() {
@@ -437,7 +437,7 @@ function renderCartItem(item) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
-        <p class="cart-delivery-note">Entrega rapida na regiao</p>
+        <p class="cart-delivery-note">Entrega rápida na região</p>
         <div class="cart-item-bottom">
           <div>
             <span class="cart-item-label">Preco unitario</span>
@@ -608,8 +608,8 @@ function renderCartSidebar() {
           <div class="cart-benefits">
             <span>Compra segura</span>
             <span>WhatsApp</span>
-            <span>Entrega rapida</span>
-            <span>Ate 12x sem juros</span>
+            <span>Entrega rápida</span>
+            <span>Até 12x sem juros</span>
           </div>
         </div>
         <button class="cart-sidebar-close" onclick="closeCartSidebar()" aria-label="Fechar carrinho">
@@ -632,7 +632,7 @@ function renderCartSidebar() {
         <section class="cart-products-panel" id="cartProductsPanel" aria-label="Produtos no carrinho">
           <div class="cart-panel-heading">
             <h4>Produtos escolhidos</h4>
-            <span>Voce esta a poucos passos de dormir melhor.</span>
+            <span>Você está a poucos passos de dormir melhor.</span>
           </div>
           <div class="cart-sidebar-items" id="cartSidebarItems"></div>
           <div class="cart-complements" id="cartComplements" style="display:none">
@@ -654,13 +654,13 @@ function renderCartSidebar() {
         </div>
         <div class="cart-installments" id="cartSidebarInstallments">Pagamento facilitado</div>
         <div class="cart-delivery-box">
-          <strong>Entrega rapida em Serra, Vitoria e regiao.</strong>
+          <strong>Entrega rápida em Serra, Vitória e região.</strong>
           <span>Frete e prazo podem ser confirmados no checkout ou pelo WhatsApp.</span>
         </div>
         <button class="btn btn-primary btn-block cart-checkout-btn" onclick="handleCheckout()">Finalizar compra</button>
         <a class="btn btn-secondary btn-block" href="produtos.html">Continuar comprando</a>
         <a class="btn btn-outline btn-block js-cart-whatsapp" href="${cartWhatsappHref()}">Tirar duvida no WhatsApp</a>
-        <p class="cart-secure-copy">Finalize sua compra com seguranca. Pagamento facilitado.</p>
+        <p class="cart-secure-copy">Finalize sua compra com segurança. Pagamento facilitado.</p>
       </div>
       <div class="cart-mobile-bar" id="cartMobileBar" style="display:none">
         <div><span>Total</span><strong id="cartMobileTotal">R$ 0,00</strong></div>
@@ -761,7 +761,7 @@ async function initFullCartPage() {
       '<div class="cc-full-cart-total"><span>Total</span><strong>' + formatPrice(total) + '</strong></div>' +
       '<p class="cc-full-cart-install">' + escCart(cartInstallmentText(total)) + '</p>' +
       '<div class="cc-full-cart-delivery">' +
-      '<strong>Entrega rapida em Serra, Vitoria e regiao.</strong>' +
+      '<strong>Entrega rápida em Serra, Vitória e região.</strong>' +
       '<span>Frete e prazo sao confirmados no checkout.</span>' +
       '</div>' +
       '<button type="button" class="btn btn-primary btn-block btn-lg" onclick="handleCheckout()">Finalizar compra</button>' +

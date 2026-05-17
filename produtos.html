@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     :root {
       --brand: #1a56db;
@@ -310,8 +310,8 @@
           <label for="sortSelect">Ordenar</label>
           <select class="sort-select" id="sortSelect" aria-label="Ordenar produtos">
             <option value="relevance">Mais relevantes</option>
-            <option value="price_asc">Menor preco</option>
-            <option value="price_desc">Maior preco</option>
+            <option value="price_asc">Menor preço</option>
+            <option value="price_desc">Maior preço</option>
             <option value="best_sellers">Mais vendidos</option>
             <option value="discount">Maiores descontos</option>
             <option value="newest">Novidades</option>
@@ -347,10 +347,10 @@
             </div>
           </div>
           <div class="filter-section">
-            <h3>Faixa de preco</h3>
+            <h3>Faixa de preço</h3>
             <div id="priceFilters">
-              <label class="filter-option"><input type="radio" name="priceRange" value=""><span>Todos os precos</span></label>
-              <label class="filter-option"><input type="radio" name="priceRange" value="0-500"><span>Ate R$ 500</span></label>
+              <label class="filter-option"><input type="radio" name="priceRange" value=""><span>Todos os preços</span></label>
+              <label class="filter-option"><input type="radio" name="priceRange" value="0-500"><span>Até R$ 500</span></label>
               <label class="filter-option"><input type="radio" name="priceRange" value="500-1000"><span>R$ 500 a R$ 1.000</span></label>
               <label class="filter-option"><input type="radio" name="priceRange" value="1000-2000"><span>R$ 1.000 a R$ 2.000</span></label>
               <label class="filter-option"><input type="radio" name="priceRange" value="2000-"><span>Acima de R$ 2.000</span></label>
@@ -360,9 +360,9 @@
             <h3>Tipo de conforto</h3>
             <div id="comfortFilters">
               <label class="filter-option"><input type="checkbox" value="macio"><span>Macio</span></label>
-              <label class="filter-option"><input type="checkbox" value="intermediario"><span>Intermediario</span></label>
+              <label class="filter-option"><input type="checkbox" value="intermediario"><span>Intermediário</span></label>
               <label class="filter-option"><input type="checkbox" value="firme"><span>Firme</span></label>
-              <label class="filter-option"><input type="checkbox" value="ortopedico"><span>Ortopedico</span></label>
+              <label class="filter-option"><input type="checkbox" value="ortopedico"><span>Ortopédico</span></label>
             </div>
           </div>
           <div class="filter-section">
@@ -375,11 +375,11 @@
             </div>
           </div>
           <div class="filter-section">
-            <h3>Promocoes</h3>
+            <h3>Promoções</h3>
             <div id="promoFilters">
               <label class="filter-option"><input type="checkbox" value="offer" id="onlyOffers"><span>Em oferta</span></label>
               <label class="filter-option"><input type="checkbox" value="best_seller"><span>Mais vendidos</span></label>
-              <label class="filter-option"><input type="checkbox" value="fast_delivery"><span>Entrega rapida</span></label>
+              <label class="filter-option"><input type="checkbox" value="fast_delivery"><span>Entrega rápida</span></label>
             </div>
           </div>
         </div>
@@ -398,10 +398,10 @@
     </div>
   </main>
 
-  <nav class="mobile-bottom-nav" aria-label="Navegacao mobile">
-    <a href="index.html" aria-label="Inicio">
+  <nav class="mobile-bottom-nav" aria-label="Navegação mobile">
+    <a href="index.html" aria-label="Início">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 10 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-      Inicio
+      Início
     </a>
     <a href="produtos.html" class="active" aria-current="page" aria-label="Produtos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -987,7 +987,7 @@
         if (typeof addProductToCart === 'function') {
           await addProductToCart(productId, null, 1, price);
         } else {
-          showToast('Carrinho indisponivel', 'error');
+          showToast('Carrinho indisponível', 'error');
         }
       };
 
@@ -1080,7 +1080,7 @@
         { key: 'camas-box', label: 'Camas Box', keywords: ['cama box', 'camas box', 'base box'] },
         { key: 'box-bau', label: 'Box Bau', keywords: ['box bau', 'bau'] },
         { key: 'cabeceiras', label: 'Cabeceiras', keywords: ['cabeceira', 'cabeceiras'] },
-        { key: 'sofas', label: 'Sofas', keywords: ['sofa', 'sofas', 'estofado'] },
+        { key: 'sofas', label: 'Sofás', keywords: ['sofa', 'sofas', 'estofado'] },
         { key: 'kits', label: 'Kits Quarto Completo', keywords: ['kit', 'kits', 'quarto completo'] }
       ];
       var state = {
@@ -1421,7 +1421,7 @@
         var categoryName = category ? category.name : inferCategory(product);
         var installments = calcInstallments(current, 12, 20);
         var best = installments && installments.length ? installments[installments.length - 1] : null;
-        var desc = stripHtml(product.short_description || product.description || 'Ideal para noites mais confortaveis com atendimento especializado.');
+        var desc = stripHtml(product.short_description || product.description || 'Ideal para noites mais confortáveis com atendimento especializado.');
         return '<article class="product-card" tabindex="0" data-href="' + href + '" onclick="if(event.target.closest(\'a,button,.product-actions\'))return;var d=this.getAttribute(\'data-href\');if(d)location.href=d;">' +
           '<a class="product-image" href="' + href + '">' +
             '<div class="product-badges">' + buildBadges(product) + '</div>' +
@@ -1433,11 +1433,11 @@
             '<p class="product-desc">' + escHtml(truncateText(desc, 92)) + '</p>' +
             '<span class="product-old-price">' + (discount ? formatPrice(base) : '&nbsp;') + '</span>' +
             '<strong class="product-price">' + formatPrice(current) + '</strong>' +
-            (best ? '<span class="product-installment">ou ' + best.qtd + 'x de ' + formatPrice(best.valor) + ' sem juros</span>' : '<span class="product-installment">Parcele em ate 12x</span>') +
-            '<span class="product-delivery">Entrega rapida na regiao</span>' +
+            (best ? '<span class="product-installment">ou ' + best.qtd + 'x de ' + formatPrice(best.valor) + ' sem juros</span>' : '<span class="product-installment">Parcele em até 12x</span>') +
+            '<span class="product-delivery">Entrega rápida na região</span>' +
             '<div class="product-actions">' +
               '<a class="btn btn-primary" href="' + href + '">Comprar agora</a>' +
-              '<a class="btn btn-secondary js-whatsapp" href="' + whatsappHref(product.name) + '" data-product="' + escHtml(product.name || '') + '">Tirar duvida</a>' +
+              '<a class="btn btn-secondary js-whatsapp" href="' + whatsappHref(product.name) + '" data-product="' + escHtml(product.name || '') + '">Tirar dúvida</a>' +
             '</div>' +
           '</div>' +
         '</article>';
@@ -1467,7 +1467,7 @@
         if (hasDiscount(product)) badges.push('<span class="product-badge offer">Oferta</span>');
         if (product.best_seller || product.featured) badges.push('<span class="product-badge best">Mais vendido</span>');
         if (isNew(product)) badges.push('<span class="product-badge new">Novo</span>');
-        badges.push('<span class="product-badge delivery">Entrega rapida</span>');
+        badges.push('<span class="product-badge delivery">Entrega rápida</span>');
         return badges.slice(0, 3).join('');
       }
 
@@ -1490,8 +1490,8 @@
           '<div class="state-card">' +
             '<svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' +
             '<h2>Nenhum produto encontrado</h2>' +
-            '<p>Tente ajustar os filtros ou fale com nossa equipe para encontrar o colchao ideal.</p>' +
-            '<div class="state-actions"><button class="btn btn-secondary" type="button" onclick="window.clearAllProductFilters()">Limpar filtros</button><a class="btn btn-whatsapp js-whatsapp" href="' + whatsappHref('encontrar o colchao ideal') + '">Falar no WhatsApp</a></div>' +
+            '<p>Tente ajustar os filtros ou fale com nossa equipe para encontrar o colchão ideal.</p>' +
+            '<div class="state-actions"><button class="btn btn-secondary" type="button" onclick="window.clearAllProductFilters()">Limpar filtros</button><a class="btn btn-whatsapp js-whatsapp" href="' + whatsappHref('encontrar o colchão ideal') + '">Falar no WhatsApp</a></div>' +
           '</div>';
         state.total = 0;
         updateResultsCount();
@@ -1502,7 +1502,7 @@
         document.getElementById('productGrid').innerHTML =
           '<div class="state-card">' +
             '<svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg>' +
-            '<h2>Nao foi possivel carregar os produtos</h2>' +
+            '<h2>Não foi possível carregar os produtos</h2>' +
             '<p>Tente novamente em alguns instantes ou fale com nossa equipe pelo WhatsApp.</p>' +
             '<div class="state-actions"><button class="btn btn-primary" type="button" onclick="window.retryLoadProducts()">Tentar novamente</button><a class="btn btn-whatsapp js-whatsapp" href="' + whatsappHref('atendimento sobre produtos') + '">Falar no WhatsApp</a></div>' +
           '</div>';
@@ -1545,14 +1545,14 @@
       }
 
       function priceRangeLabel(range) {
-        var labels = { '0-500': 'Ate R$ 500', '500-1000': 'R$ 500 a R$ 1.000', '1000-2000': 'R$ 1.000 a R$ 2.000', '2000-': 'Acima de R$ 2.000' };
-        return labels[range] || 'Preco';
+        var labels = { '0-500': 'Até R$ 500', '500-1000': 'R$ 500 a R$ 1.000', '1000-2000': 'R$ 1.000 a R$ 2.000', '2000-': 'Acima de R$ 2.000' };
+        return labels[range] || 'Preço';
       }
 
       function promoLabel(value) {
         if (value === 'offer') return 'Em oferta';
         if (value === 'best_seller') return 'Mais vendidos';
-        if (value === 'fast_delivery') return 'Entrega rapida';
+        if (value === 'fast_delivery') return 'Entrega rápida';
         return labelize(value);
       }
 
@@ -1620,7 +1620,7 @@
       }
 
       function whatsappHref(productName) {
-        var msg = productName ? 'Ola! Tenho interesse em ' + productName + ' e gostaria de tirar uma duvida.' : 'Ola! Vim pela vitrine de produtos e gostaria de atendimento.';
+        var msg = productName ? 'Olá! Tenho interesse em ' + productName + ' e gostaria de tirar uma dúvida.' : 'Olá! Vim pela vitrine de produtos e gostaria de atendimento.';
         if (window.CONFORTA_WHATSAPP_URL) return window.CONFORTA_WHATSAPP_URL + '?text=' + encodeURIComponent(msg);
         return '#';
       }
@@ -1695,7 +1695,7 @@
           e.preventDefault();
           if (typeof window.openChatWidget === 'function') window.openChatWidget();
           else if (typeof window.toggleChat === 'function') window.toggleChat();
-          else showToast('Atendimento indisponivel no momento', 'info');
+          else showToast('Atendimento indisponível no momento', 'info');
         });
       }
 

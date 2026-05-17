@@ -92,7 +92,7 @@ function initChat() {
   chatBox.querySelector('.chat-input-area button').addEventListener('click', sendChatMessage);
 
     setTimeout(() => {
-    addChatMessage('assistant', 'Ola! Sou da equipe Conforta — estou aqui para te ajudar com produtos, precos, entrega na regiao, parcelamento ou para te encaminhar ao que precisar. Por onde quer comecar?');
+    addChatMessage('assistant', 'Olá! Sou da equipe Conforta — estou aqui para te ajudar com produtos, preços, entrega na região, parcelamento ou para te encaminhar ao que precisar. Por onde quer começar?');
     loadChatHistory();
   }, 500);
 }
@@ -279,7 +279,7 @@ function buildCatalogSystemPrompt(sortedProducts) {
     var cp = parseFloat(c.discount_price || c.base_price) || 0;
     var u = c.id ? productPageUrl(c.id) : '';
     cheapestLine =
-      'O item com MENOR preço no catalogo agora é: "' +
+      'O item com MENOR preço no catálogo agora é: "' +
       (c.name || 'Produto') +
       '" por R$ ' +
       cp.toFixed(2).replace('.', ',') +
@@ -287,16 +287,16 @@ function buildCatalogSystemPrompt(sortedProducts) {
       '.\n';
   }
   return (
-    'Voce é um atendente da Conforta Colchões (colchões, camas, sofás e móveis). Fale como uma pessoa prestativa da loja: natural, caloroso, sem soar robotizado. Use "eu" quando fizer sentido.\n' +
-    'Responda em portugues do Brasil. Frases curtas quando couber; confirme o que entendeu antes de longas explicacoes.\n' +
-    'Use SOMENTE o catalogo abaixo para nomes, precos e links. Nao invente produtos, precos nem URLs.\n' +
-    'Orcamento / total com frete: o valor final e no carrinho e checkout; nao prometa total fechado nem frete exato sem o cliente simular la.\n' +
-    'Parcelamento: se citar parcela, use apenas divisao do preco a vista do catalogo (referencia); juros e maximo de parcelas dependem do meio de pagamento no checkout.\n' +
-    'Se o cliente pedir link, pagina, "manda ai", "sim" depois de voce oferecer o produto, envie o link completo da linha do produto.\n' +
-    'Se nao souber algo (garantia legal, nota fiscal, status de pedido especifico), diga com honestidade e oriente a falar no WhatsApp ou na loja — nao invente.\n' +
+    'Você é um atendente da Conforta Colchões (colchões, camas, sofás e móveis). Fale como uma pessoa prestativa da loja: natural, caloroso, sem soar robotizado. Use "eu" quando fizer sentido.\n' +
+    'Responda em português do Brasil. Frases curtas quando couber; confirme o que entendeu antes de longas explicações.\n' +
+    'Use SOMENTE o catálogo abaixo para nomes, preços e links. Não invente produtos, preços nem URLs.\n' +
+    'Orçamento / total com frete: o valor final é no carrinho e checkout; não prometa total fechado nem frete exato sem o cliente simular lá.\n' +
+    'Parcelamento: se citar parcela, use apenas divisão do preço à vista do catálogo (referência); juros e máximo de parcelas dependem do meio de pagamento no checkout.\n' +
+    'Se o cliente pedir link, página, "manda aí", "sim" depois de você oferecer o produto, envie o link completo da linha do produto.\n' +
+    'Se não souber algo (garantia legal, nota fiscal, status de pedido específico), diga com honestidade e oriente a falar no WhatsApp ou na loja — não invente.\n' +
     cheapestLine +
-    '\nCatalogo (do menor ao maior preço):\n' +
-    (lines.length ? lines.join('\n') : '(catalogo vazio no momento)')
+    '\nCatálogo (do menor ao maior preço):\n' +
+    (lines.length ? lines.join('\n') : '(catálogo vazio no momento)')
   );
 }
 
@@ -312,10 +312,16 @@ async function tryOpenAiChat(userMessage, pageProduct) {
   try {
     var probe = await fetch('/api/openai-chat', { method: 'GET' }).catch(function() { return null; });
     if (!probe || !probe.ok) return null;
-    var meta = await probe.json().catch(function() { return {}; });
-    if (!meta.configured) return null;
 
     if (!window.__chatGptHistory) window.__chatGptHistory = [];
+
+    var sb = typeof getSupabase === 'function' ? getSupabase() : null;
+    var tok = null;
+    if (sb) {
+      var ses = await sb.auth.getSession();
+      tok = ses && ses.data && ses.data.session && ses.data.session.access_token;
+    }
+    if (!tok) return null;
 
     var hist = window.__chatGptHistory.slice(-12);
     var postBody = {
@@ -327,7 +333,7 @@ async function tryOpenAiChat(userMessage, pageProduct) {
 
     var res = await fetch('/api/openai-chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
       body: JSON.stringify(postBody)
     });
     var data = await res.json().catch(function() { return {}; });
@@ -470,18 +476,18 @@ function getLocalResponse(message, products) {
       var uPage = productPageUrl(pageP.id);
       writeChatContext({ lastOfferedProductId: pageP.id, lastOfferedProductName: pageP.name || '' });
       return (
-        'Na pagina que voce abriu agora, o ' +
+        'Na página que você abriu agora, o ' +
         (pageP.name || 'produto') +
-        ' esta com preco a partir de R$ ' +
+        ' está com preço a partir de R$ ' +
         pv.toFixed(2).replace('.', ',') +
-        ' (configuracao atual no site).' +
+        ' (configuração atual no site).' +
         (uPage ? ' Link: ' + uPage : '') +
-        ' Orcamento com frete e parcelas exatas: confira no carrinho/checkout ou no WhatsApp da loja.'
+        ' Orçamento com frete e parcelas exatas: confira no carrinho/checkout ou no WhatsApp da loja.'
       );
     }
     if (sorted.length > 0) {
       return (
-        'Para eu nao te passar preco errado de outro modelo, me diz o nome do produto como aparece no site, ou pergunta "qual o mais barato?" que eu te mando o item certo com link e valor.'
+        'Para eu não te passar preço errado de outro modelo, me diz o nome do produto como aparece no site, ou pergunta "qual o mais barato?" que eu te mando o item certo com link e valor.'
       );
     }
     return 'Temos várias faixas de preço no site. Abre em Produtos ou me diz casal/queen/king que eu te guio.';

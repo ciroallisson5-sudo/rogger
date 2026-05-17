@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -436,9 +436,9 @@
 
       var FALLBACK_PRODUCT = {
         id: 'fb-prod-1',
-        name: 'Colchao King Size Conforta Ortopedico',
+        name: 'Colchão king size Conforta ortopédico',
         slug: 'colchao-king-size-conforta-ortopedico',
-        description: '<p>O Colchao King Size Conforta Ortopedico oferece o maximo em conforto e suporte para suas noites de sono. Desenvolvido com tecnologia de ponta, proporciona alivio de pressao e alinhamento adequado da coluna.</p><p>Camadas de espuma D33 de alta densidade garantem durabilidade e conforto excepcionais. Capa em malha premium com tratamento antialergico e antiacaro.</p>',
+        description: '<p>O colchão king size Conforta ortopédico oferece o máximo em conforto e suporte para suas noites de sono. Desenvolvido com tecnologia de ponta, proporciona alívio de pressão e alinhamento adequado da coluna.</p><p>Camadas de espuma D33 de alta densidade garantem durabilidade e conforto excepcionais. Capa em malha premium com tratamento antialérgico e antiácaro.</p>',
         category_id: 'cat-1',
         base_price: 4999.00,
         discount_price: 3999.00,
@@ -446,8 +446,8 @@
         stock: 15,
         weight: 35.5,
         dimensions: '193 x 203 x 35 cm',
-        material: 'Espuma D33 Ortopedica, Capa em Malha Premium',
-        warranty: '10 anos contra defeitos de fabricacao',
+        material: 'Espuma D33 ortopédica, capa em malha premium',
+        warranty: '10 anos contra defeitos de fabricação',
         tags: ['colchao', 'king', 'ortopedico', 'casal'],
         product_photos: [
           {
@@ -463,7 +463,7 @@
             color_name: 'Azul Marinho',
             color_hex: '#1e3a5f',
             size: 'King 193x203',
-            custom_label: 'Ortopedico',
+            custom_label: 'Ortopédico',
             stock_override: null,
             same_as_photo_id: null
           },
@@ -612,8 +612,8 @@
         if (!productData) {
           container.innerHTML =
             '<div class="not-found">' +
-            '<h2>Produto nao encontrado</h2>' +
-            '<p>O produto que voce esta procurando nao existe ou foi removido.</p>' +
+            '<h2>Produto não encontrado</h2>' +
+            '<p>O produto que você está procurando não existe ou foi removido.</p>' +
             '<a href="produtos.html">Ver todos os produtos</a>' +
             '</div>';
           return;
@@ -779,7 +779,7 @@
           '</button>' +
           '</div>' +
           '<div class="trust-badges">' +
-          '<span class="trust-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Entrega rapida</span>' +
+          '<span class="trust-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Entrega rápida</span>' +
           '<span class="trust-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> 12x sem juros</span>' +
           '<span class="trust-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Atendimento especializado</span>' +
           '</div>' +
@@ -787,11 +787,11 @@
           '</div>' +
           '<div class="product-details-tabs">' +
           '<div class="tabs-header">' +
-          '<button class="tab-btn active" data-tab="descricao" onclick="window.switchTab(\'descricao\')">Descricao</button>' +
+          '<button class="tab-btn active" data-tab="descricao" onclick="window.switchTab(\'descricao\')">Descrição</button>' +
           '<button class="tab-btn" data-tab="detalhes" onclick="window.switchTab(\'detalhes\')">Detalhes</button>' +
           '</div>' +
           '<div class="tab-content active" id="tab-descricao">' +
-          (p.description || '<p style="color:#94a3b8;">Descricao indisponivel para este produto.</p>') +
+          (p.description || '<p style="color:#94a3b8;">Descrição indisponível para este produto.</p>') +
           '</div>' +
           '<div class="tab-content" id="tab-detalhes">' +
           '<table class="details-table">' +
@@ -1149,8 +1149,8 @@
         if (!productId) {
           container.innerHTML =
             '<div class="not-found">' +
-            '<h2>Produto nao encontrado</h2>' +
-            '<p>ID do produto nao informado.</p>' +
+            '<h2>Produto não encontrado</h2>' +
+            '<p>ID do produto não informado.</p>' +
             '<a href="produtos.html">Ver todos os produtos</a>' +
             '</div>';
           return;
@@ -1218,8 +1218,8 @@
 
         categories = [
           { id: 'cat-1', name: 'Colchões', slug: 'colchoes' },
-          { id: 'cat-2', name: 'Sofas', slug: 'sofas' },
-          { id: 'cat-3', name: 'Box Bau', slug: 'box-bau' },
+          { id: 'cat-2', name: 'Sofás', slug: 'sofas' },
+          { id: 'cat-3', name: 'Box baú', slug: 'box-bau' },
           { id: 'cat-4', name: 'Cabeceiras', slug: 'cabeceiras' },
           { id: 'cat-5', name: 'Kits', slug: 'kits' }
         ];
@@ -1411,10 +1411,10 @@
         }
         try {
           sb = getSupabase();
-          if (!sb) throw new Error('Supabase indisponivel');
+          if (!sb) throw new Error('Supabase indisponível');
           var prodResp = await sb.from('products').select('*, product_photos(*)').eq('id', productId).maybeSingle();
           if (prodResp.error) throw prodResp.error;
-          if (!prodResp.data) throw new Error('Produto nao encontrado');
+          if (!prodResp.data) throw new Error('Produto não encontrado');
           var catResp = await sb.from('categories').select('id, name, slug').eq('active', true).order('sort_order', { ascending: true });
           categories = catResp.data || [];
           productData = prodResp.data;
@@ -1435,7 +1435,7 @@
         document.title = productData.name + ' - Conforta Colchões';
         var meta = document.querySelector('meta[name="description"]');
         if (meta) {
-          meta.content = productData.seo_description || stripHtml(productData.description || 'Produto Conforta Colchões com atendimento especializado e entrega rapida na regiao.').slice(0, 155);
+          meta.content = productData.seo_description || stripHtml(productData.description || 'Produto Conforta Colchões com atendimento especializado e entrega rápida na região.').slice(0, 155);
         }
       }
 
@@ -1471,7 +1471,7 @@
               '</div>' +
             '</div>' +
             renderDetailsSections(product, catName) +
-            '<section class="pdp-section" id="relatedSection" style="display:none"><h2>Voce tambem pode gostar</h2><div class="related-grid" id="relatedGrid"></div></section>' +
+            '<section class="pdp-section" id="relatedSection" style="display:none"><h2>Você também pode gostar</h2><div class="related-grid" id="relatedGrid"></div></section>' +
           '</div>' +
           renderMobileBuyBar(current, unavailable);
 
@@ -1483,10 +1483,10 @@
 
       function renderBadges(product, discounted, unavailable) {
         var html = '';
-        if (unavailable) html += '<span class="pdp-badge unavailable">Indisponivel no momento</span>';
+        if (unavailable) html += '<span class="pdp-badge unavailable">Indisponível no momento</span>';
         if (discounted) html += '<span class="pdp-badge offer">Oferta</span>';
         if (product.featured || product.best_seller) html += '<span class="pdp-badge">Mais vendido</span>';
-        html += '<span class="pdp-badge fast">Entrega rapida</span>';
+        html += '<span class="pdp-badge fast">Entrega rápida</span>';
         if (product.warranty) html += '<span class="pdp-badge warranty">Garantia</span>';
         if (isNew(product)) html += '<span class="pdp-badge new">Novo</span>';
         return html;
@@ -1555,7 +1555,7 @@
           if (src) return '<video src="' + escHtml(src) + '" controls playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video>';
         }
         if (config && config.url) return '<img src="' + escHtml(absolutizeMediaUrl(config.url)) + '" alt="' + escHtml(product.name) + '" id="mainProductImage" decoding="async">';
-        return '<div class="pdp-placeholder">' + placeholderSvg() + '<strong>' + escHtml(categoryName(product) || product.name) + '</strong><span>Imagem indisponivel no momento</span></div>';
+        return '<div class="pdp-placeholder">' + placeholderSvg() + '<strong>' + escHtml(categoryName(product) || product.name) + '</strong><span>Imagem indisponível no momento</span></div>';
       }
 
       function placeholderSvg() {
@@ -1611,19 +1611,19 @@
         var note = '';
         var cls = 'stock-note';
         if (unavailable) {
-          note = 'Produto indisponivel no momento. Consulte disponibilidade pelo WhatsApp.';
+          note = 'Produto indisponível no momento. Consulte disponibilidade pelo WhatsApp.';
           cls += ' out';
         } else if (stock !== null && stock <= 5) {
-          note = 'Estoque limitado: ' + stock + ' unidade' + (stock === 1 ? '' : 's') + ' disponivel' + (stock === 1 ? '' : 's') + '.';
+          note = 'Estoque limitado: ' + stock + ' unidade' + (stock === 1 ? '' : 's') + ' disponível' + (stock === 1 ? '' : 'is') + '.';
           cls += ' warn';
         } else {
-          note = 'Produto selecionado para mais conforto e entrega rapida.';
+          note = 'Produto selecionado para mais conforto e entrega rápida.';
         }
         return '<div class="qty-row"><label for="qtyInput">Quantidade</label><div class="qty-control"><button type="button" id="qtyMinus" aria-label="Diminuir quantidade">-</button><input id="qtyInput" type="text" value="' + selectedQty + '" readonly aria-label="Quantidade"><button type="button" id="qtyPlus" aria-label="Aumentar quantidade">+</button></div></div><div class="' + cls + '">' + escHtml(note) + '</div>';
       }
 
       function renderDeliveryBlock() {
-        return '<section class="delivery-card"><h2>Entrega e disponibilidade</h2><p class="delivery-message">Entrega rapida em Serra, Vitoria e regiao. Confirme o prazo e disponibilidade com nossa equipe pelo WhatsApp.</p><div class="cep-row"><input type="text" id="cepInput" inputmode="numeric" placeholder="Digite seu CEP" aria-label="Digite seu CEP"><button class="btn btn-outline" type="button" id="cepBtn">Calcular</button></div><p class="delivery-message" id="cepMessage">Fale conosco para confirmar prazo e disponibilidade.</p></section>';
+        return '<section class="delivery-card"><h2>Entrega e disponibilidade</h2><p class="delivery-message">Entrega rápida em Serra, Vitória e região. Confirme o prazo e disponibilidade com nossa equipe pelo WhatsApp.</p><div class="cep-row"><input type="text" id="cepInput" inputmode="numeric" placeholder="Digite seu CEP" aria-label="Digite seu CEP"><button class="btn btn-outline" type="button" id="cepBtn">Calcular</button></div><p class="delivery-message" id="cepMessage">Fale conosco para confirmar prazo e disponibilidade.</p></section>';
       }
 
       function renderActions(unavailable) {
@@ -1660,8 +1660,8 @@
 
       function renderBenefits(product) {
         return '<div class="benefit-grid">' +
-          benefitIcon('Entrega rapida') +
-          benefitIcon('Ate 12x sem juros') +
+          benefitIcon('Entrega rápida') +
+          benefitIcon('Até 12x sem juros') +
           benefitIcon('Atendimento especializado') +
           benefitIcon('Compra segura') +
           benefitIcon(product.warranty ? 'Garantia do produto' : 'Produto selecionado') +
@@ -1674,15 +1674,15 @@
 
       function renderDetailsSections(product, catName) {
         var desc = product.description || '<p>Produto selecionado pela Conforta Colchões para oferecer conforto, qualidade e praticidade no dia a dia.</p>';
-        return '<section class="pdp-section"><h2>Descricao do produto</h2>' + desc + '</section>' +
+        return '<section class="pdp-section"><h2>Descrição do produto</h2>' + desc + '</section>' +
           '<section class="pdp-section"><h2>Para quem e indicado?</h2><ul>' + indicationBullets(product, catName).map(function(item) { return '<li>' + escHtml(item) + '</li>'; }).join('') + '</ul></section>' +
           '<section class="pdp-section"><h2>Especificacoes tecnicas</h2>' + renderSpecs(product, catName) + '</section>' +
-          '<section class="pdp-section"><h2>Cuidados com seu produto</h2><ul><li>Evite dobrar ou forcar a estrutura do colchao.</li><li>Gire o colchao periodicamente, se recomendado pelo fabricante.</li><li>Use em base adequada.</li><li>Evite exposicao direta a umidade.</li><li>Consulte a garantia para orientacoes especificas.</li></ul></section>';
+          '<section class="pdp-section"><h2>Cuidados com seu produto</h2><ul><li>Evite dobrar ou forçar a estrutura do colchão.</li><li>Gire o colchão periodicamente, se recomendado pelo fabricante.</li><li>Use em base adequada.</li><li>Evite exposição direta à umidade.</li><li>Consulte a garantia para orientações específicas.</li></ul></section>';
       }
 
       function indicationBullets(product, catName) {
         var text = productText(product);
-        var items = ['Para quem busca mais conforto no sono.', 'Para quem quer renovar o quarto com praticidade.', 'Para quem valoriza entrega rapida e atendimento especializado.'];
+        var items = ['Para quem busca mais conforto no sono.', 'Para quem quer renovar o quarto com praticidade.', 'Para quem valoriza entrega rápida e atendimento especializado.'];
         if (/casal|queen|king|solteiro/i.test(text)) items.splice(1, 0, 'Para quartos de casal, solteiro ou suite, conforme o produto.');
         if (/firme|ortoped/i.test(text)) items.splice(1, 0, 'Para quem prefere suporte mais firme e estavel.');
         if (/macio|confort/i.test(text)) items.splice(1, 0, 'Para quem prefere uma sensacao mais confortavel ao deitar.');
@@ -1717,7 +1717,7 @@
       }
 
       function renderMobileBuyBar(price, unavailable) {
-        return '<div class="mobile-buybar"><div class="mobile-buybar-inner"><div class="mobile-price"><span>Total</span>' + money(price) + '</div><button class="btn btn-primary" type="button" id="mobileBuyBtn" ' + (unavailable ? 'disabled' : '') + '>' + (unavailable ? 'Indisponivel' : 'Comprar') + '</button></div></div>';
+        return '<div class="mobile-buybar"><div class="mobile-buybar-inner"><div class="mobile-price"><span>Total</span>' + money(price) + '</div><button class="btn btn-primary" type="button" id="mobileBuyBtn" ' + (unavailable ? 'disabled' : '') + '>' + (unavailable ? 'Indisponível' : 'Comprar') + '</button></div></div>';
       }
 
       function renderFinalHelp() {
@@ -1731,7 +1731,7 @@
         return qty;
       }
 
-      /** Contexto para o chat / n8n: preco da variante selecionada (foto), sem inventar orcamento. */
+      /** Contexto para o chat / n8n: preço da variante selecionada (foto), sem inventar orçamento. */
       function syncChatPageProduct() {
         try {
           if (!productData || !productData.id) {
@@ -1770,7 +1770,7 @@
             },
             product_page_url: pageUrl,
             nota_precos:
-              'O preco correto a citar para esta pagina e preco_exibido_vitrine (variante da foto selecionada). ' +
+              'O preço correto a citar para esta página é preco_exibido_vitrine (variante da foto selecionada). ' +
               'Nao substitua por outro produto do catalogo. Orcamento com frete e condicao de parcelamento: checkout ou WhatsApp da loja.'
           };
         } catch (_) {
@@ -1793,7 +1793,7 @@
           img.addEventListener('error', function() {
             var parent = img.parentNode;
             img.remove();
-            if (parent && !parent.querySelector('.pdp-placeholder')) parent.insertAdjacentHTML('beforeend', '<div class="pdp-placeholder">' + placeholderSvg() + '<span>Imagem indisponivel</span></div>');
+            if (parent && !parent.querySelector('.pdp-placeholder')) parent.insertAdjacentHTML('beforeend', '<div class="pdp-placeholder">' + placeholderSvg() + '<span>Imagem indisponível</span></div>');
           });
         });
       }
@@ -1854,7 +1854,7 @@
             return;
           }
           if (j.delivered === false) {
-            msg.textContent = j.message || 'Infelizmente nao realizamos entrega para este CEP.';
+            msg.textContent = j.message || 'Infelizmente não realizamos entrega para este CEP.';
             return;
           }
           if (j.delivered) {
@@ -1887,7 +1887,7 @@
         var photo = currentPhoto();
         var stock = getStock(photo, productData);
         if (stock !== null && stock <= 0) {
-          if (typeof showToast === 'function') showToast('Produto indisponivel no momento', 'info');
+          if (typeof showToast === 'function') showToast('Produto indisponível no momento', 'info');
           return;
         }
         var price = displayPrice(photo, productData);
@@ -1929,7 +1929,7 @@
       }
 
       function whatsappHref(productName) {
-        var msg = 'Ola! Tenho interesse no produto ' + (productName || 'da Conforta Colchões') + '. Pode me ajudar?';
+        var msg = 'Olá! Tenho interesse no produto ' + (productName || 'da Conforta Colchões') + '. Pode me ajudar?';
         if (window.CONFORTA_WHATSAPP_URL) return window.CONFORTA_WHATSAPP_URL + '?text=' + encodeURIComponent(msg);
         return '#';
       }
@@ -1956,7 +1956,7 @@
               e.preventDefault();
               if (typeof window.openChatWidget === 'function') window.openChatWidget();
               else if (typeof window.toggleChat === 'function') window.toggleChat();
-              else if (typeof showToast === 'function') showToast('Atendimento indisponivel no momento', 'info');
+              else if (typeof showToast === 'function') showToast('Atendimento indisponível no momento', 'info');
             }, { once: true });
           }
         });

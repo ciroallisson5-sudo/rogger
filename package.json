@@ -1,7 +1,7 @@
 {
   "name": "conforta-store",
   "version": "1.0.0",
-  "description": "Conforta Store - E-commerce with Supabase + Asaas payments",
+  "description": "Conforta Store — e-commerce com Supabase e pagamentos via Mercado Pago (Checkout Pro).",
   "scripts": {
     "start": "node scripts/dev-server.cjs",
     "dev": "node scripts/dev-server.cjs",

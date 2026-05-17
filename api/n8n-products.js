@@ -1,37 +1,18 @@
 'use strict';
 
 /**
- * Catálogo JSON para n8n / WhatsApp (não oficial): produtos ativos + fotos (URLs Supabase Storage).
- *
+ * Catalogo JSON para n8n / integracoes server-side.
  * GET /api/n8n-products
- * Segurança (recomendado em produção): header
- *   Authorization: Bearer <N8N_PRODUCTS_SECRET>
- * ou query ?secret=<N8N_PRODUCTS_SECRET>
- *
- * Opções (lista plana = JSON com array `images` para loop WhatsApp):
- *   ?flat_images=1 — por defeito **1 foto por produto** (hero: primeira imagem por sort_order, sem vídeo).
- *   ?flat_images=1&all_photos=1 — **todas** as fotos de cada produto (comportamento antigo).
- *   ?one_per_product=1 — igual a flat com 1 foto (podes usar sem flat_images).
- *
- * Mesma chave sempre: N8N_PRODUCTS_SECRET (Bearer ou ?secret=).
+ * Autenticacao: header x-n8n-products-secret (ou Authorization: Bearer <mesmo valor>).
  */
 
-const SECRET = process.env.N8N_PRODUCTS_SECRET || '';
+const { applyBrowserCors, handleOptions } = require('./_http');
+const { rateLimitKey, allow, prune } = require('./_rate-limit');
 
-function checkAuth(req) {
-  if (!SECRET) return true;
-  const auth = req.headers.authorization || '';
-  const tok = auth.replace(/^Bearer\s+/i, '').trim();
-  if (tok && tok === SECRET) return true;
-  try {
-    const u = new URL(req.url || '', 'http://localhost');
-    const q = u.searchParams.get('secret');
-    if (q && q === SECRET) return true;
-  } catch (_) {
-    /**/
-  }
-  return false;
-}
+const SECRET = (process.env.N8N_PRODUCTS_SECRET || '').trim();
+
+const SELECT =
+  'id,name,slug,description,active,base_price,discount_price,stock,featured,tags,weight,dimensions,material,warranty,created_at,categories(name,slug),product_photos(id,url,thumb_url,sort_order,is_video,video_url,color_name,color_hex,size,price,discount_price,custom_label,stock_override,active)';
 
 function mapProduct(p) {
   const photos = (p.product_photos || []).filter(function (ph) {
@@ -75,40 +56,45 @@ function mapProduct(p) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  prune();
+  applyBrowserCors(req, res);
+  if (handleOptions(req, res)) return;
 
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
+  const key = rateLimitKey(req, 'n8n-prod');
+  if (!allow(key, 40, 60000)) {
+    res.status(429).json({ error: 'Muitas requisicoes. Aguarde.' });
+    return;
+  }
+
   if (process.env.VERCEL_ENV === 'production' && !SECRET) {
     res.status(503).json({
-      error:
-        'Em producao e obrigatorio definir N8N_PRODUCTS_SECRET na Vercel (Bearer ou ?secret=).'
+      error: 'Em producao e obrigatorio definir N8N_PRODUCTS_SECRET na Vercel.'
     });
     return;
   }
 
-  if (!checkAuth(req)) {
-    res.status(401).json({
-      error:
-        'Token invalido ou ausente. Envie Authorization: Bearer <N8N_PRODUCTS_SECRET> ou ?secret=<valor>'
-    });
-    return;
+  if (SECRET) {
+    const h = String(req.headers['x-n8n-products-secret'] || req.headers['X-N8n-Products-Secret'] || '').trim();
+    const auth = String(req.headers.authorization || '');
+    const tok = auth.replace(/^Bearer\s+/i, '').trim();
+    const ok = (h && h === SECRET) || tok === SECRET;
+    if (!ok) {
+      res.status(401).json({
+        error: 'Credencial invalida ou ausente. Envie o header x-n8n-products-secret.'
+      });
+      return;
+    }
   }
 
   const svc = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   const base = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
   if (!svc || !base) {
-    res.status(503).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY nao configurados' });
+    res.status(503).json({ error: 'Supabase não configurado no servidor.' });
     return;
   }
 
@@ -121,15 +107,13 @@ module.exports = async function handler(req, res) {
     flatImages = u.searchParams.get('flat_images') === '1' || explicitOne;
     allPhotos = u.searchParams.get('all_photos') === '1';
     if (explicitOne) flatImages = true;
-    /* flat_images só: predefinição = cardápio WhatsApp (1 hero por SKU). all_photos=1 volta a listar todas. */
     onePerProduct = explicitOne || (flatImages && !allPhotos);
   } catch (_) {
     /**/
   }
 
   const url =
-    base +
-    '/rest/v1/products?active=eq.true&select=*,categories(name,slug),product_photos(*)&order=name.asc&limit=500';
+    base + '/rest/v1/products?active=eq.true&select=' + encodeURIComponent(SELECT) + '&order=name.asc&limit=500';
 
   try {
     const fetchRes = await fetch(url, {
@@ -143,8 +127,7 @@ module.exports = async function handler(req, res) {
     });
     if (!fetchRes.ok) {
       res.status(fetchRes.status >= 400 ? fetchRes.status : 502).json({
-        error: 'Falha ao ler produtos no Supabase',
-        detail: raw
+        error: 'Falha ao ler produtos no Supabase'
       });
       return;
     }
@@ -198,7 +181,7 @@ module.exports = async function handler(req, res) {
       products: products
     });
   } catch (err) {
-    console.error('[n8n-products]', err);
-    res.status(500).json({ error: err.message || 'Erro interno' });
+    void err;
+    res.status(500).json({ error: 'Erro interno' });
   }
 };

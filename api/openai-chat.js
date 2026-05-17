@@ -10,7 +10,36 @@
 //   { "n8n_product_blurb": true, "product": {...}, "instruction": "..." }
 
 const brain = require('./ai-brain');
+const { applyBrowserCors, handleOptions } = require('./_http');
+const { rateLimitKey, allow, prune } = require('./_rate-limit');
+const { verifySupabaseUserJwt } = require('./_supabase-user');
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+
+function routeSecretOk(req) {
+  const secret = (process.env.OPENAI_ROUTE_SECRET || '').trim();
+  if (!secret) return false;
+  const h = String(req.headers['x-openai-route-secret'] || req.headers['X-Openai-Route-Secret'] || '').trim();
+  if (h && h === secret) return true;
+  const auth = String(req.headers.authorization || '');
+  const tok = auth.replace(/^Bearer\s+/i, '').trim();
+  return tok === secret;
+}
+
+async function authOpenAi(req) {
+  if (routeSecretOk(req)) return true;
+  const auth = String(req.headers.authorization || '').trim();
+  const jwt = auth.replace(/^Bearer\s+/i, '').trim();
+  if (!jwt) return false;
+  const u = await verifySupabaseUserJwt(jwt);
+  return !!u;
+}
+
+function sanitizeUserText(s) {
+  return String(s || '')
+    .replace(/\u0000/g, '')
+    .trim()
+    .slice(0, 4000);
+}
 
 function parseRawBody(raw) {
   if (raw == null) return {};
@@ -146,21 +175,12 @@ function historyFromMessages(msgsRaw) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  prune();
+  applyBrowserCors(req, res);
+  if (handleOptions(req, res)) return;
 
   if (req.method === 'GET') {
-    res.status(200).json({
-      ok: true,
-      configured: !!process.env.OPENAI_API_KEY,
-      catalog_from_supabase: brain.isSupabaseConfigured()
-    });
+    res.status(200).json({ ok: true });
     return;
   }
 
@@ -169,10 +189,21 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  if (!(await authOpenAi(req))) {
+    res.status(401).json({ error: 'Nao autorizado' });
+    return;
+  }
+
+  const key = rateLimitKey(req, 'openai');
+  if (!allow(key, 24, 60000)) {
+    res.status(429).json({ error: 'Muitas requisicoes. Aguarde um minuto.', reply: null });
+    return;
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     res.status(503).json({
-      error: 'OPENAI_API_KEY not configured (defina na Vercel, nao no .env do site)',
+      error: 'OPENAI_API_KEY nao configurada no servidor.',
       reply: null
     });
     return;
@@ -219,6 +250,7 @@ module.exports = async function handler(req, res) {
     if (!userMessage && !productPayload && includeCatalog) {
       userMessage = 'Responda como atendente da loja com base no catalogo.';
     }
+    userMessage = sanitizeUserText(userMessage);
 
     let messages;
     let temperature = 0.5;
@@ -226,9 +258,10 @@ module.exports = async function handler(req, res) {
 
     if (blurbOn && productPayload) {
       temperature = 0.35;
-      const instruction =
+      const instruction = sanitizeUserText(
         (typeof body.instruction === 'string' && body.instruction.trim()) ||
-        'Gere UMA mensagem curta (ate ~320 caracteres) para WhatsApp ou rede social sobre o produto em foco. Um paragrafo, sem lista.';
+          'Gere UMA mensagem curta (ate ~320 caracteres) para WhatsApp ou rede social sobre o produto em foco. Um paragrafo, sem lista.'
+      );
       const assembled = await brain.assembleBrainMessages({
         siteBase: siteBase,
         includeCatalog: includeCatalog,
@@ -274,7 +307,7 @@ module.exports = async function handler(req, res) {
         siteBase: siteBase,
         includeCatalog: includeCatalog,
         product: productPayload,
-        userMessage: 'Descreva este produto para o cliente com preco e link corretos.'
+        userMessage: 'Descreva este produto para o cliente com preço e link corretos.'
       });
       messages = assembled.messages;
       catalogCount = assembled.catalogCount;
@@ -316,9 +349,8 @@ module.exports = async function handler(req, res) {
     });
 
     if (!openaiRes.ok) {
-      const errMsg = data.error?.message || data.message || 'OpenAI request failed';
       res.status(openaiRes.status >= 400 && openaiRes.status < 600 ? openaiRes.status : 502).json({
-        error: errMsg,
+        error: 'Nao foi possivel gerar a resposta.',
         reply: null
       });
       return;
@@ -339,6 +371,7 @@ module.exports = async function handler(req, res) {
       catalog_products: catalogCount
     });
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Internal error', reply: null });
+    void err;
+    res.status(500).json({ error: 'Erro interno', reply: null });
   }
 };

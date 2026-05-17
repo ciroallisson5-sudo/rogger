@@ -1,0 +1,105 @@
+'use strict';
+
+const { parseBody } = require('./_http');
+const {
+  adminConfig,
+  applyMercadoPagoApproved,
+  validateMercadoPagoWebhookSignature,
+  clearCartForOrderUser
+} = require('./mercadopago-sync');
+
+function parseQuery(url) {
+  const out = {};
+  try {
+    const u = new URL(url || '', 'http://localhost');
+    u.searchParams.forEach(function (v, k) {
+      out[k] = v;
+    });
+  } catch (_) {
+    /**/
+  }
+  return out;
+}
+
+function rawBodyString(req, parsed) {
+  if (typeof req.body === 'string') return req.body;
+  try {
+    return JSON.stringify(parsed != null ? parsed : {});
+  } catch (_) {
+    return '';
+  }
+}
+
+module.exports = async function handler(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const secret = (process.env.MERCADO_PAGO_WEBHOOK_SECRET || '').trim();
+  const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || '').trim();
+  const cfg = adminConfig();
+
+  const parsed = parseBody(req.body);
+  const raw = rawBodyString(req, parsed);
+  const query = typeof req.query === 'object' && req.query ? req.query : parseQuery(req.url || '');
+
+  if (!secret || !accessToken || !cfg.ok) {
+    res.status(503).json({ error: 'Webhook não configurado' });
+    return;
+  }
+
+  if (!validateMercadoPagoWebhookSignature(raw, req.headers, query, secret)) {
+    res.status(401).json({ error: 'Assinatura invalida' });
+    return;
+  }
+
+  let dataId = String(query['data.id'] || query['data_id'] || '');
+  if (!dataId && parsed && parsed.data) dataId = String(parsed.data.id || '');
+  if (!dataId) {
+    res.status(400).json({ error: 'data.id ausente' });
+    return;
+  }
+
+  const typ = String(query.type || parsed.type || 'payment');
+  if (typ !== 'payment') {
+    res.status(200).json({ ok: true, ignored: true });
+    return;
+  }
+
+  try {
+    const payRes = await fetch('https://api.mercadopago.com/v1/payments/' + encodeURIComponent(dataId), {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const payment = await payRes.json().catch(function () {
+      return null;
+    });
+    if (!payRes.ok || !payment || !payment.id) {
+      res.status(502).json({ error: 'Falha ao consultar pagamento no Mercado Pago' });
+      return;
+    }
+
+    const result = await applyMercadoPagoApproved(cfg, payment, typ || 'payment');
+    if (!result.ok) {
+      if (result.reason === 'amount_mismatch' || result.reason === 'order_not_found') {
+        res.status(400).json({ error: result.reason });
+        return;
+      }
+      res.status(500).json({ error: result.reason || 'sync_error' });
+      return;
+    }
+
+    if (result.paid && result.order_id) {
+      await clearCartForOrderUser(cfg, result.order_id);
+    }
+
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('[mercadopago-webhook]', err && err.message);
+    res.status(500).json({ error: 'internal_error' });
+  }
+};

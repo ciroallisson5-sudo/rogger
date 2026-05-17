@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -267,7 +267,7 @@
         <div class="auth-foot">Apenas e-mails autorizados conseguem acessar o painel.</div>
       </div>
       <div id="authBlockedView" style="display:none;">
-        <p style="font-size:0.85rem;color:var(--text);margin-bottom:16px;">Voce esta logado, mas <strong id="authBlockedEmail"></strong> nao tem permissao de administrador.</p>
+        <p style="font-size:0.85rem;color:var(--text);margin-bottom:16px;">Você está logado, mas <strong id="authBlockedEmail"></strong> não tem permissão de administrador.</p>
         <button class="btn btn-ghost btn-block" onclick="adminGateLogout()">Sair e usar outra conta</button>
       </div>
     </div>
@@ -276,7 +276,7 @@
   <aside class="sidebar">
     <div class="sidebar-logo">
       <img src="assets/logo.png" alt="Conforta Colchões">
-      <div class="sb-name">Conforta<small>COLCHOES</small></div>
+      <div class="sb-name">Conforta<small>COLCHÕES</small></div>
     </div>
     <nav class="sidebar-menu">
       <a class="sidebar-item active" data-section="dashboard" href="#">
@@ -309,7 +309,7 @@
       </a>
       <a class="sidebar-item" data-section="settings" href="#">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span>Configuracoes</span>
+        <span>Configurações</span>
       </a>
       <a class="sidebar-item" data-section="n8n" href="#">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
@@ -367,7 +367,7 @@
             </select>
           </div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th style="width:50px;">Foto</th><th>Nome</th><th>Categoria</th><th>Preco</th><th>Estoque</th><th>Ativo</th><th style="width:100px;">Acoes</th></tr></thead><tbody id="productsTableBody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th style="width:50px;">Foto</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Ativo</th><th style="width:100px;">Ações</th></tr></thead><tbody id="productsTableBody"></tbody></table></div>
       </div>
 
       <!-- HOME -->
@@ -376,7 +376,7 @@
 
           <div class="home-card">
             <h3>Banner do hero (topo da home)</h3>
-            <p class="home-card-hint">Imagem de fundo atras o titulo <strong>Descansar bem muda tudo</strong>. Use HTTPS (Postimg, Supabase Storage publico, etc.). Vazio = usa o banner padrao embutido no site.</p>
+            <p class="home-card-hint">Imagem de fundo atrás o título <strong>Descansar bem muda tudo</strong>. Use HTTPS (Postimg, Supabase Storage público, etc.). Vazio = usa o banner padrão embutido no site.</p>
             <label class="form-label-light">URL da imagem (HTTPS)</label>
             <input type="url" id="homeHeroImageUrl" class="form-input" placeholder="https://i.postimg.cc/...">
             <div class="home-actions" style="margin-top:12px;">
@@ -400,7 +400,7 @@
 
           <div class="home-card">
             <h3>Promocao Relampago</h3>
-            <p class="home-card-hint">Produtos da secao com cronometro. Defina ate quando a oferta vai durar.</p>
+            <p class="home-card-hint">Produtos da seção com cronômetro. Defina até quando a oferta vai durar.</p>
             <label class="form-label-light">Data e hora de fim</label>
             <input type="datetime-local" id="homeFlashEndsAt" class="form-input" style="max-width:280px;margin-bottom:14px;">
             <label class="form-label-light">Produtos</label>
@@ -417,7 +417,7 @@
 
           <div class="home-card">
             <h3>Oferta da Semana</h3>
-            <p class="home-card-hint">Produtos em destaque na secao oferta da semana.</p>
+            <p class="home-card-hint">Produtos em destaque na seção oferta da semana.</p>
             <div class="product-picker-toolbar">
               <input type="text" placeholder="Filtrar produtos..." oninput="filterPicker('homeWeeklyPicker', this.value)">
               <button class="btn btn-sm btn-ghost" onclick="clearPicker('homeWeeklyPicker')">Limpar selecao</button>
@@ -461,7 +461,7 @@
       <!-- CATEGORIES -->
       <div class="section" id="section-categories">
         <div class="toolbar"><div class="toolbar-left"><button class="btn btn-primary" onclick="openCategoryModal()">+ Nova Categoria</button></div></div>
-        <div class="table-wrap"><table><thead><tr><th>Nome</th><th>Slug</th><th>Ordem</th><th>Ativo</th><th>Acoes</th></tr></thead><tbody id="categoriesTableBody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nome</th><th>Slug</th><th>Ordem</th><th>Ativo</th><th>Ações</th></tr></thead><tbody id="categoriesTableBody"></tbody></table></div>
       </div>
 
       <!-- BANNERS -->
@@ -502,7 +502,7 @@
               Exibida na pagina do produto e no checkout quando o cliente consulta um CEP que <strong>nao</strong> esta na tabela abaixo.
               Tambem aumenta o contador de consultas apenas para CEPs cadastrados.
             </p>
-            <textarea class="form-textarea" id="cepNoDeliveryMessage" rows="4" placeholder="Infelizmente nao realizamos entrega neste CEP..."></textarea>
+            <textarea class="form-textarea" id="cepNoDeliveryMessage" rows="4" placeholder="Infelizmente não realizamos entrega neste CEP..."></textarea>
             <div style="margin-top:10px;display:flex;gap:8px;">
               <button type="button" class="btn btn-primary" onclick="window.saveCepNoDeliveryMessage()">Salvar mensagem</button>
             </div>
@@ -511,7 +511,7 @@
           <div class="settings-section">
             <h3 id="adminDeliveryCepFormTitle">Adicionar CEP com frete</h3>
             <p style="font-size:0.8rem;color:var(--text2);margin:-4px 0 12px;line-height:1.5;">
-              Valor cobrado do frete ate o endereco (frete gratis por pedido acima do minimo continua valendo conforme Configuracoes da loja).
+              Valor cobrado do frete até o endereço (frete grátis por pedido acima do mínimo continua valendo conforme Configurações da loja).
             </p>
             <input type="hidden" id="adminEditCepId" value="">
             <div class="form-row" style="flex-wrap:wrap;">
@@ -524,7 +524,7 @@
                 <input type="number" class="form-input" id="adminNewCepFreight" step="0.01" min="0" placeholder="0">
               </div>
               <div class="form-group" style="flex:1;min-width:180px;">
-                <label class="form-label">Regiao / observacao (opcional)</label>
+                <label class="form-label">Região / observação (opcional)</label>
                 <input type="text" class="form-input" id="adminNewCepLabel" placeholder="Ex.: Serra - Jardin Limoeiro">
               </div>
             </div>
@@ -537,7 +537,7 @@
           <div class="settings-section">
             <h3>CEPs atendidos</h3>
             <p style="font-size:0.8rem;color:var(--text2);margin:-4px 0 12px;">Coluna &quot;Consultas&quot;: vezes que clientes/uso da loja chamaram esse CEP na API de frete.</p>
-            <div class="table-wrap"><table><thead><tr><th>CEP</th><th>Regiao</th><th>Frete</th><th>Consultas</th><th style="min-width:160px;">Acoes</th></tr></thead><tbody id="deliveryCepsTableBody"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>CEP</th><th>Região</th><th>Frete</th><th>Consultas</th><th style="min-width:160px;">Ações</th></tr></thead><tbody id="deliveryCepsTableBody"></tbody></table></div>
           </div>
         </div>
       </div>
@@ -545,23 +545,23 @@
       <!-- SETTINGS -->
       <div class="section" id="section-settings">
         <div class="settings-section">
-          <h3>Informacoes da Loja</h3>
+          <h3>Informações da loja</h3>
           <div class="form-group"><label class="form-label">Nome da Loja</label><input class="form-input" id="setStoreName"></div>
-          <div class="form-group"><label class="form-label">Descricao</label><textarea class="form-textarea" id="setStoreDesc" rows="3"></textarea></div>
+          <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="setStoreDesc" rows="3"></textarea></div>
           <div class="form-group"><label class="form-label">WhatsApp (com codigo pais)</label><input class="form-input" id="setWhatsApp" placeholder="5527999999999"></div>
           <div class="form-group"><label class="form-label">Cor Primaria</label><div style="display:flex;align-items:center;gap:8px;"><input class="form-input" id="setPrimaryColor" placeholder="#1a56db" style="flex:1;"><input type="color" id="setPrimaryColorPicker" value="#1a56db" style="width:40px;height:38px;border:1px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;"></div></div>
         </div>
         <div class="settings-section">
-          <h3>Pagamentos - Asaas</h3>
-          <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.35);color:#fde68a;padding:10px 12px;border-radius:6px;font-size:0.82rem;line-height:1.5;margin-bottom:12px;">
-            <strong>Importante:</strong> chaves secretas (Asaas, OpenAI, Supabase service role) ficam somente na <strong>Vercel</strong> — nao em arquivo <code>.env</code> no site nem neste admin.
-            Aqui voce so escolhe o ambiente (sandbox ou producao).
-          </div>
-          <div class="form-row"><div class="form-group"><label class="form-label">Ambiente</label><select class="form-select" id="setAsaasEnv"><option value="sandbox">Sandbox (testes)</option><option value="production">Producao</option></select></div></div>
-          <div class="form-group" style="margin-top:12px;">
-            <label class="form-label">Webhook Asaas (pedido pago automatico)</label>
-            <div class="endpoint-url" style="margin-top:6px;"><code id="asaasWebhookUrl">Carregando...</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyAsaasWebhookUrl()">Copiar</button></div>
-            <p style="font-size:0.78rem;color:var(--text2);margin-top:8px;line-height:1.5;">Asaas → Integracoes → Webhooks: cole esta URL. Eventos: PAYMENT_RECEIVED e PAYMENT_CONFIRMED.</p>
+          <h3>Pagamentos — Mercado Pago</h3>
+          <p style="font-size:0.8rem;color:var(--text2);margin:-4px 0 12px;line-height:1.55;">
+            Configure na Vercel: <code>MERCADO_PAGO_ACCESS_TOKEN</code>, <code>MERCADO_PAGO_PUBLIC_KEY</code>,
+            <code>MERCADO_PAGO_WEBHOOK_SECRET</code>, <code>MERCADO_PAGO_ENV</code> (production ou sandbox),
+            <code>APP_URL</code> e <code>ALLOWED_ORIGINS</code>. O checkout usa Checkout Pro: o cliente paga no ambiente do Mercado Pago.
+          </p>
+          <div class="form-group">
+            <label class="form-label">URL do webhook (painel Mercado Pago → Webhooks)</label>
+            <div class="endpoint-url" style="margin-top:6px;"><code id="mpWebhookUrl">Carregando...</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyMpWebhookUrl()">Copiar</button></div>
+            <p style="font-size:0.78rem;color:var(--text2);margin-top:8px;">Inclua <code>source_news=webhooks</code> na URL (ja preenchida abaixo). Eventos recomendados: pagamentos.</p>
           </div>
         </div>
         <div class="settings-section">
@@ -574,10 +574,10 @@
             <div class="form-group"><label class="form-label">Frete Gratis a partir de (R$)</label><input class="form-input" id="setFreeFrom" type="number" step="0.01"></div>
             <div class="form-group"><label class="form-label">Prazo de Entrega</label><input class="form-input" id="setDeliveryTime" placeholder="24h"></div>
           </div>
-          <div class="form-group"><label class="form-label">Regioes de Entrega (separadas por virgula)</label><input class="form-input" id="setRegions" placeholder="Serra, Vitoria, Vila Velha"></div>
+          <div class="form-group"><label class="form-label">Regiões de entrega (separadas por vírgula)</label><input class="form-input" id="setRegions" placeholder="Serra, Vitória, Vila Velha"></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:16px;">
-          <button class="btn btn-primary" onclick="saveSettings()">Salvar Configuracoes</button>
+          <button class="btn btn-primary" onclick="saveSettings()">Salvar configurações</button>
           <button class="btn btn-ghost" onclick="loadSettings()">Descartar alteracoes</button>
         </div>
       </div>
@@ -587,7 +587,7 @@
         <div class="n8n-endpoint">
           <h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:8px;">Endpoint de Dados para n8n</h3>
           <p style="font-size:0.85rem;color:var(--text2);margin-bottom:12px;">Use esta URL no modulo HTTP Request do n8n para obter todos os dados de produtos com fotos.</p>
-          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;line-height:1.55;">Depois do deploy na <strong>Vercel</strong>, o admin e as rotas <code>/api/*</code> ficam no <strong>mesmo dominio</strong> (ex.: <code>https://sua-loja.vercel.app</code>). O navegador ja chama <code>/api/openai-chat</code> e <code>/api/gerar-3d</code> relativos — nao precisa apontar para API local no codigo. Abra o admin sempre por esse URL (nao <code>file://</code>), senao o <code>/api/</code> nao existe.</p>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;line-height:1.55;">Depois do deploy na <strong>Vercel</strong>, o admin e as rotas <code>/api/*</code> ficam no <strong>mesmo domínio</strong> (ex.: <code>https://sua-loja.vercel.app</code>). O navegador já chama <code>/api/openai-chat</code> e <code>/api/gerar-3d</code> relativos — não precisa apontar para API local no código. Abra o admin sempre por esse URL (não <code>file://</code>), senão o <code>/api/</code> não existe.</p>
           <p style="font-size:0.78rem;color:var(--text2);margin-bottom:6px;">Base deste deploy (cole no n8n antes de <code>openai-chat</code>, <code>gerar-3d</code>, etc.):</p>
           <div class="endpoint-url" style="margin-bottom:16px;">
             <code id="n8nSiteApiBase">Carregando...</code>
@@ -601,25 +601,25 @@
             <button class="btn btn-primary" onclick="exportN8nJson()">Exportar JSON</button>
           </div>
           <div class="instructions">
-            <h4 style="font-size:0.9rem;font-weight:600;color:#ffffff;margin-bottom:8px;">Instrucoes para configurar no n8n:</h4>
+            <h4 style="font-size:0.9rem;font-weight:600;color:#ffffff;margin-bottom:8px;">Instruções para configurar no n8n:</h4>
             <ol>
-              <li>Adicione um modulo <strong>HTTP Request</strong> ao seu workflow n8n</li>
-              <li>Defina o metodo como <strong>GET</strong></li>
+              <li>Adicione um módulo <strong>HTTP Request</strong> ao seu workflow n8n</li>
+              <li>Defina o método como <strong>GET</strong></li>
               <li>Cole a URL do endpoint acima no campo URL</li>
-            <li><strong>Alternativa (este site):</strong> <code>GET /api/n8n-products</code> — <code>?flat_images=1</code> lista URLs para WhatsApp (<strong>1 foto por produto</strong> por defeito). Queres todas as fotos por SKU: acrescenta <code>&amp;all_photos=1</code>. Chave na Vercel: <code>N8N_PRODUCTS_SECRET</code> (Bearer ou <code>?secret=</code>).</li>
+            <li><strong>Alternativa (este site):</strong> <code>GET /api/n8n-products</code> — <code>?flat_images=1</code> lista URLs para WhatsApp (<strong>1 foto por produto</strong> por padrão). Todas as fotos por SKU: <code>&amp;all_photos=1</code>. Autenticação: header <code>x-n8n-products-secret</code> (mesmo valor de <code>N8N_PRODUCTS_SECRET</code> na Vercel).</li>
               <li>Adicione o header <code>Content-Type: application/json</code></li>
-              <li>Use a resposta JSON no modulo <strong>AI Agent</strong> ou <strong>OpenAI</strong> do n8n como contexto</li>
-              <li>Voce tambem pode usar o webhook configurado nas Configuracoes para receber dados automaticamente</li>
-              <li>O webhook envia <code>summary_line</code> (uma linha com nome, preço, categoria, tags, trecho da descricao) e o objeto <code>product</code> completo</li>
-              <li><strong>Mesma IA do chat do site:</strong> HTTP Request <strong>POST</strong> na URL abaixo (catalogo completo no servidor — nao use OpenAI separado no n8n).
+              <li>Use a resposta JSON no módulo <strong>AI Agent</strong> ou <strong>OpenAI</strong> do n8n como contexto</li>
+              <li>Você também pode usar o webhook configurado nas Configurações para receber dados automaticamente</li>
+              <li>O webhook envia <code>summary_line</code> (uma linha com nome, preço, categoria, tags, trecho da descrição) e o objeto <code>product</code> completo</li>
+              <li><strong>Mesma IA do chat do site:</strong> HTTP Request <strong>POST</strong> na URL abaixo (catálogo completo no servidor — não use OpenAI separado no n8n).
                 <div class="endpoint-url" style="margin:8px 0;"><code id="n8nOpenaiChatUrl">—</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyN8nOpenaiChatUrl()">Copiar</button></div>
-                <strong style="color:#fca5a5;display:block;margin-top:10px;">Chaves na Vercel</strong> (nao .env local): <code>OPENAI_API_KEY</code>, <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>.
-                <span style="display:block;margin-top:8px;color:var(--text2);">No HTTP Request: Body → <strong>JSON</strong>, campo em modo <strong>Expression</strong> (com <code>=</code>). Apos o webhook do admin, use <code>$json</code> inteiro:</span>
+                <strong style="color:#fca5a5;display:block;margin-top:10px;">Chaves na Vercel</strong> (não .env local): <code>OPENAI_API_KEY</code>, <code>OPENAI_ROUTE_SECRET</code>, <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>.
+                <span style="display:block;margin-top:8px;color:var(--text2);">No HTTP Request: header <code>x-openai-route-secret</code> com o valor de <code>OPENAI_ROUTE_SECRET</code> (Vercel). Body → <strong>JSON</strong>, campo em modo <strong>Expression</strong> (com <code>=</code>). Após o webhook do admin, use <code>$json</code> inteiro:</span>
                 <code style="display:block;margin-top:8px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ user_message: 'Gere legenda promocional', product: $json, include_catalog: true, site_base_url: 'https://confortacolchoes.vercel.app' }) }}</code>
                 <span style="display:block;margin-top:6px;color:var(--text2);">Se o produto estiver em <code>$json.product</code>: troque por <code>product: $json.product</code>.</span>
                 <span style="display:block;margin-top:8px;color:var(--text2);">Legenda curta:</span>
                 <code style="display:block;margin-top:6px;white-space:pre-wrap;font-size:0.76rem;line-height:1.45;">={{ JSON.stringify({ n8n_product_blurb: true, product: $json.product || $json, instruction: 'Legenda Instagram', include_catalog: true, site_base_url: 'https://confortacolchoes.vercel.app' }) }}</code>
-                <span style="display:block;margin-top:8px;color:var(--text2);">Resposta: <code>reply</code>. Webhook das Configuracoes so avisa produto salvo; o chat usa esta API.</span></li>
+                <span style="display:block;margin-top:8px;color:var(--text2);">Resposta: <code>reply</code>. Webhook das Configurações só avisa produto salvo; o chat usa esta API.</span></li>
             </ol>
             <p style="margin-top:12px;">URL da API REST Supabase:</p>
             <div class="endpoint-url" style="margin:8px 0 0;">
@@ -642,7 +642,7 @@
       </div>
       <div class="modal-body">
         <div class="tabs" id="productTabs">
-          <div class="tab active" data-tab="info" onclick="switchProductTab('info')">Informacoes</div>
+          <div class="tab active" data-tab="info" onclick="switchProductTab('info')">Informações</div>
           <div class="tab" data-tab="photos" onclick="switchProductTab('photos')">Fotos</div>
         </div>
         <div id="productTabInfo" class="tab-content active">
@@ -650,7 +650,7 @@
             <div class="form-group"><label class="form-label">Nome</label><input class="form-input" id="prodName" oninput="autoSlug('prodName','prodSlug')"></div>
             <div class="form-group"><label class="form-label">Slug</label><input class="form-input" id="prodSlug"></div>
           </div>
-          <div class="form-group"><label class="form-label">Descricao</label><textarea class="form-textarea" id="prodDesc" rows="4"></textarea></div>
+          <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="prodDesc" rows="4"></textarea></div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="prodCategory"></select></div>
             <div class="form-group"><label class="form-label">Tags (separadas por virgula)</label><input class="form-input" id="prodTags" placeholder="colchao, queen, ortopedico"></div>
@@ -687,7 +687,7 @@
           </div>
           <div class="form-group" style="margin-top:12px;">
             <label class="form-check"><input type="checkbox" id="prodGerar3dTripo"> Apos salvar, gerar modelo 3D automaticamente (Tripo AI — pode levar varios minutos e consumir creditos)</label>
-            <small style="display:block;color:var(--text2);font-size:0.7rem;margin-top:4px;">A primeira foto (nao video) sera salva como <code>imagens/[id].jpg</code> no bucket Storage configurado (padrao: <code>public</code>).</small>
+            <small style="display:block;color:var(--text2);font-size:0.7rem;margin-top:4px;">A primeira foto (não vídeo) será salva como <code>imagens/[id].jpg</code> no bucket Storage configurado (padrão: <code>public</code>).</small>
           </div>
         </div>
       </div>
@@ -708,7 +708,7 @@
       <div class="modal-body">
         <div class="form-group"><label class="form-label">Nome</label><input class="form-input" id="catName" oninput="autoSlug('catName','catSlug')"></div>
         <div class="form-group"><label class="form-label">Slug</label><input class="form-input" id="catSlug"></div>
-        <div class="form-group"><label class="form-label">Descricao</label><textarea class="form-textarea" id="catDesc" rows="3"></textarea></div>
+        <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="catDesc" rows="3"></textarea></div>
         <div class="form-group"><label class="form-label">URL da Imagem</label><input class="form-input" id="catImage"></div>
         <div class="form-group"><label class="form-check"><input type="checkbox" id="catActive" checked> Categoria Ativa</label></div>
       </div>
@@ -892,7 +892,7 @@
       }
 
       async function requireAdmin() {
-        if (!sb) { setAuthMsg('Supabase nao inicializado.', 'error'); showAuthGate('login'); return false; }
+        if (!sb) { setAuthMsg('Supabase não inicializado.', 'error'); showAuthGate('login'); return false; }
         try {
           var r = await sb.auth.getUser();
           var user = r.data && r.data.user;
@@ -948,7 +948,7 @@
         if (secEl) secEl.classList.add('active');
         renderSidebar();
 
-        var titles = { dashboard:'Dashboard', products:'Produtos', home:'Home (vitrine)', categories:'Categorias', banners:'Banners', orders:'Pedidos', 'delivery-ceps':'CEP / Frete', settings:'Configuracoes', n8n:'API n8n' };
+        var titles = { dashboard:'Dashboard', products:'Produtos', home:'Home (vitrine)', categories:'Categorias', banners:'Banners', orders:'Pedidos', 'delivery-ceps':'CEP / Frete', settings:'Configurações', n8n:'API n8n' };
         document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
 
         if (section === 'dashboard') loadDashboard();
@@ -1006,12 +1006,12 @@
       }
 
       function statusLabel(s) {
-        var map = { pending:'Pendente', confirmed:'Confirmado', preparing:'Preparando', shipped:'Enviado', delivered:'Entregue', cancelled:'Cancelado', paid:'Pago', refunded:'Reembolsado' };
+        var map = { pending:'Pendente', pending_payment:'Aguardando pagamento', confirmed:'Confirmado', preparing:'Preparando', shipped:'Enviado', delivered:'Entregue', cancelled:'Cancelado', paid:'Pago', refunded:'Reembolsado' };
         return map[s] || s;
       }
 
       function statusBadge(s) {
-        var map = { pending:'badge-warning', confirmed:'badge-info', preparing:'badge-info', shipped:'badge-info', delivered:'badge-success', cancelled:'badge-danger', paid:'badge-success', refunded:'badge-danger' };
+        var map = { pending:'badge-warning', pending_payment:'badge-warning', confirmed:'badge-info', preparing:'badge-info', shipped:'badge-info', delivered:'badge-success', cancelled:'badge-danger', paid:'badge-success', refunded:'badge-danger' };
         return '<span class="badge ' + (map[s] || 'badge-gray') + '">' + statusLabel(s) + '</span>';
       }
 
@@ -1092,7 +1092,7 @@
       // ===================== PRODUCTS =====================
       async function loadProducts(catFilter) {
         try {
-          if (!sb) { showToast('Supabase nao inicializado', 'error'); return; }
+          if (!sb) { showToast('Supabase não inicializado', 'error'); return; }
 
           var searchVal = (document.getElementById('productSearch') ? document.getElementById('productSearch').value : '').trim();
           var catVal = document.getElementById('productCategoryFilter') ? document.getElementById('productCategoryFilter').value : '';
@@ -1224,7 +1224,7 @@
         if (idx < 0) return;
         var ph = state.photoList[idx];
         var res = await fetch(ph.url);
-        if (!res.ok) throw new Error('nao foi possivel baixar a foto atual');
+        if (!res.ok) throw new Error('Não foi possível baixar a foto atual');
         var blob = await res.blob();
         var ct = (blob.type && blob.type.indexOf('png') >= 0) ? 'image/png' : 'image/jpeg';
         var file = new File([blob], productId + '.jpg', { type: ct });
@@ -1318,7 +1318,7 @@
       }
 
       window.bulkGenerateTripo3dMissing = async function() {
-        if (!sb) { showToast('Supabase nao inicializado', 'error'); return; }
+        if (!sb) { showToast('Supabase não inicializado', 'error'); return; }
         var btn = document.getElementById('btnBulkTripo3d');
         try {
           var sessR = await sb.auth.getSession();
@@ -1340,7 +1340,7 @@
             queue.push({ id: p.id, name: p.name, imageUrl: img });
           }
           if (queue.length === 0) {
-            showToast('Nenhum produto na lista precisa do GLB padrao (ou todos sem foto / ja tem URL 3D na foto).', 'success');
+            showToast('Nenhum produto na lista precisa do GLB padrão (ou todos sem foto / já tem URL 3D na foto).', 'success');
             return;
           }
           if (!confirm('Gerar 3D (Tripo) para ' + queue.length + ' produto(s), um de cada vez? Isso pode levar muito tempo e consumir creditos. Deixe esta aba aberta.')) {
@@ -1485,7 +1485,7 @@
           try {
             await normalizeFirstProductPhotoToIdJpg(productId);
           } catch (normErr) {
-            showToast('Aviso: foto principal nao padronizada como imagens/[id].jpg — ' + ((normErr && normErr.message) || normErr), 'warning');
+            showToast('Aviso: foto principal não padronizada como imagens/[id].jpg — ' + ((normErr && normErr.message) || normErr), 'warning');
           }
 
           var wantTripo = !!(document.getElementById('prodGerar3dTripo') && document.getElementById('prodGerar3dTripo').checked);
@@ -2139,7 +2139,7 @@
 
       window.deleteOrdersByStatus = async function(status) {
         var label = statusLabel(status) || status;
-        if (!confirm('Excluir TODOS os pedidos com status "' + label + '"? Esta acao nao pode ser desfeita.')) return;
+        if (!confirm('Excluir TODOS os pedidos com status "' + label + '"? Esta ação não pode ser desfeita.')) return;
         try {
           var r = await sb.from('orders').delete().eq('status', status);
           if (r.error) throw r.error;
@@ -2151,10 +2151,10 @@
       };
 
       window.deleteAllOrders = async function() {
-        var msg = 'Tem certeza que quer excluir TODOS os pedidos da loja? Isso apaga tudo (itens e pagamentos vinculados) e nao volta atras.';
+        var msg = 'Tem certeza que quer excluir TODOS os pedidos da loja? Isso apaga tudo (itens e pagamentos vinculados) e não volta atrás.';
         if (!confirm(msg)) return;
         var second = prompt('Para confirmar, digite EXCLUIR TUDO');
-        if (second !== 'EXCLUIR TUDO') { showToast('Operacao cancelada', 'info'); return; }
+        if (second !== 'EXCLUIR TUDO') { showToast('Operação cancelada', 'info'); return; }
         try {
           var r = await sb.from('orders').delete().not('id', 'is', null);
           if (r.error) throw r.error;
@@ -2186,13 +2186,11 @@
           document.getElementById('setWhatsApp').value = (map.whatsapp_number && typeof map.whatsapp_number === 'object' ? map.whatsapp_number : map.whatsapp_number) || '';
           document.getElementById('setPrimaryColor').value = (map.primary_color && typeof map.primary_color === 'object' ? map.primary_color : map.primary_color) || '#1a56db';
           document.getElementById('setPrimaryColorPicker').value = document.getElementById('setPrimaryColor').value;
-          document.getElementById('setAsaasEnv').value = (map.asaas_environment && typeof map.asaas_environment === 'object' ? map.asaas_environment : map.asaas_environment) || 'sandbox';
-          document.getElementById('setN8nUrl').value = (map.n8n_webhook_url && typeof map.n8n_webhook_url === 'object' ? map.n8n_webhook_url : map.n8n_webhook_url) || '';
-          var whEl = document.getElementById('asaasWebhookUrl');
-          if (whEl) {
-            var origin = '';
-            try { origin = window.location.origin || ''; } catch (e0) { void e0; }
-            whEl.textContent = origin ? origin + '/api/asaas-webhook' : '/api/asaas-webhook';
+          var mpWh = document.getElementById('mpWebhookUrl');
+          if (mpWh) {
+            var originMp = '';
+            try { originMp = window.location.origin || ''; } catch (e1) { void e1; }
+            mpWh.textContent = originMp ? originMp + '/api/mercadopago-webhook?source_news=webhooks' : '/api/mercadopago-webhook?source_news=webhooks';
           }
 
           var delivery = null;
@@ -2213,7 +2211,6 @@
           { key: 'store_description', value: document.getElementById('setStoreDesc').value.trim() },
           { key: 'whatsapp_number', value: document.getElementById('setWhatsApp').value.trim() },
           { key: 'primary_color', value: document.getElementById('setPrimaryColor').value.trim() },
-          { key: 'asaas_environment', value: document.getElementById('setAsaasEnv').value },
           { key: 'n8n_webhook_url', value: document.getElementById('setN8nUrl').value.trim() },
           { key: 'delivery_info', value: {
             free_from: parseFloat(document.getElementById('setFreeFrom').value) || 0,
@@ -2232,7 +2229,7 @@
               await sb.from('site_settings').insert({ key: s.key, value: s.value });
             }
           }
-          showToast('Configuracoes salvas com sucesso', 'success');
+          showToast('Configurações salvas com sucesso', 'success');
         } catch(e) { showToast('Erro ao salvar: ' + (e.message || e), 'error'); }
       }
 
@@ -2352,7 +2349,7 @@
         var rid = String(id || '').trim();
         var row = (state.deliveryCepRows || []).find(function (r) { return String(r.id) === rid; });
         if (!row) {
-          showToast('Linha nao encontrada. Recarregue a lista.', 'error');
+          showToast('Linha não encontrada. Recarregue a lista.', 'error');
           return;
         }
         var hid = document.getElementById('adminEditCepId');
@@ -2704,7 +2701,7 @@
         var baseEl = document.getElementById('n8nSiteApiBase');
         var openaiEl = document.getElementById('n8nOpenaiChatUrl');
         if (baseEl) {
-          baseEl.textContent = origin ? origin + '/api/' : '(use o dominio do site — nao file://)';
+          baseEl.textContent = origin ? origin + '/api/' : '(use o domínio do site — não file://)';
         }
         if (openaiEl) {
           openaiEl.textContent = origin ? origin + '/api/openai-chat' : '(abra pelo URL publicado)';
@@ -2721,9 +2718,9 @@
         if (el && el.textContent) copyToClipboard(el.textContent, 'URL openai-chat copiada');
       };
 
-      window.copyAsaasWebhookUrl = function() {
-        var el = document.getElementById('asaasWebhookUrl');
-        if (el && el.textContent) copyToClipboard(el.textContent, 'Webhook Asaas copiado');
+      window.copyMpWebhookUrl = function() {
+        var el = document.getElementById('mpWebhookUrl');
+        if (el && el.textContent) copyToClipboard(el.textContent, 'URL do webhook copiada');
       };
 
       window.copyN8nUrl = function() {

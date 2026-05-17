@@ -13,6 +13,8 @@
 
 const TRIPO_DEFAULT_BASE = 'https://api.tripo3d.ai/v2/openapi';
 
+const { applyBrowserCors, handleOptions } = require('./_http');
+
 const TERMINAL_TRIPO = new Set(['success', 'failed', 'cancelled', 'banned', 'expired']);
 
 /** Resposta JSON sem depender de res.status()/res.json() (compatível com Node puro na Vercel). */
@@ -326,14 +328,8 @@ function shouldUseDirectImageUrl(imageUrl, body) {
 
 module.exports = async function handler(req, res) {
   try {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    if (req.method === 'OPTIONS') {
-      sendJson(res, 200, { ok: true });
-      return;
-    }
+    applyBrowserCors(req, res);
+    if (handleOptions(req, res)) return;
 
     if (req.method === 'GET') {
       const productIdCheck = getQueryParam(req, 'productId');
