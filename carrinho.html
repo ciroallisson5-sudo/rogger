@@ -12,7 +12,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -81,6 +80,7 @@
       <div class="container">
         <h1>Meu carrinho</h1>
         <p>Revise os itens e finalize quando estiver pronto.</p>
+        <p class="cc-mp-cart-note">No checkout, o pagamento é feito no <strong>Mercado Pago</strong> (cartão, Pix, boleto quando disponível). É a forma mais segura: a loja não acessa seus dados financeiros.</p>
         <div id="fullCartApp" aria-live="polite"></div>
       </div>
     </div>
@@ -88,10 +88,14 @@
 
   <footer class="footer" id="siteFooter"></footer>
 
-  <script src="js/supabase-config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/cart.js"></script>
+  <script src="js/scripts-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/components/site-footer.js" defer></script>
+  <script src="js/components/site-header.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/cart.js" defer></script>
   <script>
     (function() {
       'use strict';

@@ -359,7 +359,20 @@ function addChatMessage(role, content) {
 
   const msg = document.createElement('div');
   msg.className = 'message ' + role;
-  msg.textContent = content;
+  var raw = typeof content === 'string' ? content : String(content);
+  if (
+    role === 'assistant' &&
+    typeof confortaMarkdownLineHeadingsToHtml === 'function' &&
+    /(^|\n)\s*#{2,3}\s+/m.test(raw)
+  ) {
+    var html = confortaMarkdownLineHeadingsToHtml(raw);
+    if (typeof normalizeConfortaBranding === 'function') {
+      html = normalizeConfortaBranding(html);
+    }
+    msg.innerHTML = html;
+  } else {
+    msg.textContent = raw;
+  }
   container.appendChild(msg);
   container.scrollTop = container.scrollHeight;
 }

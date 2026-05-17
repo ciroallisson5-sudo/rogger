@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="Confira todos os colchões Conforta com entrega rápida e 12x sem juros.">
+  <meta name="description" content="Confira todos os colchões Conforta com entrega rápida e 12x sem juros na Grande Vitória, Serra e ES.">
+  <meta name="keywords" content="catálogo colchões, Serra ES, Vitória, Espírito Santo, Conforta Colchões, Querubim, entrega rápida">
   <title>Todos os Produtos - Conforta Colchões</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     :root {
       --brand: #1a56db;
@@ -422,10 +422,14 @@
 
   <footer class="footer" id="siteFooter"></footer>
 
-  <script src="js/supabase-config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/cart.js"></script>
+  <script src="js/scripts-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/components/site-footer.js" defer></script>
+  <script src="js/components/site-header.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/cart.js" defer></script>
   <script type="text/plain" data-legacy-products-script>
     (function() {
       'use strict';
@@ -736,7 +740,7 @@
         var photo = p.product_photos && p.product_photos.length > 0 ? p.product_photos[0] : null;
         var imgHtml = '';
         if (photo && photo.url) {
-          imgHtml = '<img src="' + photo.url + '" alt="' + escHtml(p.name) + '" loading="lazy">';
+          imgHtml = '<img src="' + photo.url + '" alt="Foto do produto ' + escHtml(p.name) + ' — Conforta Colchões, Serra e Vitória" width="800" height="800" loading="lazy" decoding="async">';
         } else {
           imgHtml = '<div class="placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>';
         }
@@ -789,7 +793,7 @@
           '<span class="product-price">' + formatPrice(displayPrice) + '</span>' +
           '</div>' +
           installmentHtml +
-          '<button class="btn-add-cart" onclick="event.stopPropagation();handleAddToCart(\'' + p.id + '\', ' + displayPrice + ')">Adicionar ao carrinho</button>' +
+          '<button type="button" class="btn-add-cart" aria-label="Adicionar ' + escHtml(p.name) + ' ao carrinho" onclick="event.stopPropagation();handleAddToCart(\'' + p.id + '\', ' + displayPrice + ')">Adicionar ao carrinho</button>' +
           '</div></div>';
       }
 
@@ -813,14 +817,14 @@
         if (append || state.products.length > 0) return;
 
         var fallback = [
-          { id: 'fb-1', name: 'Colchao King Size Conforta', category_id: null, base_price: 4999.00, discount_price: 3999.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-2', name: 'Sofa 3 Lugares Conforta Premium', category_id: null, base_price: 3899.00, discount_price: 3299.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-3', name: 'Box Bau Casal Conforta', category_id: null, base_price: 2199.00, discount_price: 1799.00, flash_offer_ends: null, product_photos: [] },
+          { id: 'fb-1', name: 'Colchão King Size Conforta', category_id: null, base_price: 4999.00, discount_price: 3999.00, flash_offer_ends: null, product_photos: [] },
+          { id: 'fb-2', name: 'Sofá 3 Lugares Conforta Premium', category_id: null, base_price: 3899.00, discount_price: 3299.00, flash_offer_ends: null, product_photos: [] },
+          { id: 'fb-3', name: 'Box baú casal Conforta', category_id: null, base_price: 2199.00, discount_price: 1799.00, flash_offer_ends: null, product_photos: [] },
           { id: 'fb-4', name: 'Cabeceira Estofada King', category_id: null, base_price: 1299.00, discount_price: 999.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-5', name: 'Kit Colchao Casal + Box Bau', category_id: null, base_price: 3999.00, discount_price: 3499.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-6', name: 'Colchao Solteiro Conforta', category_id: null, base_price: 1599.00, discount_price: 1299.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-7', name: 'Sofa 2 Lugares Retratil', category_id: null, base_price: 2899.00, discount_price: 2499.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-8', name: 'Colchao Queen Size Ortopedico', category_id: null, base_price: 3299.00, discount_price: 2799.00, flash_offer_ends: null, product_photos: [] },
+          { id: 'fb-5', name: 'Kit colchão casal + box baú', category_id: null, base_price: 3999.00, discount_price: 3499.00, flash_offer_ends: null, product_photos: [] },
+          { id: 'fb-6', name: 'Colchão solteiro Conforta', category_id: null, base_price: 1599.00, discount_price: 1299.00, flash_offer_ends: null, product_photos: [] },
+          { id: 'fb-7', name: 'Sofá 2 lugares retrátil', category_id: null, base_price: 2899.00, discount_price: 2499.00, flash_offer_ends: null, product_photos: [] },
+          { id: 'fb-8', name: 'Colchão queen size ortopédico', category_id: null, base_price: 3299.00, discount_price: 2799.00, flash_offer_ends: null, product_photos: [] },
           { id: 'fb-9', name: 'Mesa de Jantar 6 Lugares', category_id: null, base_price: 2199.00, discount_price: null, flash_offer_ends: null, product_photos: [] },
           { id: 'fb-10', name: 'Estante Modular 4 Prateleiras', category_id: null, base_price: 899.00, discount_price: 699.00, flash_offer_ends: null, product_photos: [] },
           { id: 'fb-11', name: 'Poltrona Reclinavel Premium', category_id: null, base_price: 2499.00, discount_price: 1999.00, flash_offer_ends: null, product_photos: [] },
@@ -1423,7 +1427,7 @@
         return '<article class="product-card" tabindex="0" data-href="' + href + '" onclick="if(event.target.closest(\'a,button,.product-actions\'))return;var d=this.getAttribute(\'data-href\');if(d)location.href=d;">' +
           '<a class="product-image" href="' + href + '">' +
             '<div class="product-badges">' + buildBadges(product) + '</div>' +
-            (photo && photo.url ? '<img src="' + escHtml(photo.url) + '" alt="' + escHtml(product.name || 'Produto Conforta') + '" loading="lazy">' : placeholderImage()) +
+            (photo && photo.url ? '<img src="' + escHtml(photo.url) + '" alt="Foto do produto ' + escHtml(product.name || 'Produto Conforta') + ' — linha Querubim e opções na Grande Vitória" width="800" height="800" loading="lazy" decoding="async">' : placeholderImage()) +
           '</a>' +
           '<div class="product-body">' +
             '<span class="product-category">' + escHtml(categoryName || 'Produtos') + '</span>' +
@@ -1434,8 +1438,8 @@
             (best ? '<span class="product-installment">ou ' + best.qtd + 'x de ' + formatPrice(best.valor) + ' sem juros</span>' : '<span class="product-installment">Parcele em até 12x</span>') +
             '<span class="product-delivery">Entrega rápida na região</span>' +
             '<div class="product-actions">' +
-              '<a class="btn btn-primary" href="' + href + '">Comprar agora</a>' +
-              '<a class="btn btn-secondary js-whatsapp" href="' + whatsappHref(product.name) + '" data-product="' + escHtml(product.name || '') + '">Tirar dúvida</a>' +
+              '<a class="btn btn-primary" href="' + href + '" aria-label="Comprar agora: ' + escHtml(product.name || 'produto') + '">Comprar agora</a>' +
+              '<a class="btn btn-secondary js-whatsapp" href="' + whatsappHref(product.name) + '" data-product="' + escHtml(product.name || '') + '" aria-label="Tirar dúvida no WhatsApp sobre ' + escHtml(product.name || 'este produto') + '">Tirar dúvida</a>' +
             '</div>' +
           '</div>' +
         '</article>';

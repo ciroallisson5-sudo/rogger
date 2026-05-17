@@ -592,3 +592,80 @@ input, textarea, select { font-family: inherit; font-size: inherit; outline: non
   .product-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .container { padding: 0 12px; }
 }
+
+/* ============================================
+   MERCADO PAGO — mensagem de confiança (footer)
+   ============================================ */
+.footer-mp-trust {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  text-align: left;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(0, 158, 227, 0.14) 0%, rgba(15, 23, 42, 0.92) 52%);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 14px;
+  width: 100%;
+}
+.footer-mp-trust-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(0, 158, 227, 0.2);
+  color: #7dd3fc;
+}
+.footer-mp-trust-title {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #f0f9ff;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+.footer-mp-trust-text {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #94a3b8;
+  margin: 0 0 10px;
+}
+.footer-mp-trust-link {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #38bdf8 !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer-mp-trust-link:hover {
+  color: #7dd3fc !important;
+}
+@media (max-width: 520px) {
+  .footer-mp-trust {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .footer-mp-trust-body {
+    text-align: center;
+  }
+}
+
+/* Carrinho — lembrete curto */
+.cc-mp-cart-note {
+  font-size: 0.84rem;
+  color: #475569;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  line-height: 1.45;
+}
+.cc-mp-cart-note strong {
+  color: #0369a1;
+}

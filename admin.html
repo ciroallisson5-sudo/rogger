@@ -10,7 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -248,6 +247,23 @@
     }
     .ai-assist-actions-box pre { margin: 8px 0 0; font-size: 0.72rem; max-height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
 
+    .as-studio { max-width: 1100px; margin: 0 auto; }
+    .as-studio-lead { font-size: 0.9rem; color: var(--text2); line-height: 1.55; margin: 0 0 20px; }
+    .as-studio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 960px) { .as-studio-grid { grid-template-columns: 1fr; } }
+    .as-studio-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; }
+    .as-studio-h3 { font-size: 0.95rem; font-weight: 700; color: #ffffff; margin: 0 0 6px; }
+    .as-studio-muted { font-size: 0.78rem; color: var(--text2); margin: 0 0 8px; line-height: 1.45; }
+    .as-studio-toolbar { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .as-studio-toolbar label { font-size: 0.8rem; color: var(--text2); display: inline-flex; align-items: center; gap: 8px; }
+    .as-studio-toolbar .form-input { width: 72px; padding: 6px 8px; font-size: 0.85rem; }
+    .as-studio-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .as-studio-log { min-height: 52px; max-height: 160px; overflow-y: auto; font-size: 0.78rem; color: var(--text2); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; white-space: pre-wrap; word-break: break-word; }
+    .as-studio-log .as-studio-log-line { margin: 0 0 4px; padding: 0; border: none; }
+    .as-studio-export-wrap pre { margin: 0; font-size: 0.72rem; max-height: min(50vh, 440px); overflow: auto; white-space: pre-wrap; word-break: break-word; padding: 12px; background: #0a0f1a; border-radius: 8px; border: 1px solid var(--border); }
+    .as-studio-export-bar-inner { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .as-studio-foot { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+
     @media (max-width: 768px) {
       .sidebar { width: 60px; }
       .sidebar-logo .sb-name { display: none; }
@@ -305,6 +321,10 @@
       <a class="sidebar-item" data-section="assistant" href="#" title="IA para criar ou atualizar produtos no Supabase">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
         <span>Assistente IA</span>
+      </a>
+      <a class="sidebar-item" data-section="assistant-studio" href="#" title="Briefing, foto e JSON do catálogo (WhatsApp / n8n)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 1 6 6c0 4-6 10-6 10S6 13 6 9a6 6 0 0 1 6-6Z"/><circle cx="12" cy="9" r="2"/></svg>
+        <span>Estúdio IA</span>
       </a>
       <a class="sidebar-item" data-section="products" href="#">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -374,14 +394,18 @@
       <div class="section" id="section-assistant">
         <div class="ai-assist-wrap">
           <p class="ai-assist-hint">
-            Descreva o que deseja (ex.: &quot;criar produto Colchão X, preço 1899, categoria Colchões, estoque 3&quot;) ou envie uma <strong>foto da etiqueta</strong> / vitrine para a IA sugerir campos (raciocínio rápido: ela resume e monta o JSON de ações).
-            Ao clicar em <strong>Aplicar no Supabase</strong>, as alterações são gravadas; se você tinha enviado uma <strong>foto</strong> junto do plano, ela é enviada ao Storage (<code>public/imagens/ai-assistant/</code>) e vinculada como primeira foto do produto criado ou atualizado (um único <code>update</code> no mesmo lote).
+            <strong>Produtos:</strong> crie ou atualize descrevendo ou enviando foto de etiqueta/vitrine.
+            <strong>Pedidos / clientes:</strong> peça histórico por e-mail da conta — a consulta roda ao enviar (não precisa Aplicar). Alterações de pedido (status, excluir) vão no <strong>Aplicar</strong>.
+            <strong>Categorias, banners, config do site, frete CEP:</strong> também podem ser montados pela IA e confirmados em Aplicar.
+            <strong>Frete por CEP:</strong> ex. &quot;adicione o CEP 29100100 por 45 reais&quot; ou &quot;CEP 05656000 frete 300&quot; — isso grava na tabela do painel <strong>CEP / Frete</strong>, nao no catalogo de produtos. CEP com menos de 8 digitos e completado com zeros a esquerda.
+            <strong>JSON catálogo (WhatsApp / n8n):</strong> use a aba <strong>Estúdio IA</strong> — briefing, foto de referência e geração de JSON em um só lugar.
+            Ao clicar em <strong>Aplicar no Supabase</strong>, as alterações são gravadas; se você enviou <strong>foto</strong> no plano, ela pode ir ao Storage (<code>public/imagens/ai-assistant/</code>) como primeira foto do produto (criação ou um único update no lote).
             Requer <code>OPENAI_API_KEY</code> na Vercel. Uso apenas com sessão de administrador.
           </p>
           <div class="ai-assist-log" id="assistantChatLog" aria-live="polite"></div>
           <img id="assistantImagePreview" class="ai-assist-preview" alt="" style="display:none;">
           <div class="ai-assist-input-row">
-            <textarea class="form-textarea" id="assistantInput" placeholder="Ex.: Atualize o produto [nome] para estoque 10 e preço 2499..." rows="3"></textarea>
+            <textarea class="form-textarea" id="assistantInput" placeholder="Ex.: CEP 29100100 frete 45 | Ou: atualizar produto X estoque 10 preço 2499" rows="3"></textarea>
             <div style="display:flex;flex-direction:column;gap:8px;">
               <label class="btn btn-ghost btn-sm" style="cursor:pointer;text-align:center;">
                 Foto
@@ -397,6 +421,68 @@
             <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
               <button type="button" class="btn btn-primary" id="assistantApplyBtn" onclick="window.applyAdminAssistantActions()">Aplicar no Supabase</button>
               <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('assistantActionsPanel').style.display='none'">Ocultar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESTUDIO IA: briefing + foto + JSON catalogo -->
+      <div class="section" id="section-assistant-studio">
+        <div class="as-studio">
+          <p class="as-studio-lead">
+            Descreva como quer o material, envie uma <strong>foto de referência</strong> se fizer sentido (vitrine, etiqueta, print) e gere JSON com dados reais do Supabase — para WhatsApp, n8n ou outro atendente. Preços e URLs vêm do banco; a IA só complementa textos quando você escolher <strong>JSON + IA</strong>.
+          </p>
+          <div class="as-studio-grid">
+            <div class="as-studio-card">
+              <h3 class="as-studio-h3">1. O que você quer</h3>
+              <p class="as-studio-muted">Tom de voz, canal, destaques, público, formato das mensagens…</p>
+              <textarea id="studioBrief" class="form-textarea" rows="7" placeholder="Ex.: Quero mensagens curtas com emoji, uma linha por produto, mencionar entrega na Grande Vitória…"></textarea>
+
+              <h3 class="as-studio-h3" style="margin-top:18px;">2. Referência visual (opcional)</h3>
+              <p class="as-studio-muted">Usada no modo <strong>JSON + IA</strong> para alinhar estilo ao que você mostrar.</p>
+              <label class="photo-upload-area" style="margin-top:8px;cursor:pointer;display:block;" for="studioImageFile">
+                Clique aqui para escolher imagem (JPEG, PNG ou WebP)
+                <input type="file" id="studioImageFile" accept="image/jpeg,image/png,image/webp" style="display:none;">
+              </label>
+              <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="window.clearStudioImage()">Remover imagem</button>
+              <img id="studioImagePreview" class="ai-assist-preview" alt="Pré-visualização da referência" style="display:none;margin-top:12px;">
+
+              <div class="as-studio-toolbar">
+                <label>
+                  Produtos no JSON
+                  <input type="number" id="studioExportLimit" class="form-input" min="1" max="120" value="24" title="Até 120 só Supabase; no máx. 25 com IA">
+                </label>
+                <label class="form-check" style="margin:0;">
+                  <input type="checkbox" id="studioPreferThumb" checked>
+                  <span>Usar miniatura em <code>photo_url</code> (carrega mais rápido)</span>
+                </label>
+              </div>
+
+              <div class="as-studio-actions">
+                <button type="button" class="btn btn-outline btn-sm as-studio-run" onclick="window.runStudioCatalogExport('whatsapp', false)">JSON catálogo (WhatsApp)</button>
+                <button type="button" class="btn btn-outline btn-sm as-studio-run" onclick="window.runStudioCatalogExport('n8n', false)">JSON catálogo (n8n)</button>
+                <button type="button" class="btn btn-primary btn-sm as-studio-run" onclick="window.runStudioCatalogExport('whatsapp', true)">JSON + IA (WhatsApp)</button>
+                <button type="button" class="btn btn-primary btn-sm as-studio-run" onclick="window.runStudioCatalogExport('n8n', true)">JSON + IA (n8n)</button>
+              </div>
+
+              <div class="as-studio-foot">
+                <p class="as-studio-muted" style="margin-bottom:8px;">Para alterar produtos, pedidos, CEPs ou aplicar planos no Supabase, use o chat do <strong>Assistente IA</strong>.</p>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="window.goToAdminAssistantFromStudio()">Abrir Assistente IA</button>
+              </div>
+            </div>
+
+            <div class="as-studio-card">
+              <h3 class="as-studio-h3">Resultado</h3>
+              <p class="as-studio-muted" style="margin-bottom:8px;">Registro do que foi gerado e JSON pronto para copiar.</p>
+              <div id="studioLog" class="as-studio-log" aria-live="polite"></div>
+              <p id="studioExportEmpty" class="as-studio-muted">Ainda não há JSON. Escolha um botão à esquerda.</p>
+              <div id="studioExportWrap" style="display:none;">
+                <pre id="studioExportPre"></pre>
+                <div class="as-studio-export-bar-inner">
+                  <button type="button" class="btn btn-primary btn-sm" onclick="window.copyStudioExport()">Copiar JSON</button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="window.clearStudioWorkspace()">Limpar briefing e resultado</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -840,8 +926,10 @@
 
   <input type="file" id="hiddenFileInput" accept="image/*" style="display:none;">
 
-  <script src="js/supabase-config.js"></script>
-  <script src="js/utils.js"></script>
+  <script src="js/scripts-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/utils.js" defer></script>
   <script>
     (function() {
       'use strict';
@@ -870,6 +958,7 @@
       /** Padronizar imagem: bucket + prefixo alinhados ao servidor /api/gerar-3d (env SUPABASE_IMAGE_*) */
       var CONFORTA_IMG_BUCKET = 'public';
       var CONFORTA_IMG_PREFIX = 'imagens';
+      var __studioPreviewUrl = null;
 
       // ===================== INIT =====================
       async function init() {
@@ -908,6 +997,29 @@
               prev.src = URL.createObjectURL(f);
               prev.style.display = 'block';
             } catch (e1) { void e1; }
+          });
+        }
+
+        var studioImg = document.getElementById('studioImageFile');
+        if (studioImg) {
+          studioImg.addEventListener('change', function(ev) {
+            var f = ev.target.files && ev.target.files[0];
+            var prev = document.getElementById('studioImagePreview');
+            if (!prev) return;
+            if (__studioPreviewUrl) {
+              try { URL.revokeObjectURL(__studioPreviewUrl); } catch (eR) { void eR; }
+              __studioPreviewUrl = null;
+            }
+            if (!f) {
+              prev.style.display = 'none';
+              prev.removeAttribute('src');
+              return;
+            }
+            try {
+              __studioPreviewUrl = URL.createObjectURL(f);
+              prev.src = __studioPreviewUrl;
+              prev.style.display = 'block';
+            } catch (e2) { void e2; }
           });
         }
 
@@ -1025,7 +1137,7 @@
         if (secEl) secEl.classList.add('active');
         renderSidebar();
 
-        var titles = { dashboard:'Dashboard', assistant:'Assistente IA', products:'Produtos', home:'Home (vitrine)', categories:'Categorias', banners:'Banners', orders:'Pedidos', 'delivery-ceps':'CEP / Frete', settings:'Configurações', n8n:'API n8n' };
+        var titles = { dashboard:'Dashboard', assistant:'Assistente IA', 'assistant-studio':'Estúdio IA', products:'Produtos', home:'Home (vitrine)', categories:'Categorias', banners:'Banners', orders:'Pedidos', 'delivery-ceps':'CEP / Frete', settings:'Configurações', n8n:'API n8n' };
         document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
 
         if (section === 'dashboard') loadDashboard();
@@ -1038,6 +1150,10 @@
         else if (section === 'settings') loadSettings();
         else if (section === 'n8n') loadN8n();
       }
+
+      window.goToAdminAssistantFromStudio = function() {
+        switchSection('assistant');
+      };
 
       function showToast(msg, type) {
         type = type || 'info';
@@ -2347,6 +2463,154 @@
         if (ta) ta.value = '';
       };
 
+      function appendStudioLog(line) {
+        var log = document.getElementById('studioLog');
+        if (!log) return;
+        var p = document.createElement('div');
+        p.className = 'as-studio-log-line';
+        var t = new Date();
+        p.textContent = '[' +
+          String(t.getHours()).padStart(2, '0') + ':' +
+          String(t.getMinutes()).padStart(2, '0') + ':' +
+          String(t.getSeconds()).padStart(2, '0') +
+          '] ' + line;
+        log.appendChild(p);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      window.clearStudioImage = function() {
+        if (__studioPreviewUrl) {
+          try { URL.revokeObjectURL(__studioPreviewUrl); } catch (eR) { void eR; }
+          __studioPreviewUrl = null;
+        }
+        var fi = document.getElementById('studioImageFile');
+        if (fi) fi.value = '';
+        var prev = document.getElementById('studioImagePreview');
+        if (prev) { prev.style.display = 'none'; prev.removeAttribute('src'); }
+      };
+
+      window.clearStudioWorkspace = function() {
+        var brief = document.getElementById('studioBrief');
+        if (brief) brief.value = '';
+        window.clearStudioImage();
+        var log = document.getElementById('studioLog');
+        if (log) log.innerHTML = '';
+        var pre = document.getElementById('studioExportPre');
+        if (pre) pre.textContent = '';
+        var wrap = document.getElementById('studioExportWrap');
+        var empty = document.getElementById('studioExportEmpty');
+        if (wrap) wrap.style.display = 'none';
+        if (empty) empty.style.display = 'block';
+        var lim = document.getElementById('studioExportLimit');
+        if (lim) lim.value = '24';
+        var thumb = document.getElementById('studioPreferThumb');
+        if (thumb) thumb.checked = true;
+      };
+
+      window.copyStudioExport = function() {
+        var pre = document.getElementById('studioExportPre');
+        var txt = pre && pre.textContent ? String(pre.textContent) : '';
+        if (!txt.trim()) { showToast('Nada para copiar.', 'info'); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(function() {
+            showToast('JSON copiado.', 'success');
+          }).catch(function() {
+            showToast('Nao foi possivel copiar automaticamente.', 'warning');
+          });
+        } else {
+          showToast('Copie manualmente do painel.', 'warning');
+        }
+      };
+
+      window.runStudioCatalogExport = async function(template, withAi) {
+        var tok = await getAdminJwt();
+        if (!tok) { showToast('Sessao invalida. Entre de novo.', 'error'); return; }
+        var limEl = document.getElementById('studioExportLimit');
+        var limit = limEl ? parseInt(String(limEl.value || '24'), 10) : 24;
+        if (isNaN(limit) || limit < 1) limit = withAi ? 12 : 40;
+        if (withAi && limit > 25) limit = 25;
+        if (!withAi && limit > 120) limit = 120;
+
+        var briefEl = document.getElementById('studioBrief');
+        var msg = (briefEl && briefEl.value || '').trim();
+        var fileIn = document.getElementById('studioImageFile');
+        var file = fileIn && fileIn.files && fileIn.files[0];
+        var preferEl = document.getElementById('studioPreferThumb');
+        var preferThumb = preferEl ? !!preferEl.checked : true;
+
+        if (withAi && !msg && !file) {
+          showToast('Para JSON + IA: preencha o briefing e/ou anexe uma imagem de referencia.', 'warning');
+          return;
+        }
+
+        var apiBase = '';
+        try { apiBase = window.location.origin || ''; } catch (eB) { void eB; }
+
+        var body = {
+          mode: withAi ? 'catalog_enrich' : 'catalog_export',
+          template: template === 'n8n' ? 'n8n' : 'whatsapp',
+          limit: limit,
+          prefer_thumb: preferThumb
+        };
+        if (withAi) {
+          if (msg) body.message = msg;
+          if (file) {
+            var dataUrl = await new Promise(function(resolve, reject) {
+              var fr = new FileReader();
+              fr.onload = function() { resolve(String(fr.result || '')); };
+              fr.onerror = reject;
+              fr.readAsDataURL(file);
+            });
+            var comma = dataUrl.indexOf(',');
+            body.image_base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+            body.image_mime = file.type || 'image/jpeg';
+          }
+        }
+
+        var runBtns = document.querySelectorAll('.as-studio-run');
+        runBtns.forEach(function(b) { b.disabled = true; });
+        appendStudioLog(
+          (withAi ? 'JSON + IA' : 'JSON') +
+            ' (' +
+            (template === 'n8n' ? 'n8n' : 'WhatsApp') +
+            ') — ' +
+            limit +
+            ' produto(s)...'
+        );
+        try {
+          var resp = await fetch(apiBase + '/api/admin-ai-assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+            body: JSON.stringify(body)
+          });
+          var data = await resp.json().catch(function() { return {}; });
+          if (!resp.ok) {
+            appendStudioLog('Erro: ' + (data.error || 'HTTP ' + resp.status));
+            showToast(data.error || 'Erro ao gerar JSON', 'error');
+            return;
+          }
+          if (data.export_json) {
+            var pre = document.getElementById('studioExportPre');
+            var wrap = document.getElementById('studioExportWrap');
+            var empty = document.getElementById('studioExportEmpty');
+            if (pre) pre.textContent = JSON.stringify(data.export_json, null, 2);
+            if (wrap) wrap.style.display = 'block';
+            if (empty) empty.style.display = 'none';
+            var n = (data.export_json.items && data.export_json.items.length) || 0;
+            appendStudioLog('OK — ' + n + ' item(ns). ' + (data.reply || ''));
+            showToast(data.reply || 'JSON gerado.', 'success');
+          } else {
+            appendStudioLog('Resposta sem export_json.');
+            showToast('Resposta inesperada do servidor.', 'warning');
+          }
+        } catch (eC) {
+          appendStudioLog('Falha: ' + ((eC && eC.message) || eC));
+          showToast('Erro: ' + ((eC && eC.message) || eC), 'error');
+        } finally {
+          runBtns.forEach(function(b) { b.disabled = false; });
+        }
+      };
+
       window.sendAdminAssistantMessage = async function() {
         var tok = await getAdminJwt();
         if (!tok) { showToast('Sessao invalida. Entre de novo.', 'error'); return; }
@@ -2460,6 +2724,10 @@
           var pan = document.getElementById('assistantActionsPanel');
           if (pan) pan.style.display = 'none';
           loadProducts();
+          if (typeof loadDeliveryAdmin === 'function') loadDeliveryAdmin();
+          if (typeof loadCategories === 'function') loadCategories();
+          if (typeof loadBanners === 'function') loadBanners();
+          if (typeof loadOrders === 'function') loadOrders();
         } catch (e2) {
           showToast('Erro: ' + ((e2 && e2.message) || e2), 'error');
         } finally {

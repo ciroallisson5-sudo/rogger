@@ -280,10 +280,16 @@ function getItemImage(item) {
 
 function normalizeColchaoDisplay(name) {
   const s = String(name || '');
-  return s
+  var out = s
     .replace(/\bCOLCHAO\b/g, 'COLCHÃO')
     .replace(/\bColchao\b/g, 'Colchão')
-    .replace(/\bcolchao\b/g, 'colchão');
+    .replace(/\bcolchao\b/g, 'colchão')
+    .replace(/\bCOLCHAOES\b/gi, 'COLCHÕES')
+    .replace(/\bcolchoes\b/gi, 'colchões');
+  if (typeof normalizeConfortaBranding === 'function') {
+    out = normalizeConfortaBranding(out);
+  }
+  return out;
 }
 
 function getItemName(item) {
@@ -623,7 +629,7 @@ function renderCartSidebar() {
             <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
           </svg>
           <h4>Seu carrinho esta vazio</h4>
-          <p>Veja nossas ofertas e encontre o colchao ideal para dormir melhor.</p>
+          <p>Veja nossas ofertas e encontre o colchão ideal para dormir melhor.</p>
           <div class="cart-empty-actions">
             <a class="btn btn-primary" href="produtos.html">Ver produtos</a>
             <a class="btn btn-outline js-cart-whatsapp" href="${cartWhatsappHref()}">Falar no WhatsApp</a>

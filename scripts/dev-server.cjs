@@ -116,6 +116,21 @@ function safePath(urlPath) {
   return full;
 }
 
+/**
+ * URLs sem extensão (/admin, /produtos) → arquivo .html na raiz, alinhado ao cleanUrls da Vercel.
+ */
+function resolveStaticUrlPath(urlPath) {
+  if (urlPath === '/' || urlPath === '') return '/index.html';
+  let p = urlPath.replace(/\/$/, '') || '/';
+  if (p === '/') return '/index.html';
+  const ext = path.extname(p);
+  if (ext) return urlPath;
+  const rel = p.replace(/^\//, '');
+  const candidate = path.join(ROOT, rel + '.html');
+  if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return '/' + rel + '.html';
+  return urlPath;
+}
+
 function serveStatic(urlPath, res) {
   let filePath = safePath(urlPath);
   if (!filePath) {
@@ -167,13 +182,14 @@ const server = http.createServer(async function (req, res) {
     }
   }
 
-  const staticPath = urlPath === '/' ? '/index.html' : urlPath;
+  const staticPath = resolveStaticUrlPath(urlPath);
   serveStatic(staticPath, res);
 });
 
 server.listen(PORT, function () {
   const hasMp = !!(process.env.MERCADO_PAGO_ACCESS_TOKEN && process.env.APP_URL);
   console.log('Conforta dev server: http://localhost:' + PORT);
+  console.log('HTML sem extensao: /admin, /produtos, /carrinho, etc. (mesmo que admin.html na pasta)');
   console.log(
     'API routes: /api/mercadopago-create-preference, /api/mercadopago-webhook, /api/mercadopago-payment-status, /api/openai-chat, /api/gerar-3d, /api/cep-freight, /api/admin-delivery-ceps, /api/admin-ai-assistant, /api/n8n-products'
   );

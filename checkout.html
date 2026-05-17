@@ -12,7 +12,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --brand:#1a56db; --brand-dark:#0f3a8e; --brand-soft:#eff6ff; --ink:#0f172a; --text:#1e293b; --muted:#64748b; --soft:#f8fafc; --line:#e2e8f0; --success:#16a34a; --danger:#dc2626; --warning:#f59e0b; --shadow:0 18px 42px rgba(15,23,42,0.09); }
@@ -120,7 +119,44 @@
     .total-line.total span:last-child { color: var(--brand-dark); font-size: 1.55rem; letter-spacing: -0.04em; }
     .summary-installment { margin-top: 10px; padding: 10px 12px; text-align: center; border-radius: 14px; background: #f0fdf4; color: #166534; font-size: 0.84rem; font-weight: 900; }
     .trust-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 14px; }
-    .trust-list span { padding: 8px; border-radius: 12px; background: var(--soft); color: #475569; font-size: 0.72rem; font-weight: 800; text-align: center; }
+    .trust-list span { padding: 8px 10px; border-radius: 12px; background: var(--soft); color: #475569; font-size: 0.72rem; font-weight: 800; text-align: center; line-height: 1.25; }
+    .checkout-trust-pills { grid-template-columns: repeat(2, 1fr); }
+    @media (min-width: 600px) {
+      .checkout-trust-pills { grid-template-columns: repeat(4, 1fr); }
+    }
+    .checkout-mp-hero {
+      margin-bottom: 22px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid #bae6fd;
+      background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 72%);
+      box-shadow: 0 4px 20px rgba(14, 165, 233, 0.1);
+    }
+    .checkout-mp-hero-kicker {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #0369a1;
+      margin-bottom: 8px;
+    }
+    .checkout-mp-hero-title {
+      font-size: clamp(1rem, 2.8vw, 1.15rem);
+      font-weight: 900;
+      color: var(--ink);
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      margin: 0 0 10px;
+    }
+    .checkout-mp-hero-text {
+      margin: 0;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: #475569;
+      line-height: 1.55;
+    }
+    .checkout-mp-hero-text strong { color: #0c4a6e; }
     .mobile-submit-bar { display: none; }
     .checkout-state, .success-card, .failure-card { max-width: 760px; margin: 0 auto; text-align: center; padding: 56px 24px; background: #fff; border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--shadow); }
     .checkout-state svg, .success-card svg, .failure-card svg { margin: 0 auto 16px; display: block; color: var(--brand); }
@@ -155,7 +191,8 @@
     @media (max-width: 520px) {
       .order-summary-item { grid-template-columns: 50px 1fr; }
       .osi-price { grid-column: 2; }
-      .trust-list { grid-template-columns: 1fr; }
+      .trust-list:not(.checkout-trust-pills) { grid-template-columns: 1fr; }
+      .checkout-trust-pills { grid-template-columns: 1fr; }
     }
     .checkout-profile-warn {
       background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
@@ -183,6 +220,11 @@
         <a href="carrinho.html" class="checkout-back" id="backToCartLink">← Voltar ao carrinho</a>
         <h1>Finalizar compra</h1>
         <p>Revise seus dados, a entrega e o pagamento em um fluxo simples.</p>
+        <div class="checkout-mp-hero" role="region" aria-labelledby="checkoutMpHeroTitle">
+          <span class="checkout-mp-hero-kicker">Mercado Pago</span>
+          <h2 id="checkoutMpHeroTitle" class="checkout-mp-hero-title">Pagamento na plataforma que processa milhões de compras com segurança</h2>
+          <p class="checkout-mp-hero-text">Ao concluir, você abre o <strong>Checkout Pro do Mercado Pago</strong>. Cartão, Pix e parcelamento ficam lá — com a mesma proteção usada em grandes lojas. A Conforta não armazena dados do seu cartão nem senha bancária; recebemos só a confirmação do pagamento para montar seu pedido.</p>
+        </div>
       </div>
 
       <div id="checkoutContent">
@@ -200,17 +242,22 @@
   </main>
 
   <footer class="footer">
-    <div class="container">
-      <p>&copy; 2026 Conforta Colchões. Todos os direitos reservados.</p>
+    <div class="container" style="text-align:center;">
+      <p style="font-size:0.82rem;color:#64748b;margin-bottom:10px;line-height:1.5;">Pagamentos processados pelo <strong style="color:#0f172a;">Mercado Pago</strong> (Checkout Pro). Dados bancários e de cartão não passam por este site.</p>
+      <p style="font-size:0.85rem;color:#64748b;">&copy; 2026 Conforta Colchões. Todos os direitos reservados.</p>
     </div>
   </footer>
 
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="js/supabase-config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/cart.js"></script>
+  <script src="js/scripts-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/components/site-footer.js" defer></script>
+  <script src="js/components/site-header.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/cart.js" defer></script>
   <script>
     (function() {
       'use strict';
@@ -694,9 +741,9 @@
           '<div id="checkoutCepWarn" style="display:none;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;padding:10px 12px;border-radius:8px;font-size:0.82rem;margin-bottom:14px;"></div>' +
 
           '<div class="checkout-section">' +
-          '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">Você será redirecionado para o ambiente seguro do Mercado Pago. Dados de cartão e Pix não passam por este site.</p></div></div>' +
+          '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">Redirecionamento para o Mercado Pago (Checkout Pro). Este site não coleta dados de cartão ou conta.</p></div></div>' +
           '<div class="payment-note" style="margin-bottom:14px;">O valor final e o frete sao confirmados no servidor no momento de iniciar o pagamento.</div>' +
-          '<div class="trust-list" style="margin-bottom:16px;"><span>Pagamento via Mercado Pago</span><span>Checkout seguro</span></div>' +
+          '<div class="trust-list checkout-trust-pills" style="margin-bottom:16px;"><span>Mercado Pago · Checkout Pro</span><span>Sem cartão neste site</span><span>Pix e parcelamento seguros</span><span>Confirmação do pedido</span></div>' +
           '</div>' +
 
           '<div class="checkout-section">' +

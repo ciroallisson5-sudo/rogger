@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Conforta Colchões — Descansar bem muda tudo. Colchões de qualidade com entrega rápida e até 12x sem juros.">
-  <title>Conforta Colchões — Descansar bem muda tudo</title>
+  <meta name="description" content="Colchões Conforta com entrega em Serra, Vitória e no Espírito Santo. Até 12x sem juros. Linha Querubim e muito mais.">
+  <meta name="keywords" content="colchões Vitória ES, colchões Serra, loja colchões Espírito Santo, Conforta Colchões, Querubim, Grande Vitória">
+  <title>Conforta Colchões — Serra, Vitória e ES</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -60,15 +60,21 @@
       margin-top: -56px;
       padding-top: calc(56px + 24px);
     }
-    .hero-bg {
+    .hero-lcp-wrap {
       position: absolute;
       inset: 0;
       z-index: 0;
-      background-color: #0f172a;
-      background-size: cover;
-      background-position: center center;
-      background-repeat: no-repeat;
+      overflow: hidden;
       pointer-events: none;
+      background-color: #0f172a;
+    }
+    .hero-lcp-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
     }
     .hero::before {
       content: '';
@@ -237,8 +243,8 @@
 <body>
   <header class="header">
     <div class="container header-inner">
-      <a href="index.html" class="logo" aria-label="Conforta Colchões">
-        <img src="assets/logo.png" alt="">
+      <a href="index.html" class="logo" aria-label="Conforta Colchões — página inicial">
+        <img src="assets/logo.png" alt="Logotipo Conforta Colchões" width="140" height="36" decoding="async">
         <span class="logo-text">Conforta<small>COLCHÕES</small></span>
       </a>
       <form class="search-bar" id="searchForm" action="produtos.html" method="GET">
@@ -250,18 +256,18 @@
         </button>
       </form>
       <div class="header-actions">
-        <button id="cartBtn" aria-label="Carrinho">
+        <button type="button" id="cartBtn" aria-label="Abrir carrinho de compras">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
           </svg>
           <span class="cart-count" id="cartCount">0</span>
         </button>
-        <a href="perfil.html" id="authBtn" aria-label="Perfil">
+        <a href="perfil.html" id="authBtn" aria-label="Abrir minha conta e perfil">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
         </a>
-        <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">
+        <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Abrir ou fechar menu de navegação">
           <svg id="menuIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
           </svg>
@@ -280,14 +286,16 @@
 
   <main class="main">
     <section class="hero" id="homeHero">
-      <div class="hero-bg" id="heroBg" role="presentation" aria-hidden="true"></div>
+      <div class="hero-lcp-wrap" aria-hidden="true">
+        <img id="heroLcpImage" class="hero-lcp-img" src="https://i.postimg.cc/k713y98f/Whats-App-Image-2026-02-10-at-13-04-33-(1).jpg" width="1920" height="1080" fetchpriority="high" decoding="async" alt="Ambiente com colchões Conforta — entrega em Serra, Vitória e Espírito Santo">
+      </div>
       <div class="container">
         <div class="hero-content">
           <h1>Descansar bem muda tudo</h1>
           <p>Colchões selecionados para transformar suas noites de sono. Conforta Colchões: qualidade, durabilidade e o melhor preço em Serra, Vitória e região.</p>
           <div class="hero-actions">
-            <a href="produtos.html" class="btn-primary">Ver produtos disponíveis</a>
-            <button class="btn-outline" onclick="openChat()">Falar com assistente</button>
+            <a href="produtos.html" class="btn-primary" aria-label="Ver catálogo de colchões e móveis disponíveis">Ver produtos disponíveis</a>
+            <button type="button" class="btn-outline" onclick="openChat()" aria-label="Abrir chat de atendimento Conforta Colchões">Falar com assistente</button>
           </div>
           <div class="hero-info-bar">
             <span>
@@ -316,7 +324,7 @@
             <p>Compre online e receba em até 24h em Serra, Vitória e região</p>
           </div>
         </div>
-        <a href="produtos.html" class="btn-promo">Ver colchões</a>
+        <a href="produtos.html" class="btn-promo" aria-label="Ver colchões e ofertas no catálogo">Ver colchões</a>
       </div>
     </section>
 
@@ -421,12 +429,16 @@
 
   <footer class="footer" id="siteFooter"></footer>
 
-  <script src="js/supabase-config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/cart.js"></script>
-  <script src="js/products.js"></script>
-  <script src="js/chat.js"></script>
+  <script src="js/scripts-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/components/site-footer.js" defer></script>
+  <script src="js/components/site-header.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/cart.js" defer></script>
+  <script src="js/components/product-card.js" defer></script>
+  <script src="js/chat.js" defer></script>
   <script>
     (function() {
       'use strict';
@@ -453,9 +465,9 @@
       }
 
       function applyHeroBackground(imageUrl) {
-        var el = document.getElementById('heroBg');
+        var el = document.getElementById('heroLcpImage');
         if (!el || !imageUrl) return;
-        el.style.backgroundImage = 'url(' + JSON.stringify(String(imageUrl).trim()) + ')';
+        el.src = String(imageUrl).trim();
       }
 
       function parseHeroSetting(raw) {
@@ -600,7 +612,7 @@
               if (first.is_video && first.video_url) {
                 media = '<video src="' + absolutizePhotoUrl(first.video_url) + '" muted loop playsinline ' + (i === 0 ? 'autoplay' : '') + ' preload="metadata"></video>';
               } else if (first.url) {
-                media = '<img src="' + absolutizePhotoUrl(first.url) + '" alt="' + escapeHtml(p.name) + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '">';
+                media = '<img src="' + absolutizePhotoUrl(first.url) + '" alt="' + escapeHtml(p.name) + '" width="800" height="600" loading="' + (i === 0 ? 'eager' : 'lazy') + '" decoding="async"' + (i === 0 ? ' fetchpriority="high"' : '') + '>';
               }
             }
             if (!media) {
@@ -625,26 +637,26 @@
         }
 
         function buildProductCard(p, opts) {
+          if (typeof buildConfortaHomeProductCardHtml === 'function') {
+            return buildConfortaHomeProductCardHtml(p, opts);
+          }
           opts = opts || {};
           var categoryNames = { 1: 'Colchões', 2: 'Sofás', 3: 'Box baú', 4: 'Cabeceiras', 5: 'Kits' };
           var img = '';
           if (p.product_photos && p.product_photos.length > 0) {
-            img = '<img src="' + absolutizePhotoUrl(p.product_photos[0].url) + '" alt="' + escapeHtml(p.name) + '" loading="lazy">';
+            img = '<img src="' + absolutizePhotoUrl(p.product_photos[0].url) + '" alt="' + escapeHtml(p.name) + '" width="800" height="800" loading="lazy" decoding="async">';
           }
           var catName = categoryNames[p.category_id] || (p.category && p.category.name) || 'Produtos';
-
           var basePrice = parseFloat(p.base_price ?? p.price) || 0;
           var discountPrice = (p.discount_price ?? p.sale_price);
           discountPrice = (discountPrice === null || discountPrice === undefined || discountPrice === '') ? null : parseFloat(discountPrice);
           var displayPrice = (discountPrice && discountPrice > 0) ? discountPrice : basePrice;
           var hasDiscount = !!(discountPrice && discountPrice > 0 && discountPrice < basePrice);
-
           var maxParcelas = parseInt(p.installment || p.max_installments || 12);
           var installmentValue = (displayPrice > 0 && maxParcelas > 0) ? (displayPrice / maxParcelas) : 0;
           var installmentHtml = (installmentValue >= 20)
             ? '<span class="product-installment">' + maxParcelas + 'x de R$ ' + installmentValue.toFixed(2).replace('.', ',') + ' sem juros</span>'
             : '';
-
           var href = 'produto.html?id=' + encodeURIComponent(p.id);
           var countdownHtml = '';
           if (opts.countdownId) {
@@ -661,7 +673,7 @@
             (hasDiscount ? '<span class="product-old-price">R$ ' + basePrice.toFixed(2).replace('.', ',') + '</span>' : '') +
             '<span class="product-price">R$ ' + displayPrice.toFixed(2).replace('.', ',') + '</span>' +
             installmentHtml +
-            '<button class="btn-add-cart" onclick="event.stopPropagation();addProductToCart(\'' + safeId + '\')">Adicionar ao carrinho</button>' +
+            '<button type="button" class="btn-add-cart" aria-label="Adicionar ao carrinho" onclick="event.stopPropagation();addProductToCart(\'' + safeId + '\')">Adicionar ao carrinho</button>' +
             '</div></div>';
         }
 

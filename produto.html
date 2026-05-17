@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="Colchão Conforta — conforto, qualidade e condições especiais. Veja detalhes e leve para casa.">
-  <title>Produto - Conforta Colchões</title>
+  <meta name="description" content="Detalhes do colchão ou móvel Conforta — entrega em Serra, Vitória e Espírito Santo. Linha Querubim e condições especiais.">
+  <meta name="keywords" content="colchão Vitória, colchão Serra, Espírito Santo, Conforta Colchões, Querubim, Grande Vitória">
+  <title>Produto — Conforta Colchões | ES</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -416,11 +416,15 @@
 
   <footer class="footer" id="siteFooter"></footer>
 
-  <script src="js/supabase-config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/cart.js"></script>
-  <script src="js/chat.js"></script>
+  <script src="js/scripts-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/components/site-footer.js" defer></script>
+  <script src="js/components/site-header.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/cart.js" defer></script>
+  <script src="js/chat.js" defer></script>
   <script type="text/plain" data-legacy-product-script>
     (function() {
       'use strict';
@@ -689,9 +693,14 @@
             initialMediaHtml = '<div class="placeholder-img"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
           }
         } else if (initialPhotoUrl) {
-          initialMediaHtml = '<img src="' + initialPhotoUrl + '" alt="' + escHtml(p.name) + '" id="mainImage" fetchpriority="high" decoding="async">';
+          initialMediaHtml = '<img src="' + initialPhotoUrl + '" alt="Foto principal do produto ' + escHtml(p.name) + ' — Conforta Colchões, Serra e Vitória" width="900" height="900" id="mainImage" fetchpriority="high" decoding="async">';
         } else {
           initialMediaHtml = '<div class="placeholder-img"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>';
+        }
+
+        var descriptionHtml = p.description || '<p style="color:#94a3b8;">Descrição indisponível para este produto.</p>';
+        if (typeof confortaUpgradeMarkdownHeadingsInHtml === 'function') {
+          descriptionHtml = confortaUpgradeMarkdownHeadingsInHtml(descriptionHtml);
         }
 
         container.innerHTML =
@@ -709,7 +718,7 @@
             var thumbSrc = ph.thumb_url || ph.url || '';
             var label = getPhotoLabel(ph) || '';
             return '<div class="thumb-item' + (isActive ? ' active' : '') + '" data-photo-id="' + ph.id + '" onclick="window.selectPhoto(\'' + ph.id + '\')">' +
-              (thumbSrc ? '<img src="' + thumbSrc + '" alt="">' : '') +
+              (thumbSrc ? '<img src="' + thumbSrc + '" alt="Miniatura ' + escHtml(label || p.name) + '" width="120" height="120" loading="lazy" decoding="async">' : '') +
               (ph.is_video ? '<span class="video-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>' : '') +
               (label ? '<span class="thumb-label">' + escHtml(label) + '</span>' : '') +
               '</div>';
@@ -770,11 +779,11 @@
           '</div>' +
           '</div>' +
           '<div class="product-actions">' +
-          '<button class="btn btn-primary" id="addToCartBtn" onclick="window.addToCart()">' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' +
+          '<button type="button" class="btn btn-primary" id="addToCartBtn" onclick="window.addToCart()" aria-label="Adicionar ' + escHtml(p.name) + ' ao carrinho">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' +
           'Adicionar ao carrinho' +
           '</button>' +
-          '<button class="btn btn-outline" id="buyNowBtn" onclick="window.buyNow()">' +
+          '<button type="button" class="btn btn-outline" id="buyNowBtn" onclick="window.buyNow()" aria-label="Comprar agora: ' + escHtml(p.name) + '">' +
           'Comprar agora' +
           '</button>' +
           '</div>' +
@@ -791,7 +800,7 @@
           '<button class="tab-btn" data-tab="detalhes" onclick="window.switchTab(\'detalhes\')">Detalhes</button>' +
           '</div>' +
           '<div class="tab-content active" id="tab-descricao">' +
-          (p.description || '<p style="color:#94a3b8;">Descrição indisponível para este produto.</p>') +
+          descriptionHtml +
           '</div>' +
           '<div class="tab-content" id="tab-detalhes">' +
           '<table class="details-table">' +
@@ -1623,7 +1632,7 @@
       }
 
       function renderDeliveryBlock() {
-        return '<section class="delivery-card"><h2>Entrega e disponibilidade</h2><p class="delivery-message">Entrega rápida em Serra, Vitória e região. Confirme o prazo e disponibilidade com nossa equipe pelo WhatsApp.</p><div class="cep-row"><input type="text" id="cepInput" inputmode="numeric" placeholder="Digite seu CEP" aria-label="Digite seu CEP"><button class="btn btn-outline" type="button" id="cepBtn">Calcular</button></div><p class="delivery-message" id="cepMessage">Fale conosco para confirmar prazo e disponibilidade.</p></section>';
+        return '<section class="delivery-card"><h2>Entrega e disponibilidade</h2><p class="delivery-message">Entrega rápida em Serra, Vitória e região. Confirme o prazo e disponibilidade com nossa equipe pelo WhatsApp.</p><div class="cep-row"><input type="text" id="cepInput" inputmode="numeric" placeholder="Digite seu CEP" aria-label="Digite seu CEP"><button class="btn btn-outline" type="button" id="cepBtn" aria-label="Calcular frete ou prazo pelo CEP">Calcular</button></div><p class="delivery-message" id="cepMessage">Fale conosco para confirmar prazo e disponibilidade.</p></section>';
       }
 
       function renderActions(unavailable) {
@@ -1638,19 +1647,25 @@
           '<div class="pdp-actions">' +
           '<button class="btn btn-primary" type="button" id="buyNowBtn" ' +
           (unavailable ? 'disabled' : '') +
-          '>Comprar agora</button>' +
+          ' aria-label="Comprar agora ' +
+          escHtml(productData.name) +
+          '">Comprar agora</button>' +
           '<button class="btn btn-outline" type="button" id="addToCartBtn" ' +
           (unavailable ? 'disabled' : '') +
-          '>Adicionar ao carrinho</button>' +
+          ' aria-label="Adicionar ' +
+          escHtml(productData.name) +
+          ' ao carrinho">Adicionar ao carrinho</button>' +
           (has3d
             ? '<a class="btn btn-outline" id="simulatorPdpLink" href="' +
               escHtml(simHref) +
-              '">Monte seu quarto 3D</a>'
+              '" aria-label="Abrir simulador 3D do quarto com este produto">Monte seu quarto 3D</a>'
             : '') +
           '<a class="btn btn-whatsapp js-whatsapp" id="whatsappBtn" data-product="' +
           escHtml(productData.name) +
           '" href="' +
           whatsappHref(productData.name) +
+          '" aria-label="Tirar dúvida no WhatsApp sobre ' +
+          escHtml(productData.name) +
           '">' +
           (unavailable ? 'Consultar disponibilidade' : 'Tirar duvida no WhatsApp') +
           '</a>' +
@@ -1674,6 +1689,9 @@
 
       function renderDetailsSections(product, catName) {
         var desc = product.description || '<p>Produto selecionado pela Conforta Colchões para oferecer conforto, qualidade e praticidade no dia a dia.</p>';
+        if (typeof confortaUpgradeMarkdownHeadingsInHtml === 'function') {
+          desc = confortaUpgradeMarkdownHeadingsInHtml(desc);
+        }
         return '<section class="pdp-section"><h2>Descrição do produto</h2>' + desc + '</section>' +
           '<section class="pdp-section"><h2>Para quem e indicado?</h2><ul>' + indicationBullets(product, catName).map(function(item) { return '<li>' + escHtml(item) + '</li>'; }).join('') + '</ul></section>' +
           '<section class="pdp-section"><h2>Especificacoes tecnicas</h2>' + renderSpecs(product, catName) + '</section>' +
@@ -1717,7 +1735,7 @@
       }
 
       function renderMobileBuyBar(price, unavailable) {
-        return '<div class="mobile-buybar"><div class="mobile-buybar-inner"><div class="mobile-price"><span>Total</span>' + money(price) + '</div><button class="btn btn-primary" type="button" id="mobileBuyBtn" ' + (unavailable ? 'disabled' : '') + '>' + (unavailable ? 'Indisponível' : 'Comprar') + '</button></div></div>';
+        return '<div class="mobile-buybar"><div class="mobile-buybar-inner"><div class="mobile-price"><span>Total</span>' + money(price) + '</div><button class="btn btn-primary" type="button" id="mobileBuyBtn" ' + (unavailable ? 'disabled' : '') + ' aria-label="Comprar pelo valor exibido na barra inferior">' + (unavailable ? 'Indisponível' : 'Comprar') + '</button></div></div>';
       }
 
       function renderFinalHelp() {

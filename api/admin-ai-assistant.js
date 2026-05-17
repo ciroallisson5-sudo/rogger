@@ -5,7 +5,7 @@
  * POST { mode: "plan" | "execute", ... }
  *
  * plan: { message, messages?, image_base64?, image_mime? } → { reply, actions }
- * execute: { actions: [...], image_base64?, image_mime?, attach_image_to? }
+ * execute: { actions, image_base64?, ... } — produtos, fotos, fretes por CEP (delivery_cep_rates).
  *   - Opcional: envia a mesma imagem do plano → upload bucket `public/imagens/ai-assistant/*` + insert em product_photos.
  *   - attach_image_to: uuid do produto | omitir → usa ultimo insert do lote ou unico update_product.
  */
@@ -37,6 +37,25 @@ const PRODUCT_KEYS = [
   'seo_title',
   'seo_description'
 ];
+
+const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled'];
+
+/** Chaves site_settings que o assistente pode alterar (evita chaves arbitrarias). */
+const SITE_SETTING_KEYS = new Set([
+  'store_name',
+  'store_description',
+  'whatsapp_number',
+  'primary_color',
+  'n8n_webhook_url',
+  'home_hero_image_url',
+  'home_carousel_product_ids',
+  'home_flash_sale_product_ids',
+  'home_flash_sale_ends_at',
+  'home_weekly_offer_product_ids',
+  'contact_email',
+  'contact_phone',
+  'cep_no_delivery_message'
+]);
 
 function parseBody(raw) {
   if (raw == null) return {};
@@ -88,6 +107,15 @@ function slugifyName(name) {
 
 function isUuid(s) {
   return typeof s === 'string' && UUID_RE.test(s);
+}
+
+/** CEP brasileiro: 8 digitos. Completa com zeros a esquerda se tiver menos digitos (ex.: 5656000 -> 05656000). */
+function normalizeCepDigits(s) {
+  let d = String(s || '').replace(/\D/g, '');
+  if (d.length > 8) d = d.slice(0, 8);
+  if (d.length >= 1 && d.length < 8) d = d.padStart(8, '0');
+  if (d.length === 8 && /^[0-9]{8}$/.test(d)) return d;
+  return '';
 }
 
 function pickProductPatch(obj) {
@@ -183,15 +211,16 @@ function validPhotoUrl(url) {
   return u.length < 2000;
 }
 
-async function supabaseRest(method, path, body) {
+async function supabaseRest(method, path, body, preferHeader) {
   const base = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
   const svc = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   const url = base + path;
+  const prefer = preferHeader != null ? preferHeader : 'return=representation';
   const headers = {
     apikey: svc,
     Authorization: 'Bearer ' + svc,
     'Content-Type': 'application/json',
-    Prefer: 'return=representation'
+    Prefer: prefer
   };
   const opt = { method: method, headers: headers };
   if (body != null && method !== 'GET' && method !== 'HEAD') opt.body = JSON.stringify(body);
@@ -207,47 +236,259 @@ async function supabaseRest(method, path, body) {
 }
 
 async function fetchAdminContext() {
-  const cats = await supabaseRest('GET', '/rest/v1/categories?select=id,name,slug&order=name.asc&limit=200', null);
+  const cats = await supabaseRest('GET', '/rest/v1/categories?select=id,name,slug,sort_order&order=sort_order.asc,name.asc&limit=200', null);
   const prods = await supabaseRest(
     'GET',
     '/rest/v1/products?select=id,name,slug,base_price,stock,active&order=updated_at.desc&limit=100',
     null
   );
+  const ceps = await supabaseRest(
+    'GET',
+    '/rest/v1/delivery_cep_rates?select=id,cep,freight_amount,label&order=cep.asc&limit=60',
+    null
+  );
+  const bnr = await supabaseRest(
+    'GET',
+    '/rest/v1/banners?select=id,title,sort_order,active&order=sort_order.asc&limit=40',
+    null
+  );
   const categories = cats.ok && Array.isArray(cats.json) ? cats.json : [];
   const products = prods.ok && Array.isArray(prods.json) ? prods.json : [];
-  return { categories, products };
+  const deliveryCeps = ceps.ok && Array.isArray(ceps.json) ? ceps.json : [];
+  const banners = bnr.ok && Array.isArray(bnr.json) ? bnr.json : [];
+  return { categories, products, deliveryCeps, banners };
+}
+
+const CATALOG_EXPORT_SELECT =
+  'id,name,slug,description,base_price,discount_price,stock,featured,active,product_photos(id,url,thumb_url,sort_order,is_video,active)';
+
+function stripHtmlLite(html) {
+  return String(html || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function displayPriceExport(p) {
+  const disc = p.discount_price != null && p.discount_price !== '' ? parseFloat(p.discount_price) : NaN;
+  const base = parseFloat(p.base_price) || 0;
+  if (isFinite(disc) && disc > 0 && disc < base) return disc;
+  return base;
+}
+
+function firstPhotoForExport(product, preferThumb) {
+  const photos = (product.product_photos || [])
+    .filter(function (ph) {
+      return ph && ph.active !== false && !ph.is_video;
+    })
+    .slice()
+    .sort(function (a, b) {
+      return (a.sort_order || 0) - (b.sort_order || 0);
+    });
+  const ph = photos[0];
+  if (!ph) return { photo_url: null, thumb_url: null, photo_id: null, full_url: null };
+  const thumb = ph.thumb_url && String(ph.thumb_url).trim().startsWith('http') ? String(ph.thumb_url).trim() : null;
+  const full = ph.url && String(ph.url).trim().startsWith('http') ? String(ph.url).trim() : null;
+  const photo_url = preferThumb && thumb ? thumb : full || thumb;
+  return { photo_url: photo_url, thumb_url: thumb, photo_id: ph.id || null, full_url: full };
+}
+
+async function fetchProductsCatalogExport(limit) {
+  const sel = encodeURIComponent(CATALOG_EXPORT_SELECT);
+  const path =
+    '/rest/v1/products?select=' + sel + '&active=eq.true&order=featured.desc,updated_at.desc&limit=' + encodeURIComponent(String(limit));
+  const r = await supabaseRest('GET', path, null);
+  return r.ok && Array.isArray(r.json) ? r.json : [];
+}
+
+function buildCatalogExportJson(rows, opts) {
+  const siteBase = String((opts && opts.siteBase) || process.env.SITE_PUBLIC_URL || '').replace(/\/$/, '');
+  const preferThumb = opts && opts.prefer_thumb !== false;
+  const template = String((opts && opts.template) || 'whatsapp').toLowerCase();
+  const items = [];
+  for (let i = 0; i < rows.length; i++) {
+    const p = rows[i];
+    const ph = firstPhotoForExport(p, preferThumb);
+    const price = displayPriceExport(p);
+    const descSrc = stripHtmlLite(p.description || '').slice(0, 400);
+    const short_desc = descSrc.slice(0, 160) + (descSrc.length > 160 ? '…' : '');
+    const product_url =
+      siteBase && p.id
+        ? siteBase + '/produto.html?id=' + encodeURIComponent(String(p.id))
+        : 'produto.html?id=' + encodeURIComponent(String(p.id));
+    const row = {
+      id: p.id,
+      name: p.name,
+      slug: p.slug || null,
+      base_price: parseFloat(p.base_price) || 0,
+      discount_price: p.discount_price != null && p.discount_price !== '' ? parseFloat(p.discount_price) : null,
+      price_display: price,
+      price_formatted: 'R$ ' + price.toFixed(2).replace('.', ','),
+      short_description: short_desc,
+      photo_url: ph.photo_url,
+      thumb_url: ph.thumb_url || null,
+      high_res_photo_url: ph.full_url || ph.photo_url,
+      product_page_url: product_url,
+      stock: p.stock != null ? p.stock : null,
+      featured: !!p.featured
+    };
+    if (template === 'n8n') {
+      row.n8n_merge = {
+        text: '*' + String(p.name || '') + '* — ' + row.price_formatted + (short_desc ? '\n' + short_desc : ''),
+        media_url: ph.photo_url || ''
+      };
+    }
+    items.push(row);
+  }
+  const out = {
+    generated_at: new Date().toISOString(),
+    template: template,
+    source: 'supabase',
+    note:
+      template === 'whatsapp'
+        ? 'Use photo_url (miniatura quando disponível) para envio mais leve. high_res_photo_url para qualidade.'
+        : 'Cada item inclui n8n_merge para Message/WhatsApp nodes.',
+    items: items
+  };
+  return out;
+}
+
+async function openAiEnrichCatalogBlurbs(itemsForModel, userMsg, imageB64, imageMime) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY ausente');
+
+  const sys =
+    'Voce ajuda o admin da loja Conforta Colchões. Recebe uma lista JSON de produtos com id, name, price_formatted, short_description (do banco), photo_url. ' +
+    'Opcionalmente recebe uma IMAGEM de referencia (etiqueta, vitrine, briefing visual). ' +
+    'Gere textos curtos em PT-BR para WhatsApp/n8n. NUNCA invente precos nem URLs: use apenas os ids listados. ' +
+    'Responda SOMENTE JSON: {"blurbs":[{"id":"<uuid>","quick_pitch":"max 200 chars","whatsapp_line":"uma linha curta com emoji opcional"}]} — uma entrada por id na ordem enviada.';
+
+  const userParts = [];
+  userParts.push({
+    type: 'text',
+    text:
+      String(userMsg || 'Gere textos curtos para divulgacao.').trim().slice(0, 4000) +
+      '\n\nPRODUTOS (dados reais do Supabase):\n' +
+      JSON.stringify(itemsForModel).slice(0, 28000)
+  });
+  if (imageB64 && imageMime) {
+    const mime = /^image\/(jpeg|jpg|png|webp|gif)$/i.test(imageMime) ? imageMime.toLowerCase().replace('jpg', 'jpeg') : 'image/jpeg';
+    userParts.push({
+      type: 'image_url',
+      image_url: { url: 'data:' + mime + ';base64,' + imageB64 }
+    });
+  }
+  const userContent = userParts.length === 1 ? userParts[0].text : userParts;
+  const model = process.env.OPENAI_ADMIN_ASSISTANT_MODEL || 'gpt-4o-mini';
+  const res = await fetch(OPENAI_URL, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: model,
+      temperature: 0.25,
+      max_tokens: 4000,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: userContent }
+      ]
+    })
+  });
+  const data = await res.json().catch(function () {
+    return {};
+  });
+  if (!res.ok) {
+    const err = (data.error && data.error.message) || JSON.stringify(data).slice(0, 400);
+    throw new Error('OpenAI: ' + err);
+  }
+  const txt = (((data.choices || [])[0] || {}).message || {}).content || '{}';
+  let parsed;
+  try {
+    parsed = JSON.parse(txt);
+  } catch (_) {
+    return {};
+  }
+  const arr = parsed.blurbs || parsed.items || [];
+  if (!Array.isArray(arr)) return {};
+  const byId = {};
+  for (let i = 0; i < arr.length; i++) {
+    const b = arr[i];
+    if (!b || !isUuid(String(b.id || ''))) continue;
+    byId[String(b.id)] = {
+      quick_pitch: String(b.quick_pitch || b.pitch || '').slice(0, 220),
+      whatsapp_line: String(b.whatsapp_line || b.line || '').slice(0, 280)
+    };
+  }
+  return byId;
 }
 
 function buildPlannerSystem(ctx) {
   const catLines = ctx.categories.map(function (c) {
-    return '- id: ' + c.id + ' | nome: ' + (c.name || '') + ' | slug: ' + (c.slug || '');
+    return (
+      '- id: ' +
+      c.id +
+      ' | ' +
+      (c.name || '') +
+      ' | slug ' +
+      (c.slug || '') +
+      (c.sort_order != null ? ' | ordem ' + c.sort_order : '')
+    );
   });
   const prodLines = ctx.products.map(function (p) {
-    return '- id: ' + p.id + ' | ' + (p.name || '') + ' | slug: ' + (p.slug || '') + ' | R$' + (p.base_price != null ? p.base_price : '?');
+    return '- id: ' + p.id + ' | ' + (p.name || '') + ' | slug ' + (p.slug || '') + ' | R$' + (p.base_price != null ? p.base_price : '?');
   });
+  const cepLines = (ctx.deliveryCeps || []).map(function (r) {
+    return '- id: ' + r.id + ' | CEP ' + (r.cep || '') + ' | frete R$' + (r.freight_amount != null ? r.freight_amount : '?') + (r.label ? ' | ' + r.label : '');
+  });
+  const bannerLines = (ctx.banners || []).map(function (b) {
+    return '- id: ' + b.id + ' | ' + (b.title || '(sem titulo)') + ' | ordem ' + (b.sort_order != null ? b.sort_order : '?');
+  });
+  const siteKeysHint = Array.from(SITE_SETTING_KEYS).join(', ');
   return (
-    'Voce e assistente do painel administrativo (Conforta). Seja RAPIDO e LOGICO.\n\n' +
-    'Raciocinio (curto, mental — nao escreva passo a passo no JSON):\n' +
-    '1) Qual a intencao? (criar produto / atualizar / tirar duvida)\n' +
-    '2) Quais dados sao CERTOS na mensagem ou imagem vs inferencia fraca? Na reply, 1 linha sobre lacunas se houver.\n' +
-    '3) Monte o minimo de actions necessarias. Prefira patch pequeno a reescrever tudo.\n\n' +
-    'Responda SOMENTE JSON valido (sem markdown) no formato:\n' +
-    '{"reply":"pt-BR: resumo CURTO (ate ~8 linhas). Seja direto.","actions":[]}\n\n' +
-    'actions: vazio se for so orientacao. Objetos permitidos:\n' +
-    '1) {"type":"insert_product","product":{...}}\n' +
-    '2) {"type":"update_product","id":"<uuid>","patch":{...}}\n' +
-    '3) {"type":"insert_product_photo",...} — SO se existir URL https REAL na mensagem do usuario. ' +
-    'NUNCA invente URL. Se o usuario anexou foto da vitrine mas nao ha URL publica, OMITA insert_product_photo; o painel envia a foto ao clicar Aplicar.\n\n' +
-    'Regras:\n' +
-    '- category_id: um UUID da lista abaixo ou null.\n' +
-    '- update: use id exato da lista de produtos.\n' +
-    '- Precos em reais (numero). tags = array de strings.\n' +
-    '- insert_product seguido de foto do MESMO item sem URL: omita insert_product_photo (upload separado no painel).\n' +
-    '- Imagem anexada: extraia nome, descricao, preco, dimensoes/material quando LEGIVEL; nao alucine codigo de barras ou SKU se ilegivel.\n\n' +
+    'Voce e o assistente COMPLETO do painel administrativo Conforta (o que o admin faz no site, voce ajuda via JSON). Seja RAPIDO e LOGICO.\n\n' +
+    'Raciocinio: (1) Intencao — produto, categoria, banner, frete CEP, pedido/consulta, configuracao site. ' +
+    '(2) "historico do cliente / pedidos da conta X" = use CONSULTAS abaixo com email ou id. ' +
+    '(2b) JSON de catalogo com URLs/preços reais (WhatsApp, n8n, fotos leves) = aba Estudio IA no painel; nao use actions para isso. ' +
+    '(3) Menos actions, mais precisao.\n\n' +
+    'Responda SOMENTE JSON (sem markdown). Formato:\n' +
+    '{"reply":"portugues direto, sem prefixo pt-BR:","actions":[]}\n\n' +
+    '--- CONSULTAS (executam ao clicar Enviar; NAO precisam de Aplicar; max 5 por mensagem) ---\n' +
+    '{"type":"fetch_orders_by_email","email":"cliente@email.com"}\n' +
+    '{"type":"fetch_orders_by_profile_id","profile_id":"<uuid>"}\n' +
+    '{"type":"fetch_order_by_number","order_number":"trecho do numero"}\n' +
+    '{"type":"fetch_site_setting","key":"uma das chaves permitidas"}\n' +
+    'Chaves permitidas: ' +
+    siteKeysHint +
+    '\n\n' +
+    '--- PRODUTO ---\n' +
+    '{"type":"insert_product","product":{name,slug?,description?,category_id?,base_price,dimensions?,material?,stock?,tags?...}}\n' +
+    '{"type":"update_product","id":"<uuid>","patch":{...}}\n' +
+    '{"type":"insert_product_photo",...} so com URL https real.\n\n' +
+    '--- CATEGORIA ---\n' +
+    '{"type":"insert_category","category":{name,slug?,description?,image_url?(https),active?}}\n' +
+    '{"type":"update_category","id":"<uuid>","patch":{...}}\n' +
+    '{"type":"delete_category","id":"<uuid>"}\n\n' +
+    '--- BANNER (precisa URL de imagem https) ---\n' +
+    '{"type":"insert_banner","banner":{image_url,title?,subtitle?,link_url?,product_id?}}\n' +
+    '{"type":"update_banner","id":"<uuid>","patch":{...}}\n' +
+    '{"type":"delete_banner","id":"<uuid>"}\n\n' +
+    '--- FRETE CEP ---\n' +
+    '{"type":"upsert_delivery_cep","cep":"8 digitos","freight_amount":0,"label"?}\n' +
+    '{"type":"update_delivery_cep","id":"<uuid>","freight_amount":0,...}\n' +
+    '{"type":"delete_delivery_cep","id" ou "cep"}\n\n' +
+    '--- PEDIDOS (mutacao; use com cuidado) ---\n' +
+    '{"type":"update_order_status","id":"<uuid pedido>","status":"pending|confirmed|preparing|shipped|delivered|cancelled"}\n' +
+    '{"type":"delete_order","id":"<uuid pedido>"}\n\n' +
+    '--- CONFIG SITE ---\n' +
+    '{"type":"upsert_site_setting","key":"contact_email","value":"texto ou json"}\n\n' +
     'Categorias:\n' +
     (catLines.length ? catLines.join('\n') : '(nenhuma)') +
-    '\n\nProdutos (amostra recente):\n' +
-    (prodLines.length ? prodLines.join('\n') : '(nenhum)')
+    '\n\nProdutos:\n' +
+    (prodLines.length ? prodLines.join('\n') : '(nenhum)') +
+    '\n\nBanners:\n' +
+    (bannerLines.length ? bannerLines.join('\n') : '(nenhum)') +
+    '\n\nCEPs frete:\n' +
+    (cepLines.length ? cepLines.join('\n') : '(nenhum)')
   );
 }
 
@@ -292,7 +533,7 @@ async function openAiPlan(systemText, userText, imageB64, imageMime, history) {
     body: JSON.stringify({
       model: model,
       temperature: 0.12,
-      max_tokens: 1800,
+      max_tokens: 2400,
       response_format: { type: 'json_object' },
       messages: msgs
     })
@@ -311,9 +552,245 @@ async function openAiPlan(systemText, userText, imageB64, imageMime, history) {
   } catch (_) {
     parsed = { reply: txt, actions: [] };
   }
-  const reply = typeof parsed.reply === 'string' ? parsed.reply : 'Sem resposta estruturada.';
+  const replyRaw = typeof parsed.reply === 'string' ? parsed.reply : 'Sem resposta estruturada.';
+  const reply = String(replyRaw)
+    .replace(/^\s*pt-br\s*:\s*/i, '')
+    .trim();
   const actions = Array.isArray(parsed.actions) ? parsed.actions : [];
   return { reply: reply, actions: actions };
+}
+
+function basicEmailOk(s) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+}
+
+async function executeOneReadAction(a) {
+  const t = String(a.type || '').trim();
+  try {
+    if (t === 'fetch_orders_by_email') {
+      const email = String(a.email || '').trim().toLowerCase();
+      if (!basicEmailOk(email)) {
+        return { type: t, ok: false, text: '[Consulta] Email invalido.' };
+      }
+      let r = await supabaseRest('GET', '/rest/v1/profiles?select=id,email,full_name&email=eq.' + encodeURIComponent(email), null);
+      let rows = r.ok && Array.isArray(r.json) ? r.json : [];
+      if (!rows.length) {
+        const pat = '%' + email.replace(/%/g, '') + '%';
+        r = await supabaseRest(
+          'GET',
+          '/rest/v1/profiles?select=id,email,full_name&email=ilike.' + encodeURIComponent(pat) + '&limit=5',
+          null
+        );
+        rows = r.ok && Array.isArray(r.json) ? r.json : [];
+      }
+      if (!rows.length) {
+        return { type: t, ok: true, text: '[Pedidos] Nenhum perfil encontrado para: ' + email + '.' };
+      }
+      const lines = [];
+      for (let p = 0; p < Math.min(rows.length, 3); p++) {
+        const prof = rows[p];
+        const or = await supabaseRest(
+          'GET',
+          '/rest/v1/orders?select=id,order_number,status,total_amount,created_at,payment_status&user_id=eq.' +
+            encodeURIComponent(prof.id) +
+            '&order=created_at.desc&limit=15',
+          null
+        );
+        const orders = or.ok && Array.isArray(or.json) ? or.json : [];
+        lines.push('Perfil: ' + (prof.full_name || '—') + ' <' + prof.email + '> (id ' + prof.id + ')');
+        if (!orders.length) lines.push('  — Nenhum pedido.');
+        else {
+          for (let i = 0; i < orders.length; i++) {
+            const o = orders[i];
+            lines.push(
+              '  - #' +
+                (o.order_number || o.id) +
+                ' | ' +
+                (o.status || '') +
+                ' | R$' +
+                (o.total_amount != null ? o.total_amount : '?') +
+                ' | ' +
+                String(o.created_at || '').slice(0, 16)
+            );
+          }
+        }
+      }
+      return { type: t, ok: true, text: '[Pedidos por email]\n' + lines.join('\n') };
+    }
+    if (t === 'fetch_orders_by_profile_id') {
+      const pid = String(a.profile_id || a.user_id || '').trim();
+      if (!isUuid(pid)) return { type: t, ok: false, text: '[Consulta] profile_id UUID invalido.' };
+      const or = await supabaseRest(
+        'GET',
+        '/rest/v1/orders?select=id,order_number,status,total_amount,created_at,payment_status&user_id=eq.' +
+          encodeURIComponent(pid) +
+          '&order=created_at.desc&limit=20',
+        null
+      );
+      const orders = or.ok && Array.isArray(or.json) ? or.json : [];
+      if (!orders.length) return { type: t, ok: true, text: '[Pedidos] Nenhum pedido para este perfil.' };
+      const lines = orders.map(function (o) {
+        return (
+          '- #' +
+          (o.order_number || o.id) +
+          ' | ' +
+          (o.status || '') +
+          ' | R$' +
+          (o.total_amount != null ? o.total_amount : '?') +
+          ' | ' +
+          String(o.created_at || '').slice(0, 16)
+        );
+      });
+      return { type: t, ok: true, text: '[Pedidos do perfil]\n' + lines.join('\n') };
+    }
+    if (t === 'fetch_order_by_number') {
+      const q = String(a.order_number || a.q || '').trim();
+      if (!q) return { type: t, ok: false, text: '[Consulta] Informe order_number.' };
+      const pat = '%' + q.replace(/%/g, '') + '%';
+      const or = await supabaseRest(
+        'GET',
+        '/rest/v1/orders?select=id,order_number,status,total_amount,created_at,user_id,payment_status&order_number=ilike.' +
+          encodeURIComponent(pat) +
+          '&order=created_at.desc&limit=12',
+        null
+      );
+      const orders = or.ok && Array.isArray(or.json) ? or.json : [];
+      if (!orders.length) return { type: t, ok: true, text: '[Pedidos] Nenhum pedido encontrado para "' + q + '".' };
+      const lines = orders.map(function (o) {
+        return (
+          '- #' +
+          (o.order_number || '') +
+          ' | ' +
+          (o.status || '') +
+          ' | R$' +
+          (o.total_amount != null ? o.total_amount : '?') +
+          ' | ' +
+          String(o.created_at || '').slice(0, 16) +
+          ' | id ' +
+          o.id
+        );
+      });
+      return { type: t, ok: true, text: '[Busca pedido]\n' + lines.join('\n') };
+    }
+    if (t === 'fetch_site_setting') {
+      const key = String(a.key || '').trim();
+      if (!SITE_SETTING_KEYS.has(key)) {
+        return { type: t, ok: false, text: '[Config] Chave nao permitida. Use uma das chaves do painel (ex.: contact_email, whatsapp_number).' };
+      }
+      const sr = await supabaseRest(
+        'GET',
+        '/rest/v1/site_settings?select=key,value&key=eq.' + encodeURIComponent(key) + '&limit=1',
+        null
+      );
+      const row = sr.ok && Array.isArray(sr.json) && sr.json[0] ? sr.json[0] : null;
+      if (!row) return { type: t, ok: true, text: '[Config] Chave "' + key + '" nao encontrada (vazia).' };
+      const valStr =
+        typeof row.value === 'object' ? JSON.stringify(row.value).slice(0, 800) : String(row.value || '').slice(0, 800);
+      return { type: t, ok: true, text: '[Config] ' + key + ' = ' + valStr };
+    }
+    return { type: t, ok: false, text: '[Consulta] Tipo desconhecido: ' + t };
+  } catch (err) {
+    return { type: t, ok: false, text: '[Consulta] Erro: ' + ((err && err.message) || err) };
+  }
+}
+
+async function splitReadAndMutating(rawActions) {
+  const READ = {
+    fetch_orders_by_email: true,
+    fetch_orders_by_profile_id: true,
+    fetch_order_by_number: true,
+    fetch_site_setting: true
+  };
+  const reads = [];
+  const mutating = [];
+  if (!Array.isArray(rawActions)) return { mutating: [], readAppend: '', read_results: [] };
+  for (let i = 0; i < rawActions.length; i++) {
+    const a = rawActions[i];
+    const t = a && String(a.type || '').trim();
+    if (READ[t]) reads.push(a);
+    else mutating.push(a);
+  }
+  const readResults = [];
+  let append = '';
+  const maxReads = 5;
+  for (let i = 0; i < Math.min(reads.length, maxReads); i++) {
+    const r = await executeOneReadAction(reads[i]);
+    readResults.push(r);
+    if (r && r.text) append += (append ? '\n\n' : '') + r.text;
+  }
+  if (reads.length > maxReads) {
+    append += (append ? '\n\n' : '') + '(Limite: no maximo ' + maxReads + ' consultas por mensagem.)';
+  }
+  return { mutating: mutating, readAppend: append, read_results: readResults };
+}
+
+function pickCategoryInsert(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const name = String(obj.name || '').trim();
+  if (!name) return null;
+  const slug = String(obj.slug || '').trim().toLowerCase() || slugifyName(name);
+  return {
+    name: name.slice(0, 200),
+    slug: slug.slice(0, 120),
+    description: obj.description != null ? String(obj.description).slice(0, 5000) : null,
+    image_url: obj.image_url && validPhotoUrl(String(obj.image_url)) ? String(obj.image_url).trim() : null,
+    active: obj.active !== false
+  };
+}
+
+function pickCategoryPatch(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const out = {};
+  if (obj.name != null) out.name = String(obj.name).trim().slice(0, 200);
+  if (obj.slug != null) out.slug = String(obj.slug).trim().toLowerCase().slice(0, 120);
+  if (obj.description !== undefined) {
+    out.description = obj.description == null ? null : String(obj.description).slice(0, 5000);
+  }
+  if (obj.image_url !== undefined) {
+    out.image_url =
+      obj.image_url == null || obj.image_url === ''
+        ? null
+        : validPhotoUrl(String(obj.image_url))
+          ? String(obj.image_url).trim()
+          : null;
+  }
+  if (obj.active != null) out.active = !!obj.active;
+  return Object.keys(out).length ? out : null;
+}
+
+function pickBannerInsert(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const imageUrl = String(obj.image_url || '').trim();
+  if (!validPhotoUrl(imageUrl)) return null;
+  return {
+    title: obj.title != null ? String(obj.title).trim().slice(0, 200) || null : null,
+    subtitle: obj.subtitle != null ? String(obj.subtitle).trim().slice(0, 400) || null : null,
+    image_url: imageUrl,
+    link_url:
+      obj.link_url && String(obj.link_url).trim().startsWith('http')
+        ? String(obj.link_url).trim().slice(0, 2000)
+        : null,
+    product_id: obj.product_id != null && obj.product_id !== '' && isUuid(obj.product_id) ? obj.product_id : null,
+    active: obj.active !== false
+  };
+}
+
+function pickBannerPatch(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const out = {};
+  if (obj.title !== undefined) out.title = obj.title == null ? null : String(obj.title).trim().slice(0, 200);
+  if (obj.subtitle !== undefined) out.subtitle = obj.subtitle == null ? null : String(obj.subtitle).trim().slice(0, 400);
+  if (obj.image_url !== undefined && obj.image_url != null && validPhotoUrl(String(obj.image_url))) {
+    out.image_url = String(obj.image_url).trim();
+  }
+  if (obj.link_url !== undefined) {
+    out.link_url = obj.link_url == null ? null : String(obj.link_url).trim().slice(0, 2000);
+  }
+  if (obj.product_id !== undefined) {
+    out.product_id = obj.product_id && isUuid(obj.product_id) ? obj.product_id : null;
+  }
+  if (obj.active != null) out.active = !!obj.active;
+  return Object.keys(out).length ? out : null;
 }
 
 function validateActions(actions) {
@@ -340,6 +817,61 @@ function validateActions(actions) {
         sort_order: isNaN(sort) ? 0 : Math.max(0, sort),
         alt_text: a.alt_text != null ? String(a.alt_text).slice(0, 500) : ''
       });
+    } else if (t === 'upsert_delivery_cep' || t === 'insert_delivery_cep') {
+      const cep = normalizeCepDigits(a.cep);
+      const amt = parseFloat(a.freight_amount);
+      if (!cep || isNaN(amt) || amt < 0) continue;
+      const lab = a.label != null ? String(a.label).trim().slice(0, 120) : '';
+      clean.push({
+        type: 'upsert_delivery_cep',
+        cep: cep,
+        freight_amount: amt,
+        label: lab || null
+      });
+    } else if (t === 'update_delivery_cep' && isUuid(a.id)) {
+      const amt = parseFloat(a.freight_amount);
+      if (isNaN(amt) || amt < 0) continue;
+      const item = { type: 'update_delivery_cep', id: a.id, freight_amount: amt };
+      if (a.label !== undefined) {
+        item.label = a.label === null ? null : String(a.label).trim().slice(0, 120) || null;
+      }
+      const nc = normalizeCepDigits(a.cep);
+      if (nc) item.cep = nc;
+      clean.push(item);
+    } else if (t === 'delete_delivery_cep') {
+      if (isUuid(a.id)) {
+        clean.push({ type: 'delete_delivery_cep', id: a.id });
+      } else {
+        const cep = normalizeCepDigits(a.cep);
+        if (cep) clean.push({ type: 'delete_delivery_cep', cep: cep });
+      }
+    } else if (t === 'insert_category') {
+      const c = pickCategoryInsert(a.category);
+      if (c) clean.push({ type: 'insert_category', category: c });
+    } else if (t === 'update_category' && isUuid(a.id)) {
+      const p = pickCategoryPatch(a.patch || {});
+      if (p) clean.push({ type: 'update_category', id: a.id, patch: p });
+    } else if (t === 'delete_category' && isUuid(a.id)) {
+      clean.push({ type: 'delete_category', id: a.id });
+    } else if (t === 'insert_banner') {
+      const b = pickBannerInsert(a.banner);
+      if (b) clean.push({ type: 'insert_banner', banner: b });
+    } else if (t === 'update_banner' && isUuid(a.id)) {
+      const p = pickBannerPatch(a.patch || {});
+      if (p) clean.push({ type: 'update_banner', id: a.id, patch: p });
+    } else if (t === 'delete_banner' && isUuid(a.id)) {
+      clean.push({ type: 'delete_banner', id: a.id });
+    } else if (t === 'upsert_site_setting') {
+      const key = String(a.key || '').trim();
+      if (!SITE_SETTING_KEYS.has(key)) continue;
+      if (a.value === undefined) continue;
+      clean.push({ type: 'upsert_site_setting', key: key, value: a.value });
+    } else if (t === 'update_order_status' && isUuid(a.id)) {
+      const st = String(a.status || '').trim();
+      if (ORDER_STATUSES.indexOf(st) < 0) continue;
+      clean.push({ type: 'update_order_status', id: a.id, status: st });
+    } else if (t === 'delete_order' && isUuid(a.id)) {
+      clean.push({ type: 'delete_order', id: a.id });
     }
   }
   return clean;
@@ -409,6 +941,213 @@ async function executeActions(actions) {
         });
       } else {
         results.push({ ok: true, type: 'insert_product_photo', id: r.json[0].id, product_id: pid });
+      }
+    } else if (a.type === 'upsert_delivery_cep' || a.type === 'insert_delivery_cep') {
+      const row = {
+        cep: a.cep,
+        freight_amount: a.freight_amount,
+        label: a.label != null ? a.label : null
+      };
+      const r = await supabaseRest(
+        'POST',
+        '/rest/v1/delivery_cep_rates',
+        row,
+        'return=representation,resolution=merge-duplicates'
+      );
+      const rowData = Array.isArray(r.json) ? r.json[0] : r.json && r.json.id ? r.json : null;
+      if (!r.ok || !rowData) {
+        results.push({
+          ok: false,
+          type: 'upsert_delivery_cep',
+          cep: a.cep,
+          error: (r.json && (r.json.message || r.json.hint || r.json.error_description)) || 'upsert CEP falhou',
+          status: r.status
+        });
+      } else {
+        results.push({
+          ok: true,
+          type: 'upsert_delivery_cep',
+          id: rowData.id,
+          cep: rowData.cep,
+          freight_amount: rowData.freight_amount
+        });
+      }
+    } else if (a.type === 'update_delivery_cep') {
+      const patch = { freight_amount: a.freight_amount };
+      if (a.label !== undefined) patch.label = a.label;
+      if (a.cep) patch.cep = a.cep;
+      const r = await supabaseRest('PATCH', '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(a.id), patch);
+      if (!r.ok) {
+        results.push({
+          ok: false,
+          type: 'update_delivery_cep',
+          id: a.id,
+          error: (r.json && (r.json.message || r.json.hint)) || 'update CEP falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'update_delivery_cep', id: a.id });
+      }
+    } else if (a.type === 'delete_delivery_cep') {
+      let delId = a.id;
+      if (!delId && a.cep) {
+        const find = await supabaseRest(
+          'GET',
+          '/rest/v1/delivery_cep_rates?select=id&cep=eq.' + encodeURIComponent(a.cep),
+          null
+        );
+        if (find.ok && Array.isArray(find.json) && find.json[0] && find.json[0].id) {
+          delId = find.json[0].id;
+        }
+      }
+      if (!isUuid(String(delId || ''))) {
+        results.push({ ok: false, type: 'delete_delivery_cep', error: 'CEP ou id nao encontrado' });
+      } else {
+        const r = await supabaseRest(
+          'DELETE',
+          '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(delId),
+          null,
+          'return=minimal'
+        );
+        if (!r.ok) {
+          results.push({
+            ok: false,
+            type: 'delete_delivery_cep',
+            id: delId,
+            error: (r.json && r.json.message) || 'delete CEP falhou',
+            status: r.status
+          });
+        } else {
+          results.push({ ok: true, type: 'delete_delivery_cep', id: delId });
+        }
+      }
+    } else if (a.type === 'insert_category') {
+      const r = await supabaseRest('POST', '/rest/v1/categories', a.category);
+      if (!r.ok || !Array.isArray(r.json) || !r.json[0]) {
+        results.push({
+          ok: false,
+          type: 'insert_category',
+          error: (r.json && (r.json.message || r.json.hint)) || 'insert categoria falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'insert_category', id: r.json[0].id });
+      }
+    } else if (a.type === 'update_category') {
+      const r = await supabaseRest('PATCH', '/rest/v1/categories?id=eq.' + encodeURIComponent(a.id), a.patch);
+      if (!r.ok) {
+        results.push({
+          ok: false,
+          type: 'update_category',
+          id: a.id,
+          error: (r.json && r.json.message) || 'update categoria falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'update_category', id: a.id });
+      }
+    } else if (a.type === 'delete_category') {
+      const r = await supabaseRest('DELETE', '/rest/v1/categories?id=eq.' + encodeURIComponent(a.id), null, 'return=minimal');
+      if (!r.ok) {
+        results.push({
+          ok: false,
+          type: 'delete_category',
+          id: a.id,
+          error: (r.json && r.json.message) || 'delete categoria falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'delete_category', id: a.id });
+      }
+    } else if (a.type === 'insert_banner') {
+      const maxR = await supabaseRest('GET', '/rest/v1/banners?select=sort_order&order=sort_order.desc&limit=1', null);
+      let so = 0;
+      if (maxR.ok && Array.isArray(maxR.json) && maxR.json[0]) so = parseInt(maxR.json[0].sort_order, 10) || 0;
+      const row = Object.assign({}, a.banner, { sort_order: so + 1 });
+      const r = await supabaseRest('POST', '/rest/v1/banners', row);
+      if (!r.ok || !Array.isArray(r.json) || !r.json[0]) {
+        results.push({
+          ok: false,
+          type: 'insert_banner',
+          error: (r.json && r.json.message) || 'insert banner falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'insert_banner', id: r.json[0].id });
+      }
+    } else if (a.type === 'update_banner') {
+      const r = await supabaseRest('PATCH', '/rest/v1/banners?id=eq.' + encodeURIComponent(a.id), a.patch);
+      if (!r.ok) {
+        results.push({
+          ok: false,
+          type: 'update_banner',
+          id: a.id,
+          error: (r.json && r.json.message) || 'update banner falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'update_banner', id: a.id });
+      }
+    } else if (a.type === 'delete_banner') {
+      const r = await supabaseRest('DELETE', '/rest/v1/banners?id=eq.' + encodeURIComponent(a.id), null, 'return=minimal');
+      if (!r.ok) {
+        results.push({
+          ok: false,
+          type: 'delete_banner',
+          id: a.id,
+          error: (r.json && r.json.message) || 'delete banner falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'delete_banner', id: a.id });
+      }
+    } else if (a.type === 'upsert_site_setting') {
+      const key = a.key;
+      const valPayload = typeof a.value === 'object' && a.value !== null ? a.value : String(a.value);
+      const ex = await supabaseRest('GET', '/rest/v1/site_settings?select=id&key=eq.' + encodeURIComponent(key), null);
+      const exists = ex.ok && Array.isArray(ex.json) && ex.json[0];
+      let r;
+      if (exists) {
+        r = await supabaseRest('PATCH', '/rest/v1/site_settings?key=eq.' + encodeURIComponent(key), { value: valPayload });
+      } else {
+        r = await supabaseRest('POST', '/rest/v1/site_settings', { key: key, value: valPayload });
+      }
+      if (!r.ok) {
+        results.push({
+          ok: false,
+          type: 'upsert_site_setting',
+          key: key,
+          error: (r.json && r.json.message) || 'upsert site_settings falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'upsert_site_setting', key: key });
+      }
+    } else if (a.type === 'update_order_status') {
+      const r = await supabaseRest('PATCH', '/rest/v1/orders?id=eq.' + encodeURIComponent(a.id), { status: a.status });
+      if (!r.ok) {
+        results.push({
+          ok: false,
+          type: 'update_order_status',
+          id: a.id,
+          error: (r.json && r.json.message) || 'update pedido falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'update_order_status', id: a.id, status: a.status });
+      }
+    } else if (a.type === 'delete_order') {
+      const r = await supabaseRest('DELETE', '/rest/v1/orders?id=eq.' + encodeURIComponent(a.id), null, 'return=minimal');
+      if (!r.ok) {
+        results.push({
+          ok: false,
+          type: 'delete_order',
+          id: a.id,
+          error: (r.json && r.json.message) || 'delete pedido falhou',
+          status: r.status
+        });
+      } else {
+        results.push({ ok: true, type: 'delete_order', id: a.id });
       }
     }
   }
@@ -543,10 +1282,20 @@ module.exports = async function handler(req, res) {
   }
 
   const body = parseBody(req.body);
-  const mode = String(body.mode || 'plan').toLowerCase() === 'execute' ? 'execute' : 'plan';
+  const modeRaw = String(body.mode || 'plan').toLowerCase();
+  const mode =
+    modeRaw === 'execute'
+      ? 'execute'
+      : modeRaw === 'catalog_export'
+        ? 'catalog_export'
+        : modeRaw === 'catalog_enrich'
+          ? 'catalog_enrich'
+          : 'plan';
 
   const key = rateLimitKey(req, 'admin-ai') + ':' + mode;
-  if (!allow(key, mode === 'execute' ? 25 : 12, 60000)) {
+  const burst =
+    mode === 'execute' ? 25 : mode === 'catalog_export' ? 35 : mode === 'catalog_enrich' ? 8 : 12;
+  if (!allow(key, burst, 60000)) {
     res.status(429).json({ error: 'Muitas requisicoes. Aguarde um minuto.' });
     return;
   }
@@ -559,6 +1308,86 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    if (mode === 'catalog_export') {
+      const limit = Math.min(120, Math.max(1, parseInt(body.limit, 10) || 40));
+      const template = String(body.template || 'whatsapp').toLowerCase() === 'n8n' ? 'n8n' : 'whatsapp';
+      const preferThumb = body.prefer_thumb !== false;
+      let siteBase = String(body.site_base_url || body.siteBase || '').trim().replace(/\/$/, '');
+      if (!siteBase) siteBase = String(process.env.SITE_PUBLIC_URL || '').trim().replace(/\/$/, '');
+      const rows = await fetchProductsCatalogExport(limit);
+      const exportJson = buildCatalogExportJson(rows, {
+        template: template,
+        prefer_thumb: preferThumb,
+        siteBase: siteBase
+      });
+      const n = exportJson.items.length;
+      const reply =
+        'Pronto: ' +
+        n +
+        ' produto(s) do Supabase. Cada item tem photo_url (prioriza miniatura para carregar mais rapido), preco e texto curto.';
+      res.status(200).json({ ok: true, reply: reply, export_json: exportJson, actions: [] });
+      return;
+    }
+
+    if (mode === 'catalog_enrich') {
+      const msg = String(body.message || '').trim();
+      const b64 = typeof body.image_base64 === 'string' ? body.image_base64.replace(/^data:image\/\w+;base64,/, '') : '';
+      if (b64.length > MAX_B64) {
+        res.status(400).json({ error: 'Imagem muito grande. Use JPEG comprimido.' });
+        return;
+      }
+      if (!msg && !b64) {
+        res.status(400).json({ error: 'Envie message (instrucao) e/ou imagem de referencia.' });
+        return;
+      }
+      const limit = Math.min(25, Math.max(1, parseInt(body.limit, 10) || 12));
+      const template = String(body.template || 'whatsapp').toLowerCase() === 'n8n' ? 'n8n' : 'whatsapp';
+      const preferThumb = body.prefer_thumb !== false;
+      let siteBase = String(body.site_base_url || body.siteBase || '').trim().replace(/\/$/, '');
+      if (!siteBase) siteBase = String(process.env.SITE_PUBLIC_URL || '').trim().replace(/\/$/, '');
+      const rows = await fetchProductsCatalogExport(limit);
+      const exportJson = buildCatalogExportJson(rows, {
+        template: template,
+        prefer_thumb: preferThumb,
+        siteBase: siteBase
+      });
+      const itemsForModel = exportJson.items.map(function (it) {
+        return {
+          id: it.id,
+          name: it.name,
+          price_formatted: it.price_formatted,
+          short_description: it.short_description,
+          photo_url: it.photo_url
+        };
+      });
+      const blurbs = await openAiEnrichCatalogBlurbs(
+        itemsForModel,
+        msg || 'Gere textos curtos para divulgacao no WhatsApp.',
+        b64,
+        b64 ? String(body.image_mime || 'image/jpeg') : ''
+      );
+      for (let i = 0; i < exportJson.items.length; i++) {
+        const it = exportJson.items[i];
+        const b = blurbs[String(it.id)];
+        if (b) {
+          it.ai_quick_pitch = b.quick_pitch;
+          it.ai_whatsapp_line = b.whatsapp_line;
+          if (it.n8n_merge) {
+            it.n8n_merge.text_ai = b.whatsapp_line || b.quick_pitch;
+          }
+        }
+      }
+      exportJson.enriched_with_ai = true;
+      res.status(200).json({
+        ok: true,
+        reply:
+          'Dados do Supabase (URLs e precos reais) + textos sugeridos pela IA em ai_quick_pitch / ai_whatsapp_line. Revise antes de publicar.',
+        export_json: exportJson,
+        actions: []
+      });
+      return;
+    }
+
     if (mode === 'execute') {
       const imgNorm = normalizeExecuteImageB64(body);
       if (imgNorm.error) {
@@ -580,8 +1409,8 @@ module.exports = async function handler(req, res) {
         }
         return;
       }
-      if (actionsList.length > 15) {
-        res.status(400).json({ error: 'No maximo 15 acoes por vez.' });
+      if (actionsList.length > 25) {
+        res.status(400).json({ error: 'No maximo 25 acoes por vez.' });
         return;
       }
 
@@ -623,12 +1452,15 @@ module.exports = async function handler(req, res) {
     const ctx = await fetchAdminContext();
     const systemText = buildPlannerSystem(ctx);
     const plan = await openAiPlan(systemText, msg || 'Analise a imagem e sugira dados do produto.', b64, b64 ? mime : '', body.messages);
-    const actions = validateActions(plan.actions);
+    const split = await splitReadAndMutating(plan.actions);
+    const mergedReply = split.readAppend ? plan.reply + '\n\n' + split.readAppend : plan.reply;
+    const actions = validateActions(split.mutating);
 
     res.status(200).json({
       ok: true,
-      reply: plan.reply,
-      actions: actions
+      reply: mergedReply,
+      actions: actions,
+      read_results: split.read_results
     });
   } catch (e) {
     console.error('[admin-ai-assistant]', e && e.message);

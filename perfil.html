@@ -12,7 +12,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -496,7 +495,7 @@
 
           <div class="profile-section" id="section-atendimento">
             <h2>Precisa de ajuda?</h2>
-            <p class="section-desc">Nossa equipe esta pronta para ajudar com pedidos, produtos, entregas e duvidas sobre o colchao ideal.</p>
+            <p class="section-desc">Nossa equipe está pronta para ajudar com pedidos, produtos, entregas e dúvidas sobre o colchão ideal.</p>
             <div class="summary-actions">
               <a class="btn btn-whatsapp js-account-whatsapp" data-message="Olá! Preciso de ajuda com meu pedido na Conforta Colchões." href="#">Falar no WhatsApp</a>
               <a class="btn btn-outline" href="produtos.html">Ver produtos</a>
@@ -619,10 +618,14 @@
 
   <footer class="footer" id="siteFooter"></footer>
 
-  <script src="js/supabase-config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/cart.js"></script>
+  <script src="js/scripts-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/components/site-footer.js" defer></script>
+  <script src="js/components/site-header.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/cart.js" defer></script>
   <script>
     (function() {
       'use strict';
@@ -1342,7 +1345,7 @@
               '<div class="empty-state">' +
               '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 16v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"/><path d="M16.5 7.5 21 12l-4.5 4.5"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
               '<h3>Você ainda não fez nenhum pedido</h3>' +
-              '<p>Veja nossos produtos e encontre o colchao ideal para dormir melhor.</p>' +
+              '<p>Veja nossos produtos e encontre o colchão ideal para dormir melhor.</p>' +
               '<div class="summary-actions" style="justify-content:center"><a href="produtos.html" class="btn btn-primary">Ver produtos</a><a href="#" class="btn btn-whatsapp js-account-whatsapp" data-message="Olá! Quero ajuda para escolher o colchão ideal.">Falar no WhatsApp</a></div>' +
               '</div>';
             updateWhatsappLinks();

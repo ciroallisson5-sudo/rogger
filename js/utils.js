@@ -264,107 +264,7 @@ function startCountdown(element, endDateStr) {
   return setInterval(update, 1000);
 }
 
-// Render compact footer (called by each page on load)
-// opts.variant: 'footer' (default) | 'strip' — faixa compacta com contato + copyright
-async function renderCompactFooter(targetSelector, opts = {}) {
-  const el = typeof targetSelector === 'string'
-    ? document.querySelector(targetSelector)
-    : targetSelector;
-  if (!el) return;
-
-  const variant = (opts && opts.variant) || 'footer';
-
-  let email = 'contato@confortacolchoes.com.br';
-  let phone = '(27) 3333-3333';
-  let whatsapp = '';
-  let storeName = 'Conforta Colchões';
-  let instagramHandle = '';
-
-  try {
-    const sb = getSupabase();
-    if (sb) {
-      const { data } = await sb.from('site_settings').select('key, value');
-      if (data) {
-        for (const s of data) {
-          const v = s.value;
-          if (s.key === 'admin_emails' && Array.isArray(v) && v[0]) email = v[0];
-          if (s.key === 'contact_email' && typeof v === 'string') email = v;
-          if (s.key === 'contact_phone' && typeof v === 'string') phone = v;
-          if (s.key === 'whatsapp_number' && typeof v === 'string') whatsapp = v.replace(/\D/g, '');
-          if (s.key === 'store_name' && typeof v === 'string') storeName = v;
-          if (s.key === 'instagram_handle' && typeof v === 'string') instagramHandle = v.trim();
-        }
-      }
-    }
-  } catch { /* silent */ }
-
-  const year = new Date().getFullYear();
-  const whatsLink = whatsapp ? `https://wa.me/${whatsapp}` : null;
-  const formattedWhats = whatsapp
-    ? whatsapp.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '+$1 ($2) $3-$4')
-    : '';
-  const igHandle = instagramHandle.replace(/^@+/, '').trim();
-  const instagramLink = igHandle ? `https://www.instagram.com/${encodeURIComponent(igHandle)}/` : null;
-  const igDisplay = igHandle ? (instagramHandle.indexOf('@') >= 0 ? instagramHandle : '@' + igHandle) : '';
-
-  if (variant === 'strip') {
-    const phoneBlock = whatsLink
-      ? `<a class="hcs-item" href="${whatsLink}" target="_blank" rel="noopener">${escFooter(formattedWhats || phone)}</a>`
-      : `<span class="hcs-item hcs-muted">${escFooter(phone)}</span>`;
-    el.innerHTML = `
-      <div class="container hcs-inner">
-        <a class="hcs-item" href="mailto:${escFooter(email)}">${escFooter(email)}</a>
-        <span class="hcs-sep" aria-hidden="true">|</span>
-        ${phoneBlock}
-        <span class="hcs-sep" aria-hidden="true">|</span>
-        <span class="hcs-copy">&copy; ${year} ${escFooter(storeName)}</span>
-      </div>`;
-    return;
-  }
-
-  el.innerHTML = `
-    <div class="container">
-      <div class="footer-compact">
-        <a href="index.html" class="footer-brand-mini" aria-label="${escFooter(storeName)}">
-          <img src="assets/footer-logo.png" alt="${escFooter(storeName)}" style="height:74px;width:auto;max-width:min(360px,90vw);object-fit:contain;">
-        </a>
-        <div class="footer-contacts">
-          <a class="footer-contact-item" href="mailto:${escFooter(email)}" aria-label="Email">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <span>${escFooter(email)}</span>
-          </a>
-          ${whatsLink
-            ? `<a class="footer-contact-item" href="${whatsLink}" target="_blank" rel="noopener" aria-label="WhatsApp">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.3.3-1 .9-1 2.3s1 2.7 1.1 2.9c.1.2 2 3 4.7 4.2 1.6.7 2.3.7 3.1.6.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20m5.5-15.5A7.7 7.7 0 0 0 12 4a7.7 7.7 0 0 0-7.8 7.8c0 1.4.4 2.7 1.1 3.9L4.2 20l4.4-1.1c1.2.7 2.5 1 3.9 1a7.7 7.7 0 0 0 7.8-7.8c0-2-.8-4-2.3-5.6"/></svg>
-                <span>${escFooter(formattedWhats || phone)}</span>
-              </a>`
-            : `<span class="footer-contact-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                <span>${escFooter(phone)}</span>
-              </span>`
-          }
-          ${instagramLink
-            ? `<a class="footer-contact-item" href="${instagramLink}" target="_blank" rel="noopener" aria-label="Instagram">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 7.2c-2.65 0-4.8 2.15-4.8 4.8S9.35 16.8 12 16.8s4.8-2.15 4.8-4.8S14.65 7.2 12 7.2zm0 7.85a3.05 3.05 0 1 1 0-6.1 3.05 3.05 0 0 1 0 6.1zm5.95-8.35a1.12 1.12 0 1 1-2.24 0 1.12 1.12 0 0 1 2.24 0zM12 2c2.67 0 3 .01 4.05.06 1.1.05 1.85.24 2.5.51.68.27 1.26.64 1.84 1.22.58.58.95 1.16 1.22 1.84.27.65.46 1.4.51 2.5.05 1.05.06 1.38.06 4.05s-.01 3-.06 4.05c-.05 1.1-.24 1.85-.51 2.5-.27.68-.64 1.26-1.22 1.84-.58.58-1.16.95-1.84 1.22-.65.27-1.4.46-2.5.51-1.05.05-1.38.06-4.05.06s-3-.01-4.05-.06c-1.1-.05-1.85-.24-2.5-.51-.68-.27-1.26-.64-1.84-1.22-.58-.58-.95-1.16-1.22-1.84-.27-.65-.46-1.4-.51-2.5C2.01 15 2 14.67 2 12s.01-3 .06-4.05c.05-1.1.24-1.85.51-2.5.27-.68.64-1.26 1.22-1.84.58-.58 1.16-.95 1.84-1.22.65-.27 1.4-.46 2.5-.51C9 2.01 9.33 2 12 2zm0 1.8H8.1c-1.02.05-1.57.22-1.94.37-.49.19-.84.42-1.2.78-.36.36-.59.71-.78 1.2-.15.37-.32.92-.37 1.94C4.01 9.1 4 9.42 4 12c0 2.58.01 2.9.06 3.91.05 1.02.22 1.57.37 1.94.19.49.42.84.78 1.2.36.36.71.59 1.2.78.37.15.92.32 1.94.37 1.01.05 1.33.06 3.91.06s2.9-.01 3.91-.06c1.02-.05 1.57-.22 1.94-.37.49-.19.84-.42 1.2-.78.36-.36.59-.71.78-1.2.15-.37.32-.92.37-1.94.05-1.01.06-1.33.06-3.91s-.01-2.9-.06-3.91c-.05-1.02-.22-1.57-.37-1.94-.19-.49-.42-.84-.78-1.2-.36-.36-.71-.59-1.2-.78-.37-.15-.92-.32-1.94-.37-.73-.04-1.01-.05-3.09-.06z"/></svg>
-                <span>${escFooter(igDisplay)}</span>
-              </a>`
-            : ''
-          }
-        </div>
-        <div class="footer-bottom-mini">&copy; ${year} ${escFooter(storeName)}. Todos os direitos reservados.</div>
-      </div>
-    </div>
-  `;
-}
-
-function escFooter(s) {
-  if (s === null || s === undefined) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+// Footer: renderCompactFooter em js/components/site-footer.js
 
 document.addEventListener('DOMContentLoaded', function() {
   applyConfortaPolish();
@@ -372,10 +272,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function applyConfortaPolish() {
   const page = getCurrentPageName();
+  if (typeof applyConfortaRegionalSeo === 'function') {
+    applyConfortaRegionalSeo(page);
+  }
   document.body.classList.add('cc-page-' + page.replace('.html', '').replace('index', 'home'));
   document.body.classList.add('cc-polished');
   injectConfortaPolishStyles();
-  enhanceGlobalHeader(page);
+  if (typeof enhanceGlobalHeader === 'function') {
+    enhanceGlobalHeader(page);
+  }
   enhanceGlobalFooter();
   injectPageQuickNavTop(page);
   injectGlobalMobileBottomNav(page);
@@ -391,92 +296,7 @@ function getCurrentPageName() {
   return last;
 }
 
-/** Páginas vitrine sem <header> no HTML: mesmo cabeçalho fixo azul da home (desktop e mobile). */
-function ensureSiteHeaderIfMissing(page) {
-  if (document.querySelector('header.header')) return;
-  if (
-    page === 'admin.html' ||
-    page === 'checkout.html' ||
-    page === 'carrinho.html' ||
-    page === 'checkout-retorno.html'
-  ) {
-    return;
-  }
-  var orphan = document.getElementById('cartCount');
-  if (orphan && !orphan.closest('header.header')) orphan.remove();
-
-  var header = document.createElement('header');
-  header.className = 'header';
-  header.innerHTML =
-    '<div class="container header-inner">' +
-    '<a href="index.html" class="logo" aria-label="Conforta Colchões">' +
-    '<span class="logo-text">Conforta<small>COLCHÕES</small></span></a>' +
-    '<div class="header-actions">' +
-    '<button type="button" id="cartBtn" aria-label="Carrinho">' +
-    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' +
-    '<span class="cart-count" id="cartCount">0</span></button>' +
-    '<a href="perfil.html" id="authBtn" aria-label="Perfil">' +
-    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>' +
-    '<button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">' +
-    '<svg id="menuIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>' +
-    '<svg id="closeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-    '</button></div></div>' +
-    '<div class="mobile-menu" id="mobileMenu"></div>';
-
-  document.body.insertBefore(header, document.body.firstChild);
-}
-
-function enhanceGlobalHeader(page) {
-  if (page === 'checkout.html' || page === 'carrinho.html') return;
-  ensureSiteHeaderIfMissing(page);
-  const header = document.querySelector('header.header');
-  if (!header) return;
-
-  const logo = header.querySelector('.logo');
-  var nav = header.querySelector('.main-nav');
-  const search = header.querySelector('.search-bar');
-
-  if (!nav) {
-    nav = document.createElement('nav');
-    nav.className = 'main-nav cc-main-nav cc-home-four-nav';
-    nav.setAttribute('aria-label', 'Navegação principal');
-    if (search && page === 'index.html') {
-      search.replaceWith(nav);
-    } else if (logo && logo.parentNode) {
-      logo.insertAdjacentElement('afterend', nav);
-    } else {
-      return;
-    }
-  }
-
-  nav.classList.add('cc-home-four-nav', 'cc-main-nav');
-  nav.setAttribute('aria-label', 'Navegação principal');
-  nav.innerHTML = getHomeFourNavInnerHtml(page);
-
-  const actions = header.querySelector('.header-actions');
-  if (actions && !actions.querySelector('.header-whatsapp')) {
-    const mobileBtn = actions.querySelector('#mobileMenuBtn');
-    const whats = document.createElement('a');
-    whats.href = '#';
-    whats.className = 'header-whatsapp js-global-whatsapp';
-    whats.setAttribute('data-message', 'Olá! Quero atendimento da Conforta Colchões.');
-    whats.setAttribute('aria-label', 'Falar no WhatsApp');
-    whats.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.3.3-1 .9-1 2.3s1 2.7 1.1 2.9c.1.2 2 3 4.7 4.2 1.6.7 2.3.7 3.1.6.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20m5.5-15.5A7.7 7.7 0 0 0 12 4a7.7 7.7 0 0 0-7.8 7.8c0 1.4.4 2.7 1.1 3.9L4.2 20l4.4-1.1c1.2.7 2.5 1 3.9 1a7.7 7.7 0 0 0 7.8-7.8c0-2-.8-4-2.3-5.6"/></svg><span>WhatsApp</span>';
-    if (mobileBtn) actions.insertBefore(whats, mobileBtn);
-    else actions.appendChild(whats);
-  }
-
-  const mobileMenu = header.querySelector('#mobileMenu');
-  if (mobileMenu && !mobileMenu.dataset.polished) {
-    mobileMenu.innerHTML = [
-      '<a href="index.html">Início</a>',
-      '<a href="produtos.html">Produtos</a>',
-      '<a href="carrinho.html">Carrinho</a>',
-      '<a href="perfil.html">Perfil</a>'
-    ].join('');
-    mobileMenu.dataset.polished = 'true';
-  }
-}
+// Cabeçalho global: js/components/site-header.js (enhanceGlobalHeader, …)
 
 function enhanceGlobalFooter() {
   const footer = document.querySelector('footer.footer');
@@ -484,29 +304,6 @@ function enhanceGlobalFooter() {
   if (typeof renderCompactFooter === 'function') {
     renderCompactFooter(footer);
   }
-}
-
-function getHomeFourNavInnerHtml(page) {
-  const a = getQuickNavActive(page);
-  const h = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>';
-  const p = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
-  const c = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 2h3l2.4 12.3a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 2-1.6L21 7H6"/></svg>';
-  const u = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-  return (
-    '<a href="index.html"' + (a.home ? ' class="active" aria-current="page"' : '') + '>' + h + '<span>INÍCIO</span></a>' +
-    '<a href="produtos.html"' + (a.products ? ' class="active" aria-current="page"' : '') + '>' + p + '<span>PRODUTOS</span></a>' +
-    '<a href="carrinho.html"' + (a.cart ? ' class="active" aria-current="page"' : '') + '>' + c + '<span>CARRINHO</span></a>' +
-    '<a href="perfil.html"' + (a.profile ? ' class="active" aria-current="page"' : '') + '>' + u + '<span>PERFIL</span></a>'
-  );
-}
-
-function getQuickNavActive(page) {
-  return {
-    home: page === 'index.html',
-    products: page === 'produtos.html' || page === 'produto.html',
-    cart: page === 'carrinho.html',
-    profile: page === 'perfil.html'
-  };
 }
 
 function injectPageQuickNavTop(page) {

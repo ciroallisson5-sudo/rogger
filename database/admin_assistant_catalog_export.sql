@@ -1,0 +1,12 @@
+-- Assistente do admin: export JSON de catálogo (WhatsApp / n8n)
+--
+-- Não é obrigatório rodar nada aqui: a API /api/admin-ai-assistant nos modos
+-- catalog_export e catalog_enrich apenas LÊ as tabelas já existentes:
+--   products, product_photos
+-- e opcionalmente chama a OpenAI para textos (OPENAI_API_KEY na Vercel).
+--
+-- Recomendado no projeto: coluna thumb_url em product_photos (URLs HTTPS de
+-- miniaturas) para photo_url mais leve no JSON.
+--
+-- Variáveis úteis na Vercel: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+-- OPENAI_API_KEY, SITE_PUBLIC_URL (links absolutos em product_page_url).

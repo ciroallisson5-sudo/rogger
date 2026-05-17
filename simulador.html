@@ -9,7 +9,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <script type="importmap">
   {
     "imports": {
@@ -18,7 +17,6 @@
     }
   }
   </script>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
     :root {
       --ink: #0f172a;
@@ -274,7 +272,7 @@
           style="width:100%;height:100%;touch-action:none"
         ></model-viewer>
       </div>
-      <p class="sim-hint-floating">HDRI 360° — gire o colchão. No celular: <strong>Ver na sua área</strong> (AR).</p>
+      <p class="sim-hint-floating">Showroom HD — luz realista (HDRI). Gire o colchão; no celular use <strong>Ver na sua área</strong> (AR). No separador <strong>Montar quarto</strong> você monta o ambiente com clima, janelas e móveis.</p>
     </div>
 
     <div id="panelEdit" class="sim-panel-fill sim-panel-edit" style="display:none">
@@ -285,7 +283,7 @@
         <div class="sim-sheet-inner">
           <div class="sim-card">
             <h2>Câmera e cena</h2>
-            <p class="sim-note" style="margin-top:0;margin-bottom:10px"><strong>Orbitar</strong>: arraste a cena. <strong>Andar</strong>: clique na cena, WASD + mouse; ESC solta. <strong>Mover colchão e móveis</strong>: arraste no piso (modo Orbitar). Shift corre.</p>
+            <p class="sim-note" style="margin-top:0;margin-bottom:10px"><strong>Orbitar</strong>: arraste a cena. <strong>Andar</strong>: clique na cena, WASD + mouse; ESC solta. <strong>Mover móveis/cama</strong>: arraste no piso. <strong>Girar</strong>: botão direito e arraste, ou <strong>Shift+arrastar</strong> / <strong>Alt+arrastar</strong> (com botão esquerdo). Shift corre no modo andar.</p>
             <div class="sim-floor-pick" role="radiogroup" aria-label="Modo de câmera">
               <label><input type="radio" name="camMode" value="orbit" checked><span>Orbitar</span></label>
               <label><input type="radio" name="camMode" value="walk"><span>Andar (WASD)</span></label>
@@ -306,6 +304,55 @@
               <label><input type="radio" name="floorMat" value="wood" checked><span>Madeira</span></label>
               <label><input type="radio" name="floorMat" value="pvc"><span>PVC</span></label>
             </div>
+          </div>
+          <div class="sim-card">
+            <h2>Janela e modelos de móveis</h2>
+            <p class="sim-note" style="margin-top:0;margin-bottom:10px">Estilos prontos para vitrine: troca na hora, sem recarregar a página.</p>
+            <div class="sim-label" style="margin-bottom:6px;font-size:0.76rem">Janela</div>
+            <div class="sim-floor-pick" role="radiogroup" aria-label="Modelo de janela">
+              <label><input type="radio" name="winStyle" value="casement" checked><span>Com cortina</span></label>
+              <label><input type="radio" name="winStyle" value="french"><span>Francesa</span></label>
+              <label><input type="radio" name="winStyle" value="picture"><span>Panorama</span></label>
+            </div>
+            <div class="sim-label" style="margin-top:12px;margin-bottom:6px;font-size:0.76rem">Guarda-roupa</div>
+            <div class="sim-floor-pick" role="radiogroup" aria-label="Modelo de guarda-roupa">
+              <label><input type="radio" name="wardrobeStyle" value="slab" checked><span>Liso</span></label>
+              <label><input type="radio" name="wardrobeStyle" value="panel"><span>Ripado</span></label>
+              <label><input type="radio" name="wardrobeStyle" value="mirror"><span>Espelho</span></label>
+            </div>
+            <div class="sim-label" style="margin-top:12px;margin-bottom:6px;font-size:0.76rem">Cor do guarda-roupa</div>
+            <div class="sim-floor-pick" role="radiogroup" aria-label="Acabamento do guarda-roupa">
+              <label><input type="radio" name="wardrobeFinish" value="neutral" checked><span>Cinza</span></label>
+              <label><input type="radio" name="wardrobeFinish" value="white"><span>Branco</span></label>
+              <label><input type="radio" name="wardrobeFinish" value="graphite"><span>Grafite</span></label>
+              <label><input type="radio" name="wardrobeFinish" value="oak"><span>Carvalho</span></label>
+            </div>
+            <div class="sim-label" style="margin-top:12px;margin-bottom:6px;font-size:0.76rem">Escrivaninha</div>
+            <div class="sim-floor-pick" role="radiogroup" aria-label="Modelo de escrivaninha">
+              <label><input type="radio" name="deskStyle" value="minimal" checked><span>Pernas</span></label>
+              <label><input type="radio" name="deskStyle" value="drawer"><span>Gavetas</span></label>
+              <label><input type="radio" name="deskStyle" value="float"><span>Suspensa</span></label>
+            </div>
+          </div>
+          <div class="sim-card">
+            <h2>Clima e qualidade gráfica</h2>
+            <p class="sim-note" style="margin-top:0;margin-bottom:10px">Clima altera luz, sombreamento e névoa. <strong>Ultra</strong> e <strong>Máximo</strong> exigem GPU forte; <strong>Máximo</strong> usa mapa de sombra 8K só em tela larga. <strong>Rápido</strong> prioriza FPS.</p>
+            <div class="sim-label" style="margin-bottom:6px;font-size:0.76rem">Clima</div>
+            <div class="sim-floor-pick" role="radiogroup" aria-label="Clima da cena">
+              <label><input type="radio" name="climatePick" value="clear" checked><span>Dia claro</span></label>
+              <label><input type="radio" name="climatePick" value="golden"><span>Dourado</span></label>
+              <label><input type="radio" name="climatePick" value="overcast"><span>Nublado</span></label>
+              <label><input type="radio" name="climatePick" value="evening"><span>Entardecer</span></label>
+            </div>
+            <div class="sim-label" style="margin-top:12px;margin-bottom:6px;font-size:0.76rem">Gráficos</div>
+            <div class="sim-floor-pick" role="radiogroup" aria-label="Qualidade gráfica">
+              <label><input type="radio" name="gfxQuality" value="fast"><span>Rápido</span></label>
+              <label><input type="radio" name="gfxQuality" value="balanced" checked><span>Equilibrado</span></label>
+              <label><input type="radio" name="gfxQuality" value="high"><span>Alta</span></label>
+              <label><input type="radio" name="gfxQuality" value="ultra"><span>Ultra</span></label>
+              <label><input type="radio" name="gfxQuality" value="max"><span>Máximo</span></label>
+            </div>
+            <p class="sim-note" style="margin-top:12px;margin-bottom:0">Links de vitrine podem incluir na URL, por exemplo: <code style="font-size:0.68rem;word-break:break-all">tab=edit&amp;climate=clear&amp;gfx=max&amp;finish=oak&amp;janela=picture</code>.</p>
           </div>
           <div class="sim-card">
             <h2>Tamanho do quarto (m)</h2>
@@ -357,7 +404,10 @@
     </div>
   </div>
 
-  <script src="js/supabase-config.js"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <script src="js/scripts-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
   <script type="module">
     import { mountRoomSimulator } from './js/room-simulator.js';
 
@@ -415,6 +465,114 @@
         } catch { /* ignore */ }
       }
       return { id, photoId: photo };
+    }
+
+    const SIM_CLIMATE = new Set(['clear', 'golden', 'overcast', 'evening']);
+    const SIM_GFX = new Set(['fast', 'balanced', 'high', 'ultra', 'max']);
+    const SIM_WINDOW = new Set(['casement', 'french', 'picture']);
+    const SIM_WARDROBE = new Set(['slab', 'panel', 'mirror']);
+    const SIM_FINISH = new Set(['neutral', 'white', 'graphite', 'oak']);
+    const SIM_DESK = new Set(['minimal', 'drawer', 'float']);
+    const SIM_CAM = new Set(['orbit', 'walk']);
+    const SIM_FLOOR = new Set(['wood', 'pvc']);
+
+    function firstQueryParam(q, keys) {
+      for (let i = 0; i < keys.length; i++) {
+        const v = (q.get(keys[i]) || '').trim();
+        if (v) return v;
+      }
+      return '';
+    }
+
+    function clampSim(n, lo, hi) {
+      const x = typeof n === 'number' && !Number.isNaN(n) ? n : lo;
+      return Math.min(hi, Math.max(lo, x));
+    }
+
+    /** Cena do quarto via URL (vitrine, QR, campanha). */
+    function applySimulatorQueryParams(api) {
+      const q = new URLSearchParams(window.location.search || '');
+      const low = (keys) => firstQueryParam(q, keys).toLowerCase();
+
+      const c = low(['climate', 'clima']);
+      if (SIM_CLIMATE.has(c)) api.setClimate(c);
+
+      const g = low(['gfx', 'graphics', 'graficos', 'qualidade']);
+      if (SIM_GFX.has(g)) api.setGraphicsQuality(g);
+
+      const w = low(['window', 'janela']);
+      if (SIM_WINDOW.has(w)) api.setWindowStyle(w);
+
+      const ws = low(['wardrobe', 'guardaroupa', 'gr']);
+      if (SIM_WARDROBE.has(ws)) api.setWardrobeStyle(ws);
+
+      const fin = low(['finish', 'cor', 'gr_cor', 'wardrobe_finish']);
+      if (SIM_FINISH.has(fin)) api.setWardrobeFinish(fin);
+
+      const ds = low(['desk', 'escrivaninha', 'mesa']);
+      if (SIM_DESK.has(ds)) api.setDeskStyle(ds);
+
+      const cam = low(['camera', 'cam', 'camera_mode']);
+      if (SIM_CAM.has(cam)) api.setCameraMode(cam);
+
+      const fl = low(['floor', 'piso']);
+      if (SIM_FLOOR.has(fl)) api.setFloor(fl);
+
+      const rw = parseFloat(firstQueryParam(q, ['rw', 'room_w', 'roomW', 'largura']));
+      const rd = parseFloat(firstQueryParam(q, ['rd', 'room_d', 'roomD', 'comprimento']));
+      const rh = parseFloat(firstQueryParam(q, ['rh', 'room_h', 'roomH', 'pe_direito', 'altura_quarto']));
+      if (!Number.isNaN(rw) || !Number.isNaN(rd) || !Number.isNaN(rh)) {
+        api.setRoom(
+          Number.isNaN(rw) ? null : clampSim(rw, 2.5, 10),
+          Number.isNaN(rd) ? null : clampSim(rd, 2.5, 10),
+          Number.isNaN(rh) ? null : clampSim(rh, 2.2, 3.2)
+        );
+      }
+
+      const ww = parseFloat(firstQueryParam(q, ['ww', 'wardrobe_w', 'gr_w']));
+      const wd = parseFloat(firstQueryParam(q, ['wd', 'wardrobe_d', 'gr_d']));
+      const wh = parseFloat(firstQueryParam(q, ['wh', 'wardrobe_h', 'gr_h']));
+      if (!Number.isNaN(ww) || !Number.isNaN(wd) || !Number.isNaN(wh)) {
+        api.setWardrobe(
+          Number.isNaN(ww) ? null : clampSim(ww, 0.9, 3),
+          Number.isNaN(wd) ? null : clampSim(wd, 0.45, 1.1),
+          Number.isNaN(wh) ? null : clampSim(wh, 1.5, 2.6)
+        );
+      }
+
+      const dw = parseFloat(firstQueryParam(q, ['dw', 'desk_w']));
+      const dd = parseFloat(firstQueryParam(q, ['dd', 'desk_d']));
+      const dh = parseFloat(firstQueryParam(q, ['dh', 'desk_h']));
+      if (!Number.isNaN(dw) || !Number.isNaN(dd) || !Number.isNaN(dh)) {
+        api.setDesk(
+          Number.isNaN(dw) ? null : clampSim(dw, 0.75, 2.2),
+          Number.isNaN(dd) ? null : clampSim(dd, 0.45, 1),
+          Number.isNaN(dh) ? null : clampSim(dh, 0.66, 1.05)
+        );
+      }
+    }
+
+    function syncSimulatorSlidersFromState(api) {
+      const st = api.state;
+      const set = (id, dispId, val, dec) => {
+        const el = document.getElementById(id);
+        const disp = document.getElementById(dispId);
+        if (!el || val == null || Number.isNaN(Number(val))) return;
+        const lo = parseFloat(el.min);
+        const hi = parseFloat(el.max);
+        const v = clampSim(Number(val), lo, hi);
+        el.value = String(v);
+        if (disp) disp.textContent = v.toFixed(dec != null ? dec : 2) + ' m';
+      };
+      set('rngW', 'vW', st.roomW);
+      set('rngD', 'vD', st.roomD);
+      set('rngH', 'vH', st.roomH, 2);
+      set('rngWW', 'vWW', st.wardrobeW);
+      set('rngWD', 'vWD', st.wardrobeD);
+      set('rngWH', 'vWH', st.wardrobeH);
+      set('rngDW', 'vDW', st.deskW);
+      set('rngDD', 'vDD', st.deskD);
+      set('rngDH', 'vDH', st.deskH);
     }
 
     function resolveSupabaseDefaultModelGlb(product) {
@@ -511,6 +669,47 @@
         });
       });
 
+      function bindRadioGroup(name, onPick) {
+        document.querySelectorAll(`input[name="${name}"]`).forEach((inp) => {
+          const lab = inp.closest('label');
+          if (inp.checked && lab) lab.classList.add('is-on');
+          inp.addEventListener('change', () => {
+            document.querySelectorAll(`input[name="${name}"]`).forEach((i) => {
+              const L = i.closest('label');
+              if (L) L.classList.toggle('is-on', i.checked);
+            });
+            onPick(inp.value);
+          });
+        });
+      }
+
+      function syncStyleRadiosFromState() {
+        const syncOne = (name, value) => {
+          document.querySelectorAll(`input[name="${name}"]`).forEach((inp) => {
+            const on = inp.value === value;
+            inp.checked = on;
+            const L = inp.closest('label');
+            if (L) L.classList.toggle('is-on', on);
+          });
+        };
+        syncOne('winStyle', api.state.windowStyle || 'casement');
+        syncOne('wardrobeStyle', api.state.wardrobeStyle || 'slab');
+        syncOne('wardrobeFinish', api.state.wardrobeFinish || 'neutral');
+        syncOne('deskStyle', api.state.deskStyle || 'minimal');
+        syncOne('climatePick', api.state.climate || 'clear');
+        syncOne('gfxQuality', api.state.graphicsQuality || 'balanced');
+        syncOne('floorMat', api.state.floor || 'wood');
+        syncOne('camMode', api.state.cameraMode || 'orbit');
+      }
+
+      bindRadioGroup('winStyle', (v) => api.setWindowStyle(v));
+      bindRadioGroup('wardrobeStyle', (v) => api.setWardrobeStyle(v));
+      bindRadioGroup('wardrobeFinish', (v) => api.setWardrobeFinish(v));
+      bindRadioGroup('deskStyle', (v) => api.setDeskStyle(v));
+      bindRadioGroup('climatePick', (v) => api.setClimate(v));
+      bindRadioGroup('gfxQuality', (v) => api.setGraphicsQuality(v));
+      syncStyleRadiosFromState();
+
       function bindRng(id, dispId, apply) {
         const el = document.getElementById(id);
         const disp = document.getElementById(dispId);
@@ -548,6 +747,7 @@
       bindAdd('btnAddEstante', 'estante');
 
       refreshExtraList(api);
+      return syncStyleRadiosFromState;
     }
 
     function setupHdViewer(mv, glbUrl, posterUrl, altText) {
@@ -649,7 +849,10 @@
               );
             }
           });
-          wireEditorControls(roomApi);
+          const syncRadios = wireEditorControls(roomApi);
+          applySimulatorQueryParams(roomApi);
+          syncRadios();
+          syncSimulatorSlidersFromState(roomApi);
           return roomApi;
         }
 
@@ -687,6 +890,25 @@
             }
           });
         });
+
+        const qStart = new URLSearchParams(window.location.search || '');
+        const tabStart = (qStart.get('tab') || '').trim().toLowerCase();
+        const sheetStart = (qStart.get('ajustes') || qStart.get('sheet') || '').trim().toLowerCase();
+        const openEditTab = tabStart === 'edit' || tabStart === 'montar' || tabStart === 'quarto';
+        const openSheet =
+          sheetStart === '1' || sheetStart === 'true' || sheetStart === 'open' || sheetStart === 'sim';
+        if (openEditTab || openSheet) {
+          requestAnimationFrame(() => {
+            document.querySelector('.sim-tab[data-panel="edit"]')?.click();
+            if (openSheet) {
+              requestAnimationFrame(() => {
+                const sh = document.getElementById('simControlsSheet');
+                const fab = document.getElementById('simControlsToggle');
+                if (sh && fab && !sh.classList.contains('open')) fab.click();
+              });
+            }
+          });
+        }
 
         window.addEventListener('beforeunload', () => {
           if (roomApi) roomApi.dispose();
