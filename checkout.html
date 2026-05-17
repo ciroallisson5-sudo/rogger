@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
   <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="noindex,nofollow">
   <meta name="description" content="Finalizar compra - Conforta Colchões">
   <title>Checkout - Conforta Colchões</title>
+  <link rel="canonical" href="https://www.confortacolchoes.site/checkout.html">
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -250,6 +252,7 @@
 
   <div class="toast-container" id="toastContainer"></div>
 
+  <script src="js/store-public-config.js" defer></script>
   <script src="js/scripts-config.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
   <script src="js/supabase-config.js" defer></script>
@@ -594,11 +597,18 @@
       async function configureWhatsapp() {
         if (!window.CONFORTA_WHATSAPP_URL) {
           try {
+            if (typeof CONFORTA_STORE_EDITABLE !== 'undefined' && CONFORTA_STORE_EDITABLE && CONFORTA_STORE_EDITABLE.whatsappE164) {
+              var cfgDigits = String(CONFORTA_STORE_EDITABLE.whatsappE164).replace(/\D/g, '');
+              if (cfgDigits) {
+                var nCfg = (cfgDigits.length === 10 || cfgDigits.length === 11) ? '55' + cfgDigits : cfgDigits;
+                window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + nCfg;
+              }
+            }
             var phone = '';
             if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
             if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
             var normalized = normalizeWhatsapp(phone);
-            if (normalized) window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + normalized;
+            if (normalized) window.CONFORTA_WHATSAPP_URL = window.CONFORTA_WHATSAPP_URL || ('https://wa.me/' + normalized);
           } catch(e) {}
         }
         updateWhatsappLinks();
@@ -610,6 +620,7 @@
           if (window.CONFORTA_WHATSAPP_URL) {
             link.target = '_blank';
             link.rel = 'noopener';
+            link.onclick = null;
           } else {
             link.onclick = function(e) {
               e.preventDefault();
@@ -754,6 +765,7 @@
           '<button class="btn btn-primary btn-block btn-lg" id="placeOrderBtn" onclick="window.placeOrder()">' +
           'Pagar com Mercado Pago — ' + formatPrice(total) +
           '</button>' +
+          '<a class="btn btn-whatsapp btn-block btn-lg js-checkout-whatsapp" href="#" style="margin-top:10px;">Dúvida antes de pagar? WhatsApp</a>' +
           '</div>' +
           '</div>' +
           '<div class="mobile-submit-bar"><div><span>Total</span><strong id="mobileSubmitTotal">' + formatPrice(total) + '</strong></div><button type="button" class="btn btn-primary" id="mobilePlaceOrderBtn" onclick="window.placeOrder()">Pagar com Mercado Pago</button></div>' +
@@ -762,6 +774,7 @@
         hydrateCustomerFields();
         wireCheckoutModals();
         void refreshCheckoutFreight();
+        updateWhatsappLinks();
       }
 
       function buildReviewHtml(addr) {

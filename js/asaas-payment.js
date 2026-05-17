@@ -1,3 +1,5 @@
+// LEGACY — não referenciar em páginas HTML. Gateway Asaas desativado (APIs /api/asaas-* retornam 410).
+// Pagamento ativo: Mercado Pago via /api/mercadopago-create-preference.js
 // Conforta Store - Asaas Payment Integration (via Vercel Proxy)
 
 const ASAAS_PROXY_URLS = ['/api/asaas-proxy', '/api/asaas-proxy.js'];

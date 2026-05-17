@@ -5,7 +5,12 @@
  * Rotas só servidor (webhook) não chamam applyBrowserCors.
  */
 function parseAllowedOrigins() {
-  const raw = process.env.ALLOWED_ORIGINS || process.env.APP_URL || '';
+  const raw =
+    process.env.ALLOWED_ORIGINS ||
+    process.env.APP_URL ||
+    process.env.SITE_URL ||
+    process.env.SITE_PUBLIC_URL ||
+    '';
   return raw
     .split(/[,;\s]+/)
     .map(function (s) {

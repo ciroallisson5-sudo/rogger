@@ -105,7 +105,9 @@ module.exports = async function handler(req, res) {
 
   const cfg = adminConfig();
   const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || '').trim();
-  const appUrl = (process.env.APP_URL || '').replace(/\/$/, '');
+  const appUrl = (process.env.APP_URL || process.env.SITE_URL || process.env.SITE_PUBLIC_URL || '')
+    .trim()
+    .replace(/\/$/, '');
   if (!cfg.ok || !accessToken || !appUrl) {
     res.status(503).json({ error: 'Pagamento não configurado no servidor.' });
     return;

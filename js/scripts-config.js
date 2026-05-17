@@ -9,6 +9,7 @@
 
   /** Ordem recomendada de carregamento (defer, mesmo bloco antes de </body>). */
   global.CONFORTA_SCRIPT_LOAD_ORDER = [
+    'js/store-public-config.js',
     'js/scripts-config.js',
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js',
     'js/supabase-config.js',
@@ -22,21 +23,23 @@
   ];
 
   var REGIONAL_PHRASE =
-    'Entrega na Grande Vitória, Serra, Vitória e todo o Espírito Santo. Até 12x sem juros.';
+    'Colchões em Serra e Vitória, cama box, cabeceiras e kits. Entrega rápida na região, até 12x sem juros e checkout seguro pelo Mercado Pago.';
 
   var SEO_BY_PAGE = {
     'index.html': {
-      title: 'Conforta Colchões — Serra, Vitória e ES | Descansar bem muda tudo',
+      title: 'Colchões em Serra e Vitória | Conforta Colchões — entrega rápida e até 12x',
       description:
-        'Colchões, bases e móveis com qualidade Conforta. ' + REGIONAL_PHRASE,
+        'Colchões, cama box e cabeceiras na Grande Vitória. Colchão casal, queen e king com orientação e compra segura pelo Mercado Pago. ' +
+        REGIONAL_PHRASE,
       keywords:
-        'colchões Serra ES, colchões Vitória, loja colchões Espírito Santo, Grande Vitória, Conforta Colchões, entrega colchão, colchão Querubim'
+        'colchões em Serra, colchões em Vitória, cama box, colchão casal, colchão queen, entrega rápida, Conforta Colchões, Grande Vitória, Mercado Pago'
     },
     'produtos.html': {
-      title: 'Catálogo de colchões — Serra, Vitória e Espírito Santo | Conforta',
-      description: 'Veja colchões, sofás e kits com preço e condições no site. ' + REGIONAL_PHRASE,
+      title: 'Colchões e cama box em Serra e Vitória | Catálogo Conforta Colchões',
+      description:
+        'Catálogo de colchões em Vitória e Serra, bases box, cabeceiras e kits. Filtre por tamanho e conforto; entrega rápida na região. ' + REGIONAL_PHRASE,
       keywords:
-        'catálogo colchões Vitória, colchões Serra, loja online ES, Conforta, ofertas colchão'
+        'colchões em Vitória, colchões em Serra, cama box, colchão casal, colchão queen, entrega rápida, catálogo colchões ES, Conforta Colchões'
     },
     'produto.html': {
       title: null,
@@ -45,9 +48,10 @@
         'colchão Vitória, colchão Serra, colchão Espírito Santo, Conforta Colchões, Querubim'
     },
     'carrinho.html': {
-      title: 'Carrinho — Conforta Colchões | Serra e Vitória',
-      description: 'Revise itens e finalize com entrega na Grande Vitória e ES.',
-      keywords: 'carrinho colchões, checkout Conforta, Vitória ES, Serra ES'
+      title: 'Carrinho — Conforta Colchões | Mercado Pago e entrega na região',
+      description:
+        'Revise colchões e bases no carrinho. Pagamento seguro pelo Mercado Pago; dúvidas pelo WhatsApp antes de finalizar.',
+      keywords: 'carrinho colchões, Mercado Pago, checkout Conforta, Vitória ES, Serra ES'
     },
     'perfil.html': {
       title: 'Minha conta — Conforta Colchões',

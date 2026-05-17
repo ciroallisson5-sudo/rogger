@@ -366,25 +366,39 @@ function updateCartWhatsappLinks() {
     if (window.CONFORTA_WHATSAPP_URL) {
       link.target = '_blank';
       link.rel = 'noopener';
+      link.onclick = null;
+    } else {
+      link.onclick = function(e) {
+        openCartWhatsapp(e);
+      };
     }
   });
 }
 
 async function configureCartWhatsapp() {
-  if (window.CONFORTA_WHATSAPP_URL) {
-    updateCartWhatsappLinks();
-    return;
-  }
   try {
-    let phone = '';
-    if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
-    if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
-    const digits = String(phone || '').replace(/\D/g, '');
-    if (digits) {
-      window.CONFORTA_WHATSAPP_URL = `https://wa.me/${(digits.length === 10 || digits.length === 11) ? '55' + digits : digits}`;
-      updateCartWhatsappLinks();
+    if (!window.CONFORTA_WHATSAPP_URL) {
+      if (typeof CONFORTA_STORE_EDITABLE !== 'undefined' && CONFORTA_STORE_EDITABLE && CONFORTA_STORE_EDITABLE.whatsappE164) {
+        const cfgDigits = String(CONFORTA_STORE_EDITABLE.whatsappE164).replace(/\D/g, '');
+        if (cfgDigits) {
+          const normalizedCfg = (cfgDigits.length === 10 || cfgDigits.length === 11) ? '55' + cfgDigits : cfgDigits;
+          window.CONFORTA_WHATSAPP_URL = `https://wa.me/${normalizedCfg}`;
+        }
+      }
     }
-  } catch (e) {}
+    if (!window.CONFORTA_WHATSAPP_URL) {
+      let phone = '';
+      if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
+      if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
+      const digits = String(phone || '').replace(/\D/g, '');
+      if (digits) {
+        window.CONFORTA_WHATSAPP_URL = `https://wa.me/${(digits.length === 10 || digits.length === 11) ? '55' + digits : digits}`;
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+  updateCartWhatsappLinks();
 }
 
 function renderCartSkeleton() {
@@ -666,7 +680,7 @@ function renderCartSidebar() {
         <button class="btn btn-primary btn-block cart-checkout-btn" onclick="handleCheckout()">Finalizar compra</button>
         <a class="btn btn-secondary btn-block" href="produtos.html">Continuar comprando</a>
         <a class="btn btn-outline btn-block js-cart-whatsapp" href="${cartWhatsappHref()}">Tirar duvida no WhatsApp</a>
-        <p class="cart-secure-copy">Finalize sua compra com segurança. Pagamento facilitado.</p>
+        <p class="cart-secure-copy">Pagamento no <strong>Mercado Pago</strong> após login. Dúvidas? Use o WhatsApp antes de finalizar.</p>
       </div>
       <div class="cart-mobile-bar" id="cartMobileBar" style="display:none">
         <div><span>Total</span><strong id="cartMobileTotal">R$ 0,00</strong></div>
@@ -742,7 +756,9 @@ async function initFullCartPage() {
         '<p>Adicione colchões, bases e acessorios antes de finalizar.</p>' +
         '<div class="cc-full-cart-actions">' +
         '<a class="btn btn-primary" href="produtos.html">Ver colchões</a>' +
+        '<a class="btn btn-outline js-cart-whatsapp" data-message="Olá! Quero orientação para escolher colchão ou cama box antes de comprar." href="#">Falar no WhatsApp</a>' +
         '</div></div>';
+      await configureCartWhatsapp();
       return;
     }
 
@@ -771,13 +787,17 @@ async function initFullCartPage() {
       '<span>Frete e prazo sao confirmados no checkout.</span>' +
       '</div>' +
       '<button type="button" class="btn btn-primary btn-block btn-lg" onclick="handleCheckout()">Finalizar compra</button>' +
-      '<a class="btn btn-secondary btn-block" href="produtos.html">Continuar comprando</a>' +
+      '<p class="cc-mp-cart-note" style="margin:12px 0 0;font-size:0.82rem;color:#475569;line-height:1.45;">Pagamento no <strong>Mercado Pago</strong> (cartão, Pix e parcelamento). A loja não acessa seus dados bancários.</p>' +
+      '<a class="btn btn-secondary btn-block js-cart-whatsapp" data-message="Olá! Estou no carrinho e tenho dúvida sobre entrega, garantia ou colchão antes de pagar." href="#">Tirar dúvida no WhatsApp</a>' +
+      '<a class="btn btn-outline btn-block" href="produtos.html">Continuar comprando</a>' +
       '</aside></div>';
 
     updateCartCount();
+    await configureCartWhatsapp();
   }
 
   await renderFull();
+  await configureCartWhatsapp();
   window.__refreshFullCart = renderFull;
 }
 

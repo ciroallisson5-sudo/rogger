@@ -49,35 +49,17 @@
 
   window.getHomeFourNavInnerHtml = function getHomeFourNavInnerHtml(page) {
     var a = window.getQuickNavActive(page);
-    var h =
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>';
-    var p =
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
-    var c =
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 2h3l2.4 12.3a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 2-1.6L21 7H6"/></svg>';
-    var u =
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    void page;
+    function link(href, label, isActive) {
+      var ac = isActive ? ' class="active" aria-current="page"' : '';
+      return '<a href="' + href + '"' + ac + '><span>' + label + '</span></a>';
+    }
     return (
-      '<a href="index.html"' +
-      (a.home ? ' class="active" aria-current="page"' : '') +
-      '>' +
-      h +
-      '<span>INÍCIO</span></a>' +
-      '<a href="produtos.html"' +
-      (a.products ? ' class="active" aria-current="page"' : '') +
-      '>' +
-      p +
-      '<span>PRODUTOS</span></a>' +
-      '<a href="carrinho.html"' +
-      (a.cart ? ' class="active" aria-current="page"' : '') +
-      '>' +
-      c +
-      '<span>CARRINHO</span></a>' +
-      '<a href="perfil.html"' +
-      (a.profile ? ' class="active" aria-current="page"' : '') +
-      '>' +
-      u +
-      '<span>PERFIL</span></a>'
+      link('index.html', 'Início', !!a.home) +
+      link('produtos.html', 'Produtos', !!a.products) +
+      link('produtos.html?promo=offer', 'Ofertas', false) +
+      link('index.html#entrega', 'Entrega', false) +
+      link('index.html#garantia', 'Garantia', false)
     );
   };
 
@@ -96,7 +78,7 @@
       nav.className = 'main-nav cc-main-nav cc-home-four-nav';
       nav.setAttribute('aria-label', 'Navegação principal');
       if (search && page === 'index.html') {
-        search.replaceWith(nav);
+        search.insertAdjacentElement('afterend', nav);
       } else if (logo && logo.parentNode) {
         logo.insertAdjacentElement('afterend', nav);
       } else {
@@ -114,7 +96,10 @@
       var whats = document.createElement('a');
       whats.href = '#';
       whats.className = 'header-whatsapp js-global-whatsapp';
-      whats.setAttribute('data-message', 'Olá! Quero atendimento da Conforta Colchões.');
+      whats.setAttribute(
+        'data-message',
+        'Olá! Preciso tirar uma dúvida sobre o colchão ideal (tamanho, densidade ou entrega).'
+      );
       whats.setAttribute('aria-label', 'Falar no WhatsApp com a Conforta Colchões');
       whats.innerHTML =
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.3.3-1 .9-1 2.3s1 2.7 1.1 2.9c.1.2 2 3 4.7 4.2 1.6.7 2.3.7 3.1.6.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20m5.5-15.5A7.7 7.7 0 0 0 12 4a7.7 7.7 0 0 0-7.8 7.8c0 1.4.4 2.7 1.1 3.9L4.2 20l4.4-1.1c1.2.7 2.5 1 3.9 1a7.7 7.7 0 0 0 7.8-7.8c0-2-.8-4-2.3-5.6"/></svg><span>WhatsApp</span>';
@@ -122,13 +107,24 @@
       else actions.appendChild(whats);
     }
 
+    var auth = header.querySelector('#authBtn');
+    if (auth) {
+      auth.classList.add('cc-header-profile-aux');
+      auth.setAttribute('aria-label', 'Minha conta (login e pedidos)');
+      auth.setAttribute('title', 'Conta');
+    }
+
     var mobileMenu = header.querySelector('#mobileMenu');
     if (mobileMenu && !mobileMenu.dataset.polished) {
       mobileMenu.innerHTML = [
         '<a href="index.html">Início</a>',
         '<a href="produtos.html">Produtos</a>',
+        '<a href="produtos.html?promo=offer">Ofertas</a>',
+        '<a href="index.html#entrega">Entrega</a>',
+        '<a href="index.html#garantia">Garantia</a>',
+        '<a href="#" class="js-global-whatsapp" data-message="Olá! Preciso de ajuda para escolher colchão ou cama box.">WhatsApp</a>',
         '<a href="carrinho.html">Carrinho</a>',
-        '<a href="perfil.html">Perfil</a>'
+        '<a href="perfil.html" class="cc-mobile-menu-secondary">Minha conta</a>'
       ].join('');
       mobileMenu.dataset.polished = 'true';
     }

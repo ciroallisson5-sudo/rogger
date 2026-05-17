@@ -244,14 +244,29 @@ function calcInstallments(price, maxParcelas = 12, minValor = 20) {
 
 // Countdown timer
 function startCountdown(element, endDateStr) {
+  if (!element) return null;
+  const prev = element.getAttribute('data-cc-countdown-interval');
+  if (prev) {
+    clearInterval(parseInt(prev, 10));
+    element.removeAttribute('data-cc-countdown-interval');
+  }
   const end = new Date(endDateStr).getTime();
-  if (!element || isNaN(end)) return;
+  if (isNaN(end)) {
+    element.textContent = '';
+    element.setAttribute('hidden', 'true');
+    return null;
+  }
 
   function update() {
     const now = new Date().getTime();
     const diff = end - now;
     if (diff <= 0) {
       element.textContent = 'Oferta encerrada';
+      const id = element.getAttribute('data-cc-countdown-interval');
+      if (id) {
+        clearInterval(parseInt(id, 10));
+        element.removeAttribute('data-cc-countdown-interval');
+      }
       return;
     }
     const h = Math.floor(diff / (1000 * 60 * 60));
@@ -261,7 +276,9 @@ function startCountdown(element, endDateStr) {
   }
 
   update();
-  return setInterval(update, 1000);
+  const intervalId = setInterval(update, 1000);
+  element.setAttribute('data-cc-countdown-interval', String(intervalId));
+  return intervalId;
 }
 
 // Footer: renderCompactFooter em js/components/site-footer.js
@@ -372,6 +389,14 @@ function syncGlobalBottomCartCount() {
 
 async function configureGlobalWhatsappLinks() {
   try {
+    var cfgDigits = '';
+    if (typeof CONFORTA_STORE_EDITABLE !== 'undefined' && CONFORTA_STORE_EDITABLE && CONFORTA_STORE_EDITABLE.whatsappE164) {
+      cfgDigits = String(CONFORTA_STORE_EDITABLE.whatsappE164).replace(/\D/g, '');
+    }
+    if (cfgDigits) {
+      const normalizedCfg = (cfgDigits.length === 10 || cfgDigits.length === 11) ? '55' + cfgDigits : cfgDigits;
+      window.CONFORTA_WHATSAPP_URL = window.CONFORTA_WHATSAPP_URL || `https://wa.me/${normalizedCfg}`;
+    }
     let phone = '';
     if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
     if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
@@ -382,7 +407,11 @@ async function configureGlobalWhatsappLinks() {
     }
   } catch { /* silent */ }
 
+  injectMobileWhatsappFab();
+
   document.querySelectorAll('.js-global-whatsapp').forEach(function(link) {
+    if (link.dataset.ccWaGlobalBound === '1') return;
+    link.dataset.ccWaGlobalBound = '1';
     const message = link.getAttribute('data-message') || 'Olá! Quero atendimento da Conforta Colchões.';
     if (window.CONFORTA_WHATSAPP_URL) {
       link.href = `${window.CONFORTA_WHATSAPP_URL}?text=${encodeURIComponent(message)}`;
@@ -397,6 +426,22 @@ async function configureGlobalWhatsappLinks() {
       else if (typeof showToast === 'function') showToast('Atendimento indisponível no momento', 'info');
     });
   });
+}
+
+function injectMobileWhatsappFab() {
+  const page = getCurrentPageName();
+  if (page === 'checkout.html' || page === 'checkout-retorno.html' || page === 'admin.html') return;
+  if (document.querySelector('.cc-wa-fab')) return;
+  const fab = document.createElement('a');
+  fab.className = 'cc-wa-fab js-global-whatsapp';
+  fab.setAttribute('data-message', 'Olá! Preciso de ajuda para escolher o colchão ideal (tamanho, densidade ou entrega).');
+  fab.setAttribute('aria-label', 'Falar no WhatsApp com a Conforta Colchões');
+  fab.href = '#';
+  fab.innerHTML =
+    '<span class="cc-wa-fab-inner" aria-hidden="true">' +
+    '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.3.3-1 .9-1 2.3s1 2.7 1.1 2.9c.1.2 2 3 4.7 4.2 1.6.7 2.3.7 3.1.6.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20m5.5-15.5A7.7 7.7 0 0 0 12 4a7.7 7.7 0 0 0-7.8 7.8c0 1.4.4 2.7 1.1 3.9L4.2 20l4.4-1.1c1.2.7 2.5 1 3.9 1a7.7 7.7 0 0 0 7.8-7.8c0-2-.8-4-2.3-5.6"/></svg>' +
+    '</span>';
+  document.body.appendChild(fab);
 }
 
 function injectConfortaPolishStyles() {
@@ -446,8 +491,9 @@ function injectConfortaPolishStyles() {
       body.cc-polished .main-nav, body.cc-polished .header-whatsapp { display:none !important; }
       body.cc-polished .header-inner { min-height:62px !important; }
       body.cc-polished .header .logo img { display:none !important; }
-      body.cc-polished .mobile-menu-btn { display:none !important; }
-      body.cc-polished .mobile-menu, body.cc-polished .mobile-menu.open { display:none !important; visibility:hidden !important; pointer-events:none !important; }
+      body.cc-polished .mobile-menu-btn { display:flex !important; align-items:center; justify-content:center; }
+      body.cc-polished .mobile-menu:not(.open) { display:none !important; visibility:hidden !important; pointer-events:none !important; }
+      body.cc-polished .mobile-menu.open { display:block !important; visibility:visible !important; pointer-events:auto !important; }
       body.cc-has-mobile-bottom { padding-bottom:82px; }
       body.cc-page-produto { padding-bottom:150px; }
       .cc-mobile-bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:850; display:grid; grid-template-columns:repeat(4,1fr); min-height:58px; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.98); border-top:1px solid #e2e8f0; box-shadow:0 -12px 30px rgba(15,23,42,.10); backdrop-filter:blur(14px); }
@@ -468,6 +514,32 @@ function injectConfortaPolishStyles() {
       body.cc-polished .footer-brand-mini img { height:68px !important; }
       body.cc-page-produtos .catalog-hero { margin-top:0 !important; padding-top:24px !important; padding-bottom:20px !important; }
     }
+    .cc-wa-fab {
+      position: fixed;
+      right: 16px;
+      bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+      z-index: 860;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #16a34a;
+      color: #fff !important;
+      box-shadow: 0 10px 30px rgba(22, 163, 74, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none !important;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .cc-wa-fab:hover { transform: scale(1.04); box-shadow: 0 12px 34px rgba(22, 163, 74, 0.5); }
+    .cc-wa-fab-inner { display: flex; align-items: center; justify-content: center; }
+    @media (min-width: 769px) {
+      .cc-wa-fab { bottom: 22px; }
+    }
+    body.cc-page-produto .cc-wa-fab { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+    body.cc-page-checkout .cc-wa-fab { display: none !important; }
+    .cc-header-profile-aux { opacity: 0.78 !important; transform: scale(0.92); min-width: 38px !important; width: 38px !important; }
+    .mobile-menu a.cc-mobile-menu-secondary { opacity: 0.88; font-size: 0.88rem; }
     @media (max-width: 430px) {
       body.cc-polished .header .logo-text { display:block !important; }
       body.cc-polished .header-actions button, body.cc-polished .header-actions a { min-width:36px !important; width:36px !important; min-height:36px !important; height:36px !important; }

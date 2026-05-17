@@ -14,7 +14,7 @@
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.mercadopago.com https://cdn.jsdelivr.net https://unpkg.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com https://ajax.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://api.openai.com https://api.mercadopago.com https://cdn.jsdelivr.net https://unpkg.com https://ajax.googleapis.com https://dl.polyhaven.org; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
         }
       ]
     }
@@ -28,9 +28,6 @@
     "api/n8n-products.js": { "maxDuration": 30 },
     "api/mercadopago-create-preference.js": { "maxDuration": 30 },
     "api/mercadopago-webhook.js": { "maxDuration": 30 },
-    "api/mercadopago-payment-status.js": { "maxDuration": 20 },
-    "api/asaas-proxy.js": { "maxDuration": 5 },
-    "api/asaas-webhook.js": { "maxDuration": 5 },
-    "api/order-payment-sync.js": { "maxDuration": 5 }
+    "api/mercadopago-payment-status.js": { "maxDuration": 20 }
   }
 }

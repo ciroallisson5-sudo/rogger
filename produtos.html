@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="Confira todos os colchões Conforta com entrega rápida e 12x sem juros na Grande Vitória, Serra e ES.">
-  <meta name="keywords" content="catálogo colchões, Serra ES, Vitória, Espírito Santo, Conforta Colchões, Querubim, entrega rápida">
-  <title>Todos os Produtos - Conforta Colchões</title>
+  <meta name="description" content="Catálogo de colchões em Vitória e Serra, cama box, cabeceiras e kits. Filtre por tamanho (casal, queen, king), conforto e densidade. Entrega rápida na região e checkout Mercado Pago.">
+  <meta name="keywords" content="colchões em Vitória, colchões em Serra, cama box, colchão casal, colchão queen, entrega rápida, Conforta Colchões, Mercado Pago">
+  <title>Colchões e cama box em Serra e Vitória | Catálogo Conforta Colchões</title>
+  <link rel="canonical" href="https://www.confortacolchoes.site/produtos.html">
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -276,8 +277,8 @@
       <div class="container">
         <div class="hero-grid">
           <div>
-            <h1 id="pageTitle">Produtos Conforta Colchões</h1>
-            <p>Encontre colchões, camas box, cabeceiras, sofás e kits completos com entrega rápida e atendimento especializado.</p>
+            <h1 id="pageTitle">Colchões e cama box em Serra e Vitória</h1>
+            <p>Catálogo com colchão casal, queen, king, bases e cabeceiras. Filtre por tamanho e conforto; finalize com segurança no Mercado Pago e tire dúvidas pelo WhatsApp antes de comprar.</p>
             <form class="hero-search" id="catalogSearchForm" action="produtos.html" method="GET">
               <input type="text" name="search" id="searchInput" placeholder="Buscar colchão, cama box, cabeceira..." aria-label="Buscar colchão, cama box, cabeceira">
               <button type="submit" aria-label="Buscar produtos">
@@ -289,7 +290,7 @@
             <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>Frete rápido</div>
             <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>Até 12x sem juros</div>
             <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Atendimento no WhatsApp</div>
-            <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Compra segura</div>
+            <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Mercado Pago</div>
           </div>
         </div>
       </div>
@@ -410,9 +411,9 @@
       <span class="cart-count" id="bottomCartCount">0</span>
       Carrinho
     </a>
-    <a href="perfil.html" aria-label="Perfil">
+    <a href="perfil.html" aria-label="Minha conta">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Perfil
+      Conta
     </a>
     <a href="#" class="js-whatsapp" data-whatsapp aria-label="Atendimento WhatsApp">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
@@ -422,6 +423,7 @@
 
   <footer class="footer" id="siteFooter"></footer>
 
+  <script src="js/store-public-config.js" defer></script>
   <script src="js/scripts-config.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
   <script src="js/supabase-config.js" defer></script>
@@ -600,7 +602,7 @@
         try {
           sb = getSupabase();
           if (!sb) {
-            renderFallbackProducts(append);
+            renderCatalogLoadError(append);
             return;
           }
 
@@ -677,7 +679,7 @@
           var error = resp.error;
 
           if (error) {
-            renderFallbackProducts(append);
+            renderCatalogLoadError(append);
             return;
           }
 
@@ -697,7 +699,7 @@
           updateFilterChips();
 
         } catch (e) {
-          renderFallbackProducts(append);
+          renderCatalogLoadError(append);
         } finally {
           state.loading = false;
           state.loadingMore = false;
@@ -813,30 +815,44 @@
         });
       }
 
-      function renderFallbackProducts(append) {
-        if (append || state.products.length > 0) return;
+      /**
+       * Sem produtos fictícios: falha de rede/Supabase ou resposta inválida.
+       * Com append=true, mantém a lista já carregada e só avisa.
+       */
+      function renderCatalogLoadError(append) {
+        if (append) {
+          if (typeof showToast === 'function') {
+            showToast('Não foi possível carregar mais produtos. Tente de novo.', 'warning');
+          }
+          return;
+        }
 
-        var fallback = [
-          { id: 'fb-1', name: 'Colchão King Size Conforta', category_id: null, base_price: 4999.00, discount_price: 3999.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-2', name: 'Sofá 3 Lugares Conforta Premium', category_id: null, base_price: 3899.00, discount_price: 3299.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-3', name: 'Box baú casal Conforta', category_id: null, base_price: 2199.00, discount_price: 1799.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-4', name: 'Cabeceira Estofada King', category_id: null, base_price: 1299.00, discount_price: 999.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-5', name: 'Kit colchão casal + box baú', category_id: null, base_price: 3999.00, discount_price: 3499.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-6', name: 'Colchão solteiro Conforta', category_id: null, base_price: 1599.00, discount_price: 1299.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-7', name: 'Sofá 2 lugares retrátil', category_id: null, base_price: 2899.00, discount_price: 2499.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-8', name: 'Colchão queen size ortopédico', category_id: null, base_price: 3299.00, discount_price: 2799.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-9', name: 'Mesa de Jantar 6 Lugares', category_id: null, base_price: 2199.00, discount_price: null, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-10', name: 'Estante Modular 4 Prateleiras', category_id: null, base_price: 899.00, discount_price: 699.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-11', name: 'Poltrona Reclinavel Premium', category_id: null, base_price: 2499.00, discount_price: 1999.00, flash_offer_ends: null, product_photos: [] },
-          { id: 'fb-12', name: 'Guarda Roupa Casal 6 Portas', category_id: null, base_price: 3299.00, discount_price: null, flash_offer_ends: null, product_photos: [] }
-        ];
-
-        state.total = fallback.length;
+        state.total = 0;
         state.hasMore = false;
-        state.products = fallback;
-        renderProducts(fallback, false);
+        state.products = [];
+
+        var grid = document.getElementById('productGrid');
+        if (grid) {
+          grid.innerHTML =
+            '<div class="empty-state">' +
+            '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg>' +
+            '<h3>Catálogo indisponível no momento</h3>' +
+            '<p>Não foi possível carregar os produtos do servidor. Confira sua conexão ou tente novamente. Você pode falar com a loja pelo WhatsApp.</p>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px;">' +
+            '<button type="button" class="btn btn-primary" onclick="location.reload()">Tentar novamente</button>' +
+            '<a class="btn btn-outline js-global-whatsapp" href="#" data-message="Olá! O site não carregou o catálogo de produtos. Podem me ajudar?">WhatsApp</a>' +
+            '</div></div>';
+        }
+
         updateResultsCount();
-        document.getElementById('loadMoreBtn').style.display = 'none';
+        var loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+          loadMoreBtn.style.display = 'none';
+          loadMoreBtn.disabled = true;
+        }
+        if (typeof configureGlobalWhatsappLinks === 'function') {
+          configureGlobalWhatsappLinks();
+        }
       }
 
       function updateResultsCount() {
@@ -1427,19 +1443,19 @@
         return '<article class="product-card" tabindex="0" data-href="' + href + '" onclick="if(event.target.closest(\'a,button,.product-actions\'))return;var d=this.getAttribute(\'data-href\');if(d)location.href=d;">' +
           '<a class="product-image" href="' + href + '">' +
             '<div class="product-badges">' + buildBadges(product) + '</div>' +
-            (photo && photo.url ? '<img src="' + escHtml(photo.url) + '" alt="Foto do produto ' + escHtml(product.name || 'Produto Conforta') + ' — linha Querubim e opções na Grande Vitória" width="800" height="800" loading="lazy" decoding="async">' : placeholderImage()) +
+            (photo && photo.url ? '<img src="' + escHtml(photo.url) + '" alt="Foto do produto ' + escHtml(product.name || 'Conforta Colchões') + ' — colchões e bases em Serra e Vitória" width="800" height="800" loading="lazy" decoding="async">' : placeholderImage()) +
           '</a>' +
           '<div class="product-body">' +
             '<span class="product-category">' + escHtml(categoryName || 'Produtos') + '</span>' +
-            '<h2 class="product-name">' + escHtml(product.name || 'Produto Conforta') + '</h2>' +
+            '<h3 class="product-name">' + escHtml(product.name || 'Produto Conforta') + '</h3>' +
             '<p class="product-desc">' + escHtml(truncateText(desc, 92)) + '</p>' +
             '<span class="product-old-price">' + (discount ? formatPrice(base) : '&nbsp;') + '</span>' +
             '<strong class="product-price">' + formatPrice(current) + '</strong>' +
             (best ? '<span class="product-installment">ou ' + best.qtd + 'x de ' + formatPrice(best.valor) + ' sem juros</span>' : '<span class="product-installment">Parcele em até 12x</span>') +
             '<span class="product-delivery">Entrega rápida na região</span>' +
             '<div class="product-actions">' +
-              '<a class="btn btn-primary" href="' + href + '" aria-label="Comprar agora: ' + escHtml(product.name || 'produto') + '">Comprar agora</a>' +
-              '<a class="btn btn-secondary js-whatsapp" href="' + whatsappHref(product.name) + '" data-product="' + escHtml(product.name || '') + '" aria-label="Tirar dúvida no WhatsApp sobre ' + escHtml(product.name || 'este produto') + '">Tirar dúvida</a>' +
+              '<a class="btn btn-primary" href="' + href + '" aria-label="Comprar: ' + escHtml(product.name || 'produto') + '">Comprar</a>' +
+              '<a class="btn btn-secondary js-whatsapp" href="' + whatsappHref(product.name) + '" data-product="' + escHtml(product.name || '') + '" aria-label="Tirar dúvida sobre o colchão ideal no WhatsApp">WhatsApp</a>' +
             '</div>' +
           '</div>' +
         '</article>';
@@ -1583,9 +1599,9 @@
       }
 
       function updatePageTitle() {
-        var title = 'Produtos Conforta Colchões';
-        if (state.activeCategoryName) title = state.activeCategoryName + ' Conforta Colchões';
-        if (state.filters.search) title = 'Resultados para "' + state.filters.search + '"';
+        var title = 'Colchões e cama box em Serra e Vitória';
+        if (state.activeCategoryName) title = state.activeCategoryName + ' em Serra e Vitória | Conforta';
+        if (state.filters.search) title = 'Busca: ' + state.filters.search + ' | Conforta Colchões';
         document.getElementById('pageTitle').textContent = title;
       }
 
@@ -1635,13 +1651,22 @@
       }
 
       async function configureWhatsapp() {
-        var phone = '';
         try {
-          if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
-          if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
+          if (!window.CONFORTA_WHATSAPP_URL && typeof CONFORTA_STORE_EDITABLE !== 'undefined' && CONFORTA_STORE_EDITABLE && CONFORTA_STORE_EDITABLE.whatsappE164) {
+            var cfgDigits = String(CONFORTA_STORE_EDITABLE.whatsappE164).replace(/\D/g, '');
+            if (cfgDigits) {
+              var nCfg = (cfgDigits.length === 10 || cfgDigits.length === 11) ? '55' + cfgDigits : cfgDigits;
+              window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + nCfg;
+            }
+          }
+          if (!window.CONFORTA_WHATSAPP_URL) {
+            var phone = '';
+            if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
+            if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
+            var normalized = normalizeWhatsapp(phone);
+            if (normalized) window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + normalized;
+          }
         } catch (_) {}
-        var normalized = normalizeWhatsapp(phone);
-        if (normalized) window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + normalized;
         updateWhatsappLinks();
       }
 
@@ -1651,6 +1676,15 @@
             link.href = whatsappHref(link.getAttribute('data-product') || '');
             link.target = '_blank';
             link.rel = 'noopener';
+            link.onclick = null;
+          } else {
+            link.href = '#';
+            link.onclick = function(e) {
+              e.preventDefault();
+              if (typeof window.openChatWidget === 'function') window.openChatWidget();
+              else if (typeof window.toggleChat === 'function') window.toggleChat();
+              else if (typeof showToast === 'function') showToast('Atendimento indisponível no momento. Tente novamente mais tarde.', 'info');
+            };
           }
         });
       }

@@ -1,6 +1,6 @@
 'use strict';
 
-/** Atualiza pedido + pagamento no Supabase quando o Asaas confirma cobrança. */
+/** Biblioteca legada Asaas — não usada pelo checkout Mercado Pago. Mantida apenas para referência; rotas /api/asaas-* retornam 410. */
 
 function adminConfig() {
   const base = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
