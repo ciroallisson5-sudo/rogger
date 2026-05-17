@@ -655,6 +655,75 @@ input, textarea, select { font-family: inherit; font-size: inherit; outline: non
   }
 }
 
+/* Rodapé compacto (site-footer.js) — páginas que só carregam style.css, ex.: carrinho */
+.footer.footer--site-compact {
+  background: #0f172a;
+  color: #cbd5e1;
+  padding: 24px 0 18px;
+  margin-top: 24px;
+}
+.footer.footer--site-compact .footer-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+.footer.footer--site-compact .footer-brand-mini {
+  display: inline-flex;
+  align-items: center;
+}
+.footer.footer--site-compact .footer-brand-mini img {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+.footer.footer--site-compact .footer-contacts {
+  display: flex;
+  gap: 18px 22px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  row-gap: 12px;
+}
+.footer.footer--site-compact .footer-contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  transition: color 0.2s;
+}
+.footer.footer--site-compact a.footer-contact-item:hover {
+  color: #fff;
+}
+.footer.footer--site-compact .footer-contact-item svg {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+.footer.footer--site-compact .footer-bottom-mini {
+  font-size: 0.75rem;
+  color: #64748b;
+  padding-top: 12px;
+  border-top: 1px solid #1e293b;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+.footer.footer--site-compact .footer-mp-trust {
+  margin-top: 4px;
+}
+@media (max-width: 720px) {
+  .footer.footer--site-compact {
+    padding: 18px 0 14px;
+  }
+  .footer.footer--site-compact .footer-contacts {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
 /* Carrinho — lembrete curto */
 .cc-mp-cart-note {
   font-size: 0.84rem;

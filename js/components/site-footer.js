@@ -25,6 +25,11 @@
     if (!el) return;
 
     var variant = (opts && opts.variant) || 'footer';
+    if (variant === 'strip') {
+      el.classList.remove('footer--site-compact');
+    } else {
+      el.classList.add('footer--site-compact');
+    }
 
     var email = INSTITUTIONAL;
     var phone = '(27) 3333-3333';
@@ -125,7 +130,7 @@
       ' — página inicial">' +
       '<img src="assets/footer-logo.png" alt="' +
       escFooter(storeName) +
-      '" width="360" height="74" loading="lazy" decoding="async" style="height:74px;width:auto;max-width:min(360px,90vw);object-fit:contain;">' +
+      '" width="360" height="74" loading="lazy" decoding="async" style="height:34px;width:auto;max-width:min(280px,90vw);object-fit:contain;">' +
       '</a>' +
       '<div class="footer-contacts">' +
       '<a class="footer-contact-item" href="mailto:' +
