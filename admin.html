@@ -229,6 +229,25 @@
     .toast-info { background: var(--primary); }
     .toast-warning { background: #d97706; }
 
+    .ai-assist-wrap { max-width: 920px; display: flex; flex-direction: column; gap: 14px; }
+    .ai-assist-hint { font-size: 0.82rem; color: var(--text2); line-height: 1.55; margin: 0; }
+    .ai-assist-log {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      min-height: 220px; max-height: 420px; overflow-y: auto; padding: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .ai-assist-msg { padding: 10px 12px; border-radius: 8px; font-size: 0.88rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .ai-assist-msg.user { align-self: flex-end; background: #1e3a5f; color: #e8f0ff; max-width: 92%; }
+    .ai-assist-msg.assistant { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); max-width: 96%; }
+    .ai-assist-input-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    .ai-assist-input-row textarea { flex: 1; min-width: 200px; min-height: 72px; resize: vertical; }
+    .ai-assist-preview { max-width: 160px; max-height: 120px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); }
+    .ai-assist-actions-box {
+      background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.35); border-radius: 10px; padding: 12px;
+      font-size: 0.8rem;
+    }
+    .ai-assist-actions-box pre { margin: 8px 0 0; font-size: 0.72rem; max-height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+
     @media (max-width: 768px) {
       .sidebar { width: 60px; }
       .sidebar-logo .sb-name { display: none; }
@@ -282,6 +301,10 @@
       <a class="sidebar-item active" data-section="dashboard" href="#">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         <span>Dashboard</span>
+      </a>
+      <a class="sidebar-item" data-section="assistant" href="#" title="IA para criar ou atualizar produtos no Supabase">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+        <span>Assistente IA</span>
       </a>
       <a class="sidebar-item" data-section="products" href="#">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -345,6 +368,38 @@
         </div>
         <h3 style="font-size:0.9rem;font-weight:700;color:#ffffff;margin-bottom:12px;">Ultimos Pedidos</h3>
         <div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Data</th><th>Valor</th><th>Status</th></tr></thead><tbody id="dashboardOrders"></tbody></table></div>
+      </div>
+
+      <!-- ASSISTENTE IA -->
+      <div class="section" id="section-assistant">
+        <div class="ai-assist-wrap">
+          <p class="ai-assist-hint">
+            Descreva o que deseja (ex.: &quot;criar produto Colchão X, preço 1899, categoria Colchões, estoque 3&quot;) ou envie uma <strong>foto da etiqueta</strong> / vitrine para a IA sugerir campos (raciocínio rápido: ela resume e monta o JSON de ações).
+            Ao clicar em <strong>Aplicar no Supabase</strong>, as alterações são gravadas; se você tinha enviado uma <strong>foto</strong> junto do plano, ela é enviada ao Storage (<code>public/imagens/ai-assistant/</code>) e vinculada como primeira foto do produto criado ou atualizado (um único <code>update</code> no mesmo lote).
+            Requer <code>OPENAI_API_KEY</code> na Vercel. Uso apenas com sessão de administrador.
+          </p>
+          <div class="ai-assist-log" id="assistantChatLog" aria-live="polite"></div>
+          <img id="assistantImagePreview" class="ai-assist-preview" alt="" style="display:none;">
+          <div class="ai-assist-input-row">
+            <textarea class="form-textarea" id="assistantInput" placeholder="Ex.: Atualize o produto [nome] para estoque 10 e preço 2499..." rows="3"></textarea>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <label class="btn btn-ghost btn-sm" style="cursor:pointer;text-align:center;">
+                Foto
+                <input type="file" id="assistantImageFile" accept="image/jpeg,image/png,image/webp" style="display:none;">
+              </label>
+              <button type="button" class="btn btn-primary" id="assistantSendBtn" onclick="window.sendAdminAssistantMessage()">Enviar</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="window.clearAdminAssistantChat()">Limpar chat</button>
+            </div>
+          </div>
+          <div class="ai-assist-actions-box" id="assistantActionsPanel" style="display:none;">
+            <strong>Plano sugerido</strong> (revise antes de aplicar)
+            <pre id="assistantActionsJson"></pre>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary" id="assistantApplyBtn" onclick="window.applyAdminAssistantActions()">Aplicar no Supabase</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('assistantActionsPanel').style.display='none'">Ocultar</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- PRODUCTS -->
@@ -808,6 +863,10 @@
         deliveryCepRows: []
       };
 
+      window.__adminAssistantMessages = [];
+      window.__adminAssistantPendingActions = null;
+      window.__adminAssistantPendingImage = null;
+
       /** Padronizar imagem: bucket + prefixo alinhados ao servidor /api/gerar-3d (env SUPABASE_IMAGE_*) */
       var CONFORTA_IMG_BUCKET = 'public';
       var CONFORTA_IMG_PREFIX = 'imagens';
@@ -833,6 +892,24 @@
         });
 
         document.getElementById('photoFileInput').addEventListener('change', function(e) { handlePhotoUpload(e); });
+
+        var assistantImg = document.getElementById('assistantImageFile');
+        if (assistantImg) {
+          assistantImg.addEventListener('change', function(ev) {
+            var f = ev.target.files && ev.target.files[0];
+            var prev = document.getElementById('assistantImagePreview');
+            if (!prev) return;
+            if (!f) {
+              prev.style.display = 'none';
+              prev.removeAttribute('src');
+              return;
+            }
+            try {
+              prev.src = URL.createObjectURL(f);
+              prev.style.display = 'block';
+            } catch (e1) { void e1; }
+          });
+        }
 
         document.getElementById('setPrimaryColorPicker').addEventListener('input', function() {
           document.getElementById('setPrimaryColor').value = this.value;
@@ -948,7 +1025,7 @@
         if (secEl) secEl.classList.add('active');
         renderSidebar();
 
-        var titles = { dashboard:'Dashboard', products:'Produtos', home:'Home (vitrine)', categories:'Categorias', banners:'Banners', orders:'Pedidos', 'delivery-ceps':'CEP / Frete', settings:'Configurações', n8n:'API n8n' };
+        var titles = { dashboard:'Dashboard', assistant:'Assistente IA', products:'Produtos', home:'Home (vitrine)', categories:'Categorias', banners:'Banners', orders:'Pedidos', 'delivery-ceps':'CEP / Frete', settings:'Configurações', n8n:'API n8n' };
         document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
 
         if (section === 'dashboard') loadDashboard();
@@ -2243,6 +2320,152 @@
           return '';
         }
       }
+
+      function appendAssistantBubble(role, text) {
+        var log = document.getElementById('assistantChatLog');
+        if (!log) return;
+        var div = document.createElement('div');
+        div.className = 'ai-assist-msg ' + role;
+        div.textContent = text;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      window.clearAdminAssistantChat = function() {
+        window.__adminAssistantMessages = [];
+        window.__adminAssistantPendingActions = null;
+        window.__adminAssistantPendingImage = null;
+        var log = document.getElementById('assistantChatLog');
+        if (log) log.innerHTML = '';
+        var pan = document.getElementById('assistantActionsPanel');
+        if (pan) pan.style.display = 'none';
+        var prev = document.getElementById('assistantImagePreview');
+        if (prev) { prev.style.display = 'none'; prev.removeAttribute('src'); }
+        var fi = document.getElementById('assistantImageFile');
+        if (fi) fi.value = '';
+        var ta = document.getElementById('assistantInput');
+        if (ta) ta.value = '';
+      };
+
+      window.sendAdminAssistantMessage = async function() {
+        var tok = await getAdminJwt();
+        if (!tok) { showToast('Sessao invalida. Entre de novo.', 'error'); return; }
+        var inp = document.getElementById('assistantInput');
+        var msg = (inp && inp.value || '').trim();
+        var fileIn = document.getElementById('assistantImageFile');
+        var file = fileIn && fileIn.files && fileIn.files[0];
+        if (!msg && !file) { showToast('Digite uma mensagem ou escolha uma foto.', 'warning'); return; }
+
+        var apiBase = '';
+        try { apiBase = window.location.origin || ''; } catch (e0) { void e0; }
+
+        var body = { mode: 'plan', message: msg, messages: window.__adminAssistantMessages.slice(-16) };
+        if (file) {
+          var dataUrl = await new Promise(function(resolve, reject) {
+            var fr = new FileReader();
+            fr.onload = function() { resolve(String(fr.result || '')); };
+            fr.onerror = reject;
+            fr.readAsDataURL(file);
+          });
+          var comma = dataUrl.indexOf(',');
+          body.image_base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+          body.image_mime = file.type || 'image/jpeg';
+        }
+
+        var btn = document.getElementById('assistantSendBtn');
+        if (btn) btn.disabled = true;
+        try {
+          var resp = await fetch(apiBase + '/api/admin-ai-assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+            body: JSON.stringify(body)
+          });
+          var data = await resp.json().catch(function() { return {}; });
+          if (!resp.ok) {
+            showToast(data.error || 'Erro ao consultar a IA', 'error');
+            return;
+          }
+
+          if (body.image_base64) {
+            window.__adminAssistantPendingImage = {
+              base64: body.image_base64,
+              mime: body.image_mime || 'image/jpeg'
+            };
+          }
+
+          var userLine = msg || '(imagem)';
+          window.__adminAssistantMessages.push({ role: 'user', content: userLine });
+          appendAssistantBubble('user', file && !msg ? '(foto anexada)' : userLine);
+          var reply = data.reply || '(sem texto)';
+          window.__adminAssistantMessages.push({ role: 'assistant', content: reply });
+          appendAssistantBubble('assistant', reply);
+
+          if (inp) inp.value = '';
+          if (fileIn) fileIn.value = '';
+          var prev = document.getElementById('assistantImagePreview');
+          if (prev) { prev.style.display = 'none'; prev.removeAttribute('src'); }
+
+          var acts = data.actions;
+          if (acts && acts.length) {
+            window.__adminAssistantPendingActions = acts;
+            var pan = document.getElementById('assistantActionsPanel');
+            var pre = document.getElementById('assistantActionsJson');
+            if (pre) pre.textContent = JSON.stringify(acts, null, 2);
+            if (pan) pan.style.display = 'block';
+          } else {
+            window.__adminAssistantPendingActions = null;
+            var pan2 = document.getElementById('assistantActionsPanel');
+            if (pan2) pan2.style.display = 'none';
+          }
+        } catch (e) {
+          showToast('Erro: ' + ((e && e.message) || e), 'error');
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      };
+
+      window.applyAdminAssistantActions = async function() {
+        var acts = window.__adminAssistantPendingActions;
+        if (!acts || !acts.length) { showToast('Nenhuma acao para aplicar.', 'info'); return; }
+        var tok = await getAdminJwt();
+        if (!tok) { showToast('Sessao invalida.', 'error'); return; }
+        var apiBase = '';
+        try { apiBase = window.location.origin || ''; } catch (e1) { void e1; }
+        var execBody = { mode: 'execute', actions: acts };
+        var pendingImg = window.__adminAssistantPendingImage;
+        if (pendingImg && pendingImg.base64) {
+          execBody.image_base64 = pendingImg.base64;
+          execBody.image_mime = pendingImg.mime || 'image/jpeg';
+        }
+
+        var btn = document.getElementById('assistantApplyBtn');
+        if (btn) btn.disabled = true;
+        try {
+          var resp = await fetch(apiBase + '/api/admin-ai-assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+            body: JSON.stringify(execBody)
+          });
+          var data = await resp.json().catch(function() { return {}; });
+          if (!resp.ok) {
+            showToast(data.error || 'Falha ao aplicar', 'error');
+            return;
+          }
+          var results = data.results || [];
+          var okn = results.filter(function(r) { return r.ok; }).length;
+          var bad = results.filter(function(r) { return !r.ok; });
+          showToast('Aplicado: ' + okn + ' ok' + (bad.length ? ', ' + bad.length + ' erro(s)' : ''), bad.length ? 'warning' : 'success');
+          window.__adminAssistantPendingActions = null;
+          window.__adminAssistantPendingImage = null;
+          var pan = document.getElementById('assistantActionsPanel');
+          if (pan) pan.style.display = 'none';
+          loadProducts();
+        } catch (e2) {
+          showToast('Erro: ' + ((e2 && e2.message) || e2), 'error');
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      };
 
       function formatCepDisplay(digits) {
         var s = String(digits || '').replace(/\D/g, '');

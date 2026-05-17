@@ -77,7 +77,8 @@ function createVercelRes(nodeRes) {
 function resolveApiModule(urlPath) {
   const aliases = {
     '/api/openai-chat': 'openai-chat',
-    '/api/gerar-3d': 'gerar-3d'
+    '/api/gerar-3d': 'gerar-3d',
+    '/api/admin-ai-assistant': 'admin-ai-assistant'
   };
   let name = aliases[urlPath];
   if (!name) {
@@ -174,7 +175,7 @@ server.listen(PORT, function () {
   const hasMp = !!(process.env.MERCADO_PAGO_ACCESS_TOKEN && process.env.APP_URL);
   console.log('Conforta dev server: http://localhost:' + PORT);
   console.log(
-    'API routes: /api/mercadopago-create-preference, /api/mercadopago-webhook, /api/mercadopago-payment-status, /api/openai-chat, /api/gerar-3d, /api/cep-freight, /api/admin-delivery-ceps, /api/n8n-products'
+    'API routes: /api/mercadopago-create-preference, /api/mercadopago-webhook, /api/mercadopago-payment-status, /api/openai-chat, /api/gerar-3d, /api/cep-freight, /api/admin-delivery-ceps, /api/admin-ai-assistant, /api/n8n-products'
   );
   if (!hasMp) {
     console.warn('AVISO: MERCADO_PAGO_ACCESS_TOKEN ou APP_URL ausentes — checkout Mercado Pago nao funcionara ate configurar .env');

@@ -24,6 +24,7 @@
     "api/openai-chat.js": { "maxDuration": 30 },
     "api/cep-freight.js": { "maxDuration": 15 },
     "api/admin-delivery-ceps.js": { "maxDuration": 15 },
+    "api/admin-ai-assistant.js": { "maxDuration": 60 },
     "api/n8n-products.js": { "maxDuration": 30 },
     "api/mercadopago-create-preference.js": { "maxDuration": 30 },
     "api/mercadopago-webhook.js": { "maxDuration": 30 },
