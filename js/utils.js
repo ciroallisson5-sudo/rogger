@@ -391,25 +391,67 @@ function getCurrentPageName() {
   return last;
 }
 
+/** Páginas vitrine sem <header> no HTML: mesmo cabeçalho fixo azul da home (desktop e mobile). */
+function ensureSiteHeaderIfMissing(page) {
+  if (document.querySelector('header.header')) return;
+  if (
+    page === 'admin.html' ||
+    page === 'checkout.html' ||
+    page === 'carrinho.html' ||
+    page === 'checkout-retorno.html'
+  ) {
+    return;
+  }
+  var orphan = document.getElementById('cartCount');
+  if (orphan && !orphan.closest('header.header')) orphan.remove();
+
+  var header = document.createElement('header');
+  header.className = 'header';
+  header.innerHTML =
+    '<div class="container header-inner">' +
+    '<a href="index.html" class="logo" aria-label="Conforta Colchões">' +
+    '<span class="logo-text">Conforta<small>COLCHÕES</small></span></a>' +
+    '<div class="header-actions">' +
+    '<button type="button" id="cartBtn" aria-label="Carrinho">' +
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="21" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' +
+    '<span class="cart-count" id="cartCount">0</span></button>' +
+    '<a href="perfil.html" id="authBtn" aria-label="Perfil">' +
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>' +
+    '<button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">' +
+    '<svg id="menuIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>' +
+    '<svg id="closeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+    '</button></div></div>' +
+    '<div class="mobile-menu" id="mobileMenu"></div>';
+
+  document.body.insertBefore(header, document.body.firstChild);
+}
+
 function enhanceGlobalHeader(page) {
+  if (page === 'checkout.html' || page === 'carrinho.html') return;
+  ensureSiteHeaderIfMissing(page);
   const header = document.querySelector('header.header');
-  if (!header || page === 'checkout.html' || page === 'carrinho.html') return;
+  if (!header) return;
 
   const logo = header.querySelector('.logo');
-  const hasNav = header.querySelector('.main-nav');
+  var nav = header.querySelector('.main-nav');
   const search = header.querySelector('.search-bar');
 
-  if (!hasNav) {
-    const nav = document.createElement('nav');
-    nav.className = 'main-nav cc-main-nav';
-    nav.setAttribute('aria-label', 'Navegacao principal');
-    nav.innerHTML = getGlobalNavHtml(page);
-    if (search && page !== 'produtos.html') {
+  if (!nav) {
+    nav = document.createElement('nav');
+    nav.className = 'main-nav cc-main-nav cc-home-four-nav';
+    nav.setAttribute('aria-label', 'Navegação principal');
+    if (search && page === 'index.html') {
       search.replaceWith(nav);
     } else if (logo && logo.parentNode) {
       logo.insertAdjacentElement('afterend', nav);
+    } else {
+      return;
     }
   }
+
+  nav.classList.add('cc-home-four-nav', 'cc-main-nav');
+  nav.setAttribute('aria-label', 'Navegação principal');
+  nav.innerHTML = getHomeFourNavInnerHtml(page);
 
   const actions = header.querySelector('.header-actions');
   if (actions && !actions.querySelector('.header-whatsapp')) {
@@ -426,32 +468,13 @@ function enhanceGlobalHeader(page) {
 
   const mobileMenu = header.querySelector('#mobileMenu');
   if (mobileMenu && !mobileMenu.dataset.polished) {
-    if (page === 'index.html') {
-      mobileMenu.innerHTML = [
-        '<a href="index.html">INICIO</a>',
-        '<a href="produtos.html">PRODUTOS</a>',
-        '<a href="carrinho.html">CARRINHO</a>',
-        '<a href="perfil.html">PERFIL</a>'
-      ].join('');
-    } else {
-      mobileMenu.innerHTML = [
-        '<a href="index.html">Inicio</a>',
-        '<a href="produtos.html">Produtos</a>',
-        '<a href="produtos.html?ofertas=1">Ofertas</a>',
-        '<a href="perfil.html">Meu Perfil</a>',
-        '<a href="#" class="js-global-whatsapp" data-message="Olá! Quero atendimento da Conforta Colchões.">Atendimento</a>'
-      ].join('');
-    }
+    mobileMenu.innerHTML = [
+      '<a href="index.html">Início</a>',
+      '<a href="produtos.html">Produtos</a>',
+      '<a href="carrinho.html">Carrinho</a>',
+      '<a href="perfil.html">Perfil</a>'
+    ].join('');
     mobileMenu.dataset.polished = 'true';
-  }
-
-  if (page === 'index.html') {
-    const homeNav = header.querySelector('.main-nav');
-    if (homeNav) {
-      homeNav.classList.add('cc-home-four-nav');
-      homeNav.setAttribute('aria-label', 'Navegacao principal');
-      homeNav.innerHTML = getHomeFourNavInnerHtml(page);
-    }
   }
 }
 
@@ -463,16 +486,6 @@ function enhanceGlobalFooter() {
   }
 }
 
-function getGlobalNavHtml(page) {
-  const active = page === 'index.html' ? 'home' : page === 'produtos.html' || page === 'produto.html' ? 'products' : '';
-  return [
-    '<a href="index.html"' + (active === 'home' ? ' class="active" aria-current="page"' : '') + '>Inicio</a>',
-    '<a href="produtos.html"' + (active === 'products' ? ' class="active" aria-current="page"' : '') + '>Produtos</a>',
-    '<a href="produtos.html?ofertas=1">Ofertas</a>',
-    '<a href="#" class="js-global-whatsapp" data-message="Olá! Quero atendimento da Conforta Colchões.">Atendimento</a>'
-  ].join('');
-}
-
 function getHomeFourNavInnerHtml(page) {
   const a = getQuickNavActive(page);
   const h = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>';
@@ -480,7 +493,7 @@ function getHomeFourNavInnerHtml(page) {
   const c = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 2h3l2.4 12.3a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 2-1.6L21 7H6"/></svg>';
   const u = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   return (
-    '<a href="index.html"' + (a.home ? ' class="active" aria-current="page"' : '') + '>' + h + '<span>INICIO</span></a>' +
+    '<a href="index.html"' + (a.home ? ' class="active" aria-current="page"' : '') + '>' + h + '<span>INÍCIO</span></a>' +
     '<a href="produtos.html"' + (a.products ? ' class="active" aria-current="page"' : '') + '>' + p + '<span>PRODUTOS</span></a>' +
     '<a href="carrinho.html"' + (a.cart ? ' class="active" aria-current="page"' : '') + '>' + c + '<span>CARRINHO</span></a>' +
     '<a href="perfil.html"' + (a.profile ? ' class="active" aria-current="page"' : '') + '>' + u + '<span>PERFIL</span></a>'
@@ -497,45 +510,10 @@ function getQuickNavActive(page) {
 }
 
 function injectPageQuickNavTop(page) {
-  if (page === 'index.html' || page === 'simulador.html') {
-    document.querySelectorAll('.cc-page-quick-nav-top').forEach(function(el) {
-      el.remove();
-    });
-    return;
-  }
-  if (document.querySelector('.cc-page-quick-nav-top')) return;
-  const host =
-    document.querySelector('main.main') ||
-    document.querySelector('main') ||
-    document.querySelector('.main-content') ||
-    document.body;
-  if (!host) return;
-
-  const a = getQuickNavActive(page);
-  const nav = document.createElement('nav');
-  nav.className = 'cc-page-quick-nav-top';
-  nav.setAttribute('aria-label', 'Atalhos: inicio, produtos, carrinho e perfil');
-  nav.innerHTML = `
-    <a href="index.html" class="${a.home ? 'active' : ''}" aria-current="${a.home ? 'page' : 'false'}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-      <span>INICIO</span>
-    </a>
-    <a href="produtos.html" class="${a.products ? 'active' : ''}" aria-current="${a.products ? 'page' : 'false'}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      <span>PRODUTOS</span>
-    </a>
-    <a href="carrinho.html" class="${a.cart ? 'active' : ''}" aria-current="${a.cart ? 'page' : 'false'}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 2h3l2.4 12.3a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 2-1.6L21 7H6"/></svg>
-      <span>CARRINHO</span>
-    </a>
-    <a href="perfil.html" class="${a.profile ? 'active' : ''}" aria-current="${a.profile ? 'page' : 'false'}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span>PERFIL</span>
-    </a>`;
-  nav.querySelectorAll('a').forEach(function(link) {
-    if (link.getAttribute('aria-current') === 'false') link.removeAttribute('aria-current');
+  void page;
+  document.querySelectorAll('.cc-page-quick-nav-top').forEach(function (el) {
+    el.remove();
   });
-  host.insertBefore(nav, host.firstChild);
 }
 
 function injectGlobalMobileBottomNav(page) {
@@ -547,11 +525,11 @@ function injectGlobalMobileBottomNav(page) {
   const active = page === 'index.html' ? 'home' : page === 'produtos.html' || page === 'produto.html' ? 'products' : page === 'perfil.html' ? 'profile' : page === 'carrinho.html' ? 'cart' : '';
   const nav = document.createElement('nav');
   nav.className = 'cc-mobile-bottom-nav';
-  nav.setAttribute('aria-label', 'Navegacao mobile');
+  nav.setAttribute('aria-label', 'Navegação mobile');
   nav.innerHTML = `
-    <a href="index.html" class="${active === 'home' ? 'active' : ''}" aria-label="Inicio">
+    <a href="index.html" class="${active === 'home' ? 'active' : ''}" aria-label="Início">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-      <span class="cc-mbn-lbl">INICIO</span>
+      <span class="cc-mbn-lbl">INÍCIO</span>
     </a>
     <a href="produtos.html" class="${active === 'products' ? 'active' : ''}" aria-label="Produtos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -629,7 +607,8 @@ function injectConfortaPolishStyles() {
   const style = document.createElement('style');
   style.id = 'cc-polish-styles';
   style.textContent = `
-    body.cc-polished { --cc-brand:#1a56db; --cc-brand-dark:#0f3a8e; --cc-ink:#0f172a; --cc-line:#e2e8f0; }
+    body.cc-polished { --cc-brand:#1a56db; --cc-brand-dark:#0f3a8e; --cc-ink:#0f172a; --cc-line:#e2e8f0; --cc-header-h: 68px; }
+    body.cc-polished header.header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 1000 !important; }
     body.cc-polished .header { background: rgba(15,23,42,0.97) !important; border-bottom: 1px solid #1e293b !important; box-shadow: 0 10px 28px rgba(15,23,42,0.12) !important; backdrop-filter: blur(14px); }
     body.cc-polished .header-inner { min-height: 68px !important; height: auto !important; display: flex !important; align-items: center !important; gap: 18px !important; }
     body.cc-polished .logo { flex-shrink: 0 !important; gap: 10px !important; }
@@ -640,23 +619,21 @@ function injectConfortaPolishStyles() {
     body.cc-polished .main-nav a { position:relative; display:inline-flex; align-items:center; min-height:68px; padding:0 12px; color:#cbd5e1; font-size:0.9rem; font-weight:900; text-decoration:none !important; }
     body.cc-polished .main-nav a:hover, body.cc-polished .main-nav a.active { color:#fff; }
     body.cc-polished .main-nav a.active::after { display:none !important; }
-    body.cc-page-home .cc-home-four-nav { flex-wrap:nowrap; gap:2px; justify-content:center; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
-    body.cc-page-home .cc-home-four-nav a { min-height:56px; padding:0 10px; font-size:0.68rem; letter-spacing:0.06em; gap:6px; white-space:nowrap; }
-    body.cc-page-home .cc-home-four-nav a svg { flex-shrink:0; }
+    body.cc-polished .cc-home-four-nav { flex-wrap:nowrap; gap:2px; justify-content:center; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+    body.cc-polished .cc-home-four-nav a { min-height:56px; padding:0 10px; font-size:0.68rem; letter-spacing:0.06em; gap:6px; white-space:nowrap; }
+    body.cc-polished .cc-home-four-nav a svg { flex-shrink:0; }
     body.cc-polished .header-actions { flex-shrink:0; gap:8px !important; }
     body.cc-polished .header-actions button, body.cc-polished .header-actions a { border-radius:12px !important; background:rgba(255,255,255,0.06); color:#cbd5e1; min-width:42px; min-height:42px; transition:background .2s ease,color .2s ease,transform .2s ease; }
     body.cc-polished .header-actions button:hover, body.cc-polished .header-actions a:hover { background:rgba(255,255,255,0.12); color:#fff; transform:translateY(-1px); }
     body.cc-polished .header-whatsapp { width:auto !important; min-width:auto !important; padding:0 14px !important; gap:8px !important; background:#16a34a !important; color:#fff !important; font-size:.84rem !important; font-weight:900 !important; white-space:nowrap; }
     body.cc-polished .main { background:#fff; }
-    body.cc-polished:not(.cc-page-home) header.header { display:none !important; }
-    body.cc-polished:not(.cc-page-home) .main { margin-top:0 !important; min-height:100vh !important; }
     body.cc-page-home .main { margin-top:0 !important; min-height:0 !important; background:#fff !important; }
     body.cc-page-produto .main { background:#f8fafc !important; }
     body.cc-page-perfil .main { background:#f8fafc !important; }
     body.cc-page-checkout .main, body.cc-page-carrinho .main { background:#f8fafc !important; }
     body.cc-page-produto .product-shell { padding-top:20px !important; }
     body.cc-page-produtos .catalog-hero { margin-top:0 !important; padding-top:28px !important; padding-bottom:24px !important; }
-    body.cc-page-produtos .control-bar { top:0 !important; }
+    body.cc-page-produtos .control-bar { top: var(--cc-header-h) !important; }
     body.cc-page-perfil .profile-page { padding-top:24px !important; }
     body.cc-page-perfil .account-title-card { color:#fff !important; background:radial-gradient(circle at top right, rgba(59,130,246,.35), transparent 30%), linear-gradient(135deg,#0f172a 0%,#0f3a8e 62%,#1a56db 100%) !important; border-color:rgba(255,255,255,.14) !important; box-shadow:0 18px 42px rgba(15,23,42,.12) !important; }
     body.cc-page-perfil .account-title-card h1 { color:#fff !important; }
@@ -667,29 +644,6 @@ function injectConfortaPolishStyles() {
     body.cc-polished .footer-brand-mini img { height:78px !important; width:auto !important; max-width:min(380px,90vw) !important; object-fit:contain !important; border-radius:0 !important; }
     body.cc-polished .footer-contacts { gap:18px 24px !important; align-items:center; }
     body.cc-polished .footer-bottom-mini { padding-top:14px !important; color:#94a3b8 !important; }
-    .cc-page-quick-nav-top {
-      display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 12px;
-      width:100%; box-sizing:border-box;
-      padding:10px 14px 12px; margin:0 0 14px 0;
-      background:#fff; border-bottom:1px solid #e2e8f0;
-    }
-    .cc-page-quick-nav-top a {
-      display:inline-flex; align-items:center; gap:7px;
-      padding:8px 14px; border-radius:12px;
-      font-size:0.74rem; font-weight:900; letter-spacing:0.04em;
-      color:#475569; text-decoration:none !important;
-      border:1px solid transparent;
-    }
-    .cc-page-quick-nav-top a:hover { background:#f8fafc; border-color:#e2e8f0; color:var(--cc-ink); }
-    .cc-page-quick-nav-top a.active { background:#eff6ff; color:#1a56db; border-color:#bfdbfe; }
-    .cc-page-quick-nav-top svg { flex-shrink:0; }
-    @media (max-width: 768px) {
-      .cc-page-quick-nav-top { display:none !important; }
-    }
-    body.cc-page-admin .cc-page-quick-nav-top { background:#1e293b; border-bottom-color:#334155; }
-    body.cc-page-admin .cc-page-quick-nav-top a { color:#cbd5e1; }
-    body.cc-page-admin .cc-page-quick-nav-top a:hover { background:#334155; border-color:#475569; color:#fff; }
-    body.cc-page-admin .cc-page-quick-nav-top a.active { background:rgba(26,86,219,0.25); color:#93c5fd; border-color:#3b82f6; }
     .cc-mobile-bottom-nav { display:none; }
     @media (max-width: 768px) {
       body.cc-polished .main-nav, body.cc-polished .header-whatsapp { display:none !important; }

@@ -315,14 +315,6 @@ async function tryOpenAiChat(userMessage, pageProduct) {
 
     if (!window.__chatGptHistory) window.__chatGptHistory = [];
 
-    var sb = typeof getSupabase === 'function' ? getSupabase() : null;
-    var tok = null;
-    if (sb) {
-      var ses = await sb.auth.getSession();
-      tok = ses && ses.data && ses.data.session && ses.data.session.access_token;
-    }
-    if (!tok) return null;
-
     var hist = window.__chatGptHistory.slice(-12);
     var postBody = {
       include_catalog: true,
@@ -333,7 +325,7 @@ async function tryOpenAiChat(userMessage, pageProduct) {
 
     var res = await fetch('/api/openai-chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(postBody)
     });
     var data = await res.json().catch(function() { return {}; });

@@ -1,10 +1,13 @@
 // Conforta Store — IA unificada (chat do site + n8n HTTP POST)
 // Vercel: OPENAI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (ou SUPABASE_ANON_KEY)
 // Opcional: OPENAI_CHAT_MODEL, SITE_PUBLIC_URL
+// Protecao: rate limit por IP (sem header de autorizacao).
 //
 // POST site / n8n (recomendado — mesmo cerebro, catalogo no servidor):
 //   { "user_message": "qual o mais barato?", "product": { ... }, "include_catalog": true }
 //   ou { "messages": [...], "product": {...} }
+//   ou { "message": "texto do usuario", "prompt": "instrucoes extras pro system", "remote_id": "abc-123" }
+//       (remote_id tambem: remoteId, remotjid, remotejid, execution_id)
 //
 // POST legenda curta (WhatsApp / rede social):
 //   { "n8n_product_blurb": true, "product": {...}, "instruction": "..." }
@@ -12,27 +15,7 @@
 const brain = require('./ai-brain');
 const { applyBrowserCors, handleOptions } = require('./_http');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
-const { verifySupabaseUserJwt } = require('./_supabase-user');
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-
-function routeSecretOk(req) {
-  const secret = (process.env.OPENAI_ROUTE_SECRET || '').trim();
-  if (!secret) return false;
-  const h = String(req.headers['x-openai-route-secret'] || req.headers['X-Openai-Route-Secret'] || '').trim();
-  if (h && h === secret) return true;
-  const auth = String(req.headers.authorization || '');
-  const tok = auth.replace(/^Bearer\s+/i, '').trim();
-  return tok === secret;
-}
-
-async function authOpenAi(req) {
-  if (routeSecretOk(req)) return true;
-  const auth = String(req.headers.authorization || '').trim();
-  const jwt = auth.replace(/^Bearer\s+/i, '').trim();
-  if (!jwt) return false;
-  const u = await verifySupabaseUserJwt(jwt);
-  return !!u;
-}
 
 function sanitizeUserText(s) {
   return String(s || '')
@@ -143,18 +126,50 @@ function parseProductField(raw) {
   return null;
 }
 
+function extractRemoteId(body) {
+  const v =
+    body.remote_id ??
+    body.remoteId ??
+    body.remotjid ??
+    body.remotejid ??
+    body.execution_id ??
+    body.executionId;
+  if (v == null || v === '') return '';
+  return String(v)
+    .replace(/\u0000/g, '')
+    .trim()
+    .slice(0, 240);
+}
+
+/** Texto extra para o system (nao e a mensagem do usuario). Nao duplica se `prompt` foi usado so como fallback da mensagem. */
+function extractExtraPrompt(body, userMessageResolved) {
+  const p = body.prompt ?? body.system_prompt ?? body.systemPrompt;
+  if (p == null || p === '') return '';
+  const s = sanitizeUserText(String(p)).slice(0, 8000);
+  if (userMessageResolved && String(userMessageResolved).trim() === String(s).trim()) return '';
+  return s;
+}
+
+function buildExtraSystem(body, baseExtra, userMessageResolved) {
+  const parts = [];
+  if (baseExtra && String(baseExtra).trim()) parts.push(String(baseExtra).trim());
+  const pr = extractExtraPrompt(body, userMessageResolved);
+  if (pr) parts.push(pr);
+  const rid = extractRemoteId(body);
+  if (rid) parts.push('Referencia externa (remote_id): ' + rid + '.');
+  return parts.join('\n\n').trim();
+}
+
 function extractUserMessage(body, msgsRaw) {
   const direct =
     body.user_message ||
     body.userMessage ||
-    body.pergunta ||
     body.message ||
     body.mensagem ||
+    body.pergunta ||
     body.text ||
     body.chatInput ||
     body.query ||
-    body.prompt ||
-    body.instruction ||
     '';
   if (String(direct).trim()) return String(direct).trim();
   if (Array.isArray(msgsRaw) && msgsRaw.length) {
@@ -163,6 +178,13 @@ function extractUserMessage(body, msgsRaw) {
         return String(msgsRaw[i].content).trim();
       }
     }
+  }
+  /** Compat: antigos payloads que mandavam so "prompt" como pergunta. */
+  if (body.prompt != null && String(body.prompt).trim()) {
+    return String(body.prompt).trim();
+  }
+  if (body.instruction != null && String(body.instruction).trim()) {
+    return String(body.instruction).trim();
   }
   return '';
 }
@@ -186,11 +208,6 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
-
-  if (!(await authOpenAi(req))) {
-    res.status(401).json({ error: 'Nao autorizado' });
     return;
   }
 
@@ -267,8 +284,11 @@ module.exports = async function handler(req, res) {
         includeCatalog: includeCatalog,
         product: productPayload,
         userMessage: instruction,
-        extraSystem:
-          'Tarefa extra: texto promocional curto. Use apenas dados do catalogo e do produto em foco. Nao invente precos nem links.'
+        extraSystem: buildExtraSystem(
+          body,
+          'Tarefa extra: texto promocional curto. Use apenas dados do catalogo e do produto em foco. Nao invente precos nem links.',
+          instruction
+        )
       });
       messages = assembled.messages;
       catalogCount = assembled.catalogCount;
@@ -285,7 +305,12 @@ module.exports = async function handler(req, res) {
           }
           return true;
         }),
-        userMessage: lastUser || (history.length ? '' : 'Oi')
+        userMessage: lastUser || (history.length ? '' : 'Oi'),
+        extraSystem: buildExtraSystem(
+          body,
+          '',
+          lastUser || (history.length ? '' : 'Oi')
+        )
       });
       messages = assembled.messages;
       catalogCount = assembled.catalogCount;
@@ -298,7 +323,8 @@ module.exports = async function handler(req, res) {
         siteBase: siteBase,
         includeCatalog: includeCatalog,
         product: productPayload,
-        userMessage: userMessage
+        userMessage: userMessage,
+        extraSystem: buildExtraSystem(body, '', userMessage)
       });
       messages = assembled.messages;
       catalogCount = assembled.catalogCount;
@@ -307,7 +333,12 @@ module.exports = async function handler(req, res) {
         siteBase: siteBase,
         includeCatalog: includeCatalog,
         product: productPayload,
-        userMessage: 'Descreva este produto para o cliente com preço e link corretos.'
+        userMessage: 'Descreva este produto para o cliente com preço e link corretos.',
+        extraSystem: buildExtraSystem(
+          body,
+          '',
+          'Descreva este produto para o cliente com preço e link corretos.'
+        )
       });
       messages = assembled.messages;
       catalogCount = assembled.catalogCount;
@@ -366,9 +397,12 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    const remoteEcho = extractRemoteId(body) || null;
+
     res.status(200).json({
       reply: reply,
-      catalog_products: catalogCount
+      catalog_products: catalogCount,
+      remote_id: remoteEcho
     });
   } catch (err) {
     void err;
