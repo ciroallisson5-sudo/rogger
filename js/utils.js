@@ -177,14 +177,25 @@ async function updateCartCount() {
     }
   }
   try {
+    const localItems = (typeof window.getConfortaLocalCartItems === 'function') ? window.getConfortaLocalCartItems() : [];
     const sb = getSupabase();
     if (!sb) {
-      resetBadge();
+      const nLocal = localItems.length;
+      if (badge) {
+        badge.textContent = String(nLocal);
+        badge.style.display = nLocal > 0 ? 'flex' : 'none';
+        badge.classList.toggle('visible', nLocal > 0);
+      }
       return;
     }
     const { data: { user } } = await sb.auth.getUser();
     if (!user) {
-      resetBadge();
+      const nLocal = localItems.length;
+      if (badge) {
+        badge.textContent = String(nLocal);
+        badge.style.display = nLocal > 0 ? 'flex' : 'none';
+        badge.classList.toggle('visible', nLocal > 0);
+      }
       return;
     }
     const { data: cart } = await sb.from('carts').select('id').eq('user_id', user.id).maybeSingle();

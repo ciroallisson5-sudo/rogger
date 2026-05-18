@@ -88,3 +88,14 @@ O Mercado Pago redireciona com parâmetros como `collection_id`, `status`, `exte
 `/api/mercadopago-payment-status?order_id=...&payment_id=...`
 
 com **Bearer** do Supabase; a API consulta `GET https://api.mercadopago.com/v1/payments/{id}` e aplica o mesmo fluxo do webhook quando o pagamento está aprovado, **sem depender só do webhook**.
+
+## Checkout visitante sem login
+
+Para permitir compra sem criar conta, rode no Supabase:
+
+```sql
+-- arquivo do projeto
+database/guest_checkout_no_login.sql
+```
+
+Esse ajuste permite `orders.user_id = null` para pedido visitante e salva os dados do cliente no pedido/pagamento.

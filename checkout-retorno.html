@@ -74,6 +74,10 @@
         return d.innerHTML;
       }
 
+      function guestDeviceId() {
+        try { return localStorage.getItem('conforta_guest_device_id') || ''; } catch (_) { return ''; }
+      }
+
       async function main() {
         var orderId = qs('order_id');
         var extRef = qs('external_reference');
@@ -99,20 +103,9 @@
 
         if (typeof initSupabase === 'function') initSupabase();
         var sb = typeof getSupabase === 'function' ? getSupabase() : null;
-        if (!sb) {
-          title.textContent = 'Erro de configuração';
-          msg.textContent = 'Não foi possível conectar. Atualize a página.';
-          return;
-        }
-
-        var sess = await sb.auth.getSession();
+        var sess = sb ? await sb.auth.getSession() : null;
         var tok = sess && sess.data && sess.data.session && sess.data.session.access_token;
-        if (!tok) {
-          title.textContent = 'Faça login';
-          msg.textContent = 'Entre na sua conta para ver o status deste pedido.';
-          actions.style.display = 'block';
-          return;
-        }
+        var guestSession = guestDeviceId();
 
         var tries = 0;
         var maxTries = 8;
@@ -150,14 +143,14 @@
         function statusApiUrl() {
           var u = '/api/mercadopago-payment-status?order_id=' + encodeURIComponent(orderId);
           if (paymentId) u += '&payment_id=' + encodeURIComponent(paymentId);
+          if (guestSession) u += '&guest_session_id=' + encodeURIComponent(guestSession);
           return u;
         }
 
         async function poll() {
           tries++;
-          var r = await fetch(statusApiUrl(), {
-            headers: { Authorization: 'Bearer ' + tok }
-          });
+          var headers = tok ? { Authorization: 'Bearer ' + tok } : {};
+          var r = await fetch(statusApiUrl(), { headers: headers });
           var j = await r.json().catch(function () {
             return {};
           });
@@ -180,6 +173,9 @@
           if (preferenceId) extra.push('Pref. ' + esc(String(preferenceId).slice(0, 12)) + '…');
           if (merchantOrderId) extra.push('MO ' + esc(String(merchantOrderId)));
           detail.textContent = extra.length ? extra.join(' · ') : '';
+          if (ps === 'paid') {
+            try { localStorage.removeItem('conforta_local_cart_items_v1'); } catch (_) {}
+          }
           if (ps === 'paid' || ps === 'failed' || ps === 'cancelled' || ps === 'refunded' || tries >= maxTries) {
             actions.style.display = 'block';
             return;

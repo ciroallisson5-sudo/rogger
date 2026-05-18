@@ -260,11 +260,11 @@
       <div class="checkout-hero">
         <a href="carrinho.html" class="checkout-back" id="backToCartLink">← Voltar ao carrinho</a>
         <h1>Finalizar compra</h1>
-        <p>Revise seus dados, a entrega e o pagamento em um fluxo simples.</p>
+        <p>Revise o carrinho e conclua o pagamento direto no ambiente seguro do Mercado Pago.</p>
         <div class="checkout-mp-hero" role="region" aria-labelledby="checkoutMpHeroTitle">
           <span class="checkout-mp-hero-kicker">Mercado Pago</span>
           <h2 id="checkoutMpHeroTitle" class="checkout-mp-hero-title">Pagamento na plataforma que processa milhões de compras com segurança</h2>
-          <p class="checkout-mp-hero-text">Ao concluir, você abre o <strong>Checkout Pro do Mercado Pago</strong>. Cartão, Pix e parcelamento ficam lá — com a mesma proteção usada em grandes lojas. A Conforta não armazena dados do seu cartão nem senha bancária; recebemos só a confirmação do pagamento para montar seu pedido.</p>
+          <p class="checkout-mp-hero-text">Ao concluir, você abre o <strong>Checkout Pro do Mercado Pago</strong>. As opções de Pix, cartão, boleto, parcelamento e dados necessários aparecem dentro do Mercado Pago. A Conforta não força login nem cadastro antes de pagar.</p>
         </div>
       </div>
 
@@ -309,7 +309,7 @@
       var userAddresses = [];
       var selectedAddressId = null;
       var processingOrder = false;
-      var selectedPaymentMode = 'pix';
+      var selectedPaymentMode = 'checkout_pro';
       var pixPollingTimer = null;
       var pixPollingAttempts = 0;
       var checkoutFreightDelivered = true;
@@ -335,12 +335,12 @@
       }
 
       function checkoutPaymentModeName() {
-        return selectedPaymentMode === 'pix' ? 'Pix Mercado Pago' : 'Mercado Pago (cartao, boleto e outros)';
+        return 'Mercado Pago Checkout Pro';
       }
 
       function checkoutPayButtonText(total) {
         var g = checkoutFreightDelivered ? total : checkoutTotal();
-        return (selectedPaymentMode === 'pix' ? 'Gerar Pix — ' : 'Pagar com Mercado Pago — ') + formatPrice(g);
+        return 'Ir para o Mercado Pago — ' + formatPrice(g);
       }
 
       window.selectCheckoutPaymentMode = function(mode) {
@@ -485,7 +485,41 @@
       }
 
       function isAnonymousCheckoutUser(user) {
-        return !!(user && (user.is_anonymous || user.aud === 'authenticated' && !String(user.email || '').trim()));
+        return !!(user && (user.is_anonymous || user.is_guest_checkout || user.aud === 'authenticated' && !String(user.email || '').trim()));
+      }
+
+      function makeLocalCheckoutGuestUser() {
+        return {
+          id: ensureGuestDeviceId(),
+          email: '',
+          user_metadata: {},
+          is_guest_checkout: true,
+          is_anonymous: true
+        };
+      }
+
+      function isRealSupabaseUser(user) {
+        return !!(user && !user.is_guest_checkout && String(user.email || '').trim() && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(user.id || '')));
+      }
+
+      function checkoutCartPayload() {
+        return (cartItems || []).map(function(item) {
+          return {
+            product_id: item.product_id,
+            photo_id: item.photo_id || null,
+            quantity: lineQty(item)
+          };
+        }).filter(function(item) { return !!item.product_id; });
+      }
+
+      function checkoutFetchHeaders(token, idem) {
+        var h = { 'Content-Type': 'application/json', 'X-Idempotency-Key': idem };
+        if (token) h.Authorization = 'Bearer ' + token;
+        return h;
+      }
+
+      function checkoutGuestSessionQuery() {
+        return '&guest_session_id=' + encodeURIComponent(ensureGuestDeviceId());
       }
 
       function readGuestCheckoutData() {
@@ -546,6 +580,289 @@
         };
         writeGuestCheckoutData(data);
       }
+
+      function checkoutCartSnapshot() {
+        var src = (cartItems && cartItems.length ? cartItems : (typeof getConfortaLocalCartItems === 'function' ? getConfortaLocalCartItems() : [])) || [];
+        return src.map(function (it) {
+          return {
+            product_id: it.product_id,
+            photo_id: it.photo_id || null,
+            quantity: lineQty(it),
+            unit_price: getItemPrice(it),
+            product: it.product || null,
+            photo: it.photo || null
+          };
+        }).filter(function (it) { return !!it.product_id; });
+      }
+
+      async function checkoutSignOutAnonymousIfNeeded() {
+        if (!sb) return;
+        try {
+          var cur = await sb.auth.getUser();
+          var u = cur && cur.data && cur.data.user;
+          if (u && isAnonymousCheckoutUser(u)) {
+            await sb.auth.signOut();
+          }
+        } catch (e) { void e; }
+      }
+
+      function restoreCheckoutSnapshotToLocalCart(snapshot) {
+        if (!snapshot || !snapshot.length) return;
+        try {
+          var rows = snapshot.map(function (it) {
+            var pid = String(it.product_id || '');
+            var phid = it.photo_id ? String(it.photo_id) : '';
+            return {
+              id: 'local-' + pid.replace(/[^a-zA-Z0-9_-]/g, '') + '-' + (phid || 'no-photo').replace(/[^a-zA-Z0-9_-]/g, ''),
+              cart_id: 'local-' + ensureGuestDeviceId(),
+              product_id: it.product_id,
+              photo_id: it.photo_id || null,
+              quantity: Math.max(1, parseInt(it.quantity, 10) || 1),
+              unit_price: parseFloat(it.unit_price || 0) || 0,
+              created_at: new Date().toISOString(),
+              product: it.product || null,
+              photo: it.photo || null,
+              is_local_guest_cart: true
+            };
+          });
+          localStorage.setItem('conforta_local_cart_items_v1', JSON.stringify(rows));
+        } catch (e) { void e; }
+      }
+
+      async function mergeCheckoutItemsIntoAccount(snapshot) {
+        if (!sb || !snapshot || !snapshot.length) return;
+        var userResp = await sb.auth.getUser();
+        var user = userResp && userResp.data && userResp.data.user;
+        if (!isRealSupabaseUser(user)) return;
+        var cartId = null;
+        if (typeof getOrCreateCart === 'function') {
+          cartId = await getOrCreateCart();
+        }
+        if (!cartId) {
+          var existing = await sb.from('carts').select('id').eq('user_id', user.id).maybeSingle();
+          if (existing && existing.data && existing.data.id) cartId = existing.data.id;
+          if (!cartId) {
+            var inserted = await sb.from('carts').insert({ user_id: user.id }).select('id').maybeSingle();
+            if (inserted.error) throw inserted.error;
+            cartId = inserted.data && inserted.data.id;
+          }
+        }
+        if (!cartId) return;
+        for (var i = 0; i < snapshot.length; i += 1) {
+          var it = snapshot[i];
+          var qty = Math.max(1, parseInt(it.quantity, 10) || 1);
+          var price = parseFloat(it.unit_price || 0) || 0;
+          var q = sb.from('cart_items').select('id,quantity').eq('cart_id', cartId).eq('product_id', it.product_id);
+          if (it.photo_id) q = q.eq('photo_id', it.photo_id);
+          else q = q.is('photo_id', null);
+          var ex = await q.maybeSingle();
+          if (ex && ex.data && ex.data.id) {
+            var currentQty = Math.max(1, parseInt(ex.data.quantity, 10) || 1);
+            var nextQty = Math.max(currentQty, qty);
+            var up = await sb.from('cart_items').update({ quantity: nextQty, unit_price: price }).eq('id', ex.data.id);
+            if (up.error) throw up.error;
+          } else {
+            var ins = await sb.from('cart_items').insert({ cart_id: cartId, product_id: it.product_id, photo_id: it.photo_id || null, quantity: qty, unit_price: price });
+            if (ins.error) throw ins.error;
+          }
+        }
+        try { if (typeof window.clearConfortaLocalCart === 'function') window.clearConfortaLocalCart(); } catch (e2) { void e2; }
+      }
+
+      async function saveCheckoutGuestDataToAccount(user) {
+        if (!sb || !isRealSupabaseUser(user)) return;
+        var c = collectGuestCustomer();
+        var a = collectGuestAddress();
+        try {
+          var patch = {};
+          if (c.full_name) patch.full_name = c.full_name;
+          if (c.phone) patch.phone = c.phone;
+          if (c.cpf_cnpj && isValidBrazilTaxId(c.cpf_cnpj)) patch.cpf_cnpj = c.cpf_cnpj;
+          if (Object.keys(patch).length && typeof updateProfile === 'function') {
+            await updateProfile(user.id, patch).catch(function () { return null; });
+          }
+        } catch (e) { void e; }
+        try {
+          if (hasUsableGuestAddress(a)) {
+            var existing = await sb.from('addresses').select('id').eq('user_id', user.id).limit(1);
+            var hasAddress = existing && existing.data && existing.data.length > 0;
+            if (!hasAddress) {
+              await sb.from('addresses').insert({
+                user_id: user.id,
+                label: 'Principal',
+                cep: a.cep,
+                street: a.street,
+                number: a.number,
+                complement: a.complement,
+                neighborhood: a.neighborhood,
+                city: a.city,
+                state: a.state,
+                is_default: true
+              });
+            }
+          }
+        } catch (e2) { void e2; }
+      }
+
+      function renderCheckoutAuthCallout(user) {
+        if (isRealSupabaseUser(user)) return '';
+        return (
+          '<div class="checkout-inline-actions" style="margin-top:14px">' +
+          '<button type="button" class="btn btn-primary btn-sm" onclick="window.openCheckoutAuthModal(\'signup\')">Criar conta aqui</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" onclick="window.openCheckoutAuthModal(\'signin\')">Já tenho conta</button>' +
+          '</div>' +
+          '<p class="section-copy" style="margin-top:8px">Você não sai do checkout e os produtos continuam no carrinho.</p>'
+        );
+      }
+
+      function renderCheckoutIdentitySection(user, addresses, showAddress) {
+        if (isRealSupabaseUser(user)) {
+          var addr = selectedAddress() || (addresses && addresses[0]) || null;
+          return (
+            '<div class="checkout-section" id="checkoutIdentityWrap">' +
+            '<div class="section-head"><div><h2>Dados do cliente</h2><p class="section-copy">Sua conta foi encontrada. Edite aqui sem sair do checkout.</p></div></div>' +
+            '<button type="button" class="checkout-link-row" id="btnCheckoutOpenAccount">' +
+            '<span class="clr-stack"><span class="clr-main">Minha conta</span><span class="clr-sub" id="checkoutAccountSubtitle">' + checkoutAccountSubtitle(user) + '</span></span><span class="clr-arrow">›</span></button>' +
+            '<button type="button" class="checkout-link-row" id="btnCheckoutOpenAddress" style="margin-top:10px">' +
+            '<span class="clr-stack"><span class="clr-main">Endereço de entrega</span><span class="clr-sub" id="checkoutAddressSubtitle">' + checkoutAddressSubtitle(addr) + '</span></span><span class="clr-arrow">›</span></button>' +
+            '</div>'
+          );
+        }
+        return buildCheckoutGuestFieldsHtml(user, showAddress) + renderCheckoutAuthCallout(user);
+      }
+
+      function renderCheckoutAuthModal() {
+        return (
+          '<div class="checkout-modal" id="checkoutModalAuth" role="dialog" aria-modal="true" aria-labelledby="checkoutModalAuthTitle">' +
+          '<div class="checkout-modal-backdrop" tabindex="-1" data-checkout-modal-close="1"></div>' +
+          '<div class="checkout-modal-panel">' +
+          '<button type="button" class="checkout-modal-close" data-checkout-modal-close="1" aria-label="Fechar">&times;</button>' +
+          '<h2 id="checkoutModalAuthTitle">Entrar ou criar conta</h2>' +
+          '<div class="checkout-inline-actions" style="margin-bottom:14px">' +
+          '<button type="button" class="btn btn-outline btn-sm" id="checkoutAuthTabSignin" onclick="window.switchCheckoutAuthMode(\'signin\')">Entrar</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="checkoutAuthTabSignup" onclick="window.switchCheckoutAuthMode(\'signup\')">Criar conta</button>' +
+          '</div>' +
+          '<form id="checkoutInlineSigninForm" onsubmit="return window.handleCheckoutInlineSignIn(event)">' +
+          '<div class="form-group"><label for="checkoutInlineSigninEmail">E-mail</label><input class="form-input" type="email" id="checkoutInlineSigninEmail" autocomplete="email" placeholder="seu@email.com"></div>' +
+          '<div class="form-group"><label for="checkoutInlineSigninPassword">Senha</label><input class="form-input" type="password" id="checkoutInlineSigninPassword" autocomplete="current-password" placeholder="Sua senha"></div>' +
+          '<button type="submit" class="btn btn-primary btn-block" id="checkoutInlineSigninBtn">Entrar e continuar no checkout</button>' +
+          '</form>' +
+          '<form id="checkoutInlineSignupForm" style="display:none" onsubmit="return window.handleCheckoutInlineSignUp(event)">' +
+          '<div class="form-group"><label for="checkoutInlineSignupName">Nome completo</label><input class="form-input" type="text" id="checkoutInlineSignupName" autocomplete="name" placeholder="Seu nome"></div>' +
+          '<div class="form-group"><label for="checkoutInlineSignupEmail">E-mail</label><input class="form-input" type="email" id="checkoutInlineSignupEmail" autocomplete="email" placeholder="seu@email.com"></div>' +
+          '<div class="form-group"><label for="checkoutInlineSignupPhone">Telefone / WhatsApp</label><input class="form-input" type="tel" id="checkoutInlineSignupPhone" autocomplete="tel" placeholder="(27) 99999-9999"></div>' +
+          '<div class="form-group"><label for="checkoutInlineSignupPassword">Senha</label><input class="form-input" type="password" id="checkoutInlineSignupPassword" autocomplete="new-password" placeholder="Mínimo 6 caracteres"></div>' +
+          '<button type="submit" class="btn btn-primary btn-block" id="checkoutInlineSignupBtn">Criar conta e continuar</button>' +
+          '</form>' +
+          '<p class="section-copy" style="margin-top:12px">Esta janela não tira você do checkout e não apaga os produtos do carrinho.</p>' +
+          '</div></div>'
+        );
+      }
+
+      window.switchCheckoutAuthMode = function(mode) {
+        var signup = mode === 'signup';
+        var fIn = document.getElementById('checkoutInlineSigninForm');
+        var fUp = document.getElementById('checkoutInlineSignupForm');
+        var tIn = document.getElementById('checkoutAuthTabSignin');
+        var tUp = document.getElementById('checkoutAuthTabSignup');
+        if (fIn) fIn.style.display = signup ? 'none' : '';
+        if (fUp) fUp.style.display = signup ? '' : 'none';
+        if (tIn) tIn.className = signup ? 'btn btn-outline btn-sm' : 'btn btn-primary btn-sm';
+        if (tUp) tUp.className = signup ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+        var title = document.getElementById('checkoutModalAuthTitle');
+        if (title) title.textContent = signup ? 'Criar conta no checkout' : 'Entrar no checkout';
+      };
+
+      window.openCheckoutAuthModal = function(mode) {
+        window.closeCheckoutModals();
+        var c = collectGuestCustomer();
+        var emailIn = document.getElementById('checkoutInlineSigninEmail');
+        var emailUp = document.getElementById('checkoutInlineSignupEmail');
+        var nameUp = document.getElementById('checkoutInlineSignupName');
+        var phoneUp = document.getElementById('checkoutInlineSignupPhone');
+        if (emailIn && c.email) emailIn.value = c.email;
+        if (emailUp && c.email) emailUp.value = c.email;
+        if (nameUp && c.full_name) nameUp.value = c.full_name;
+        if (phoneUp && c.phone) phoneUp.value = c.phone;
+        window.switchCheckoutAuthMode(mode === 'signin' ? 'signin' : 'signup');
+        var m = document.getElementById('checkoutModalAuth');
+        if (m) {
+          m.classList.add('open');
+          document.body.style.overflow = 'hidden';
+        }
+      };
+
+      async function finishCheckoutAuthFlow(snapshot) {
+        var userResp = sb ? await sb.auth.getUser() : null;
+        var user = userResp && userResp.data && userResp.data.user;
+        if (isRealSupabaseUser(user)) {
+          await mergeCheckoutItemsIntoAccount(snapshot || checkoutCartSnapshot());
+          await saveCheckoutGuestDataToAccount(user);
+          window.closeCheckoutModals();
+          showToast('Conta pronta. Seu carrinho foi mantido.', 'success');
+          await loadCheckout();
+        }
+      }
+
+      window.handleCheckoutInlineSignIn = async function(ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        var snapshot = checkoutCartSnapshot();
+        var email = String(document.getElementById('checkoutInlineSigninEmail') && document.getElementById('checkoutInlineSigninEmail').value || '').trim();
+        var password = String(document.getElementById('checkoutInlineSigninPassword') && document.getElementById('checkoutInlineSigninPassword').value || '');
+        var btn = document.getElementById('checkoutInlineSigninBtn');
+        if (!email || !password) { showToast('Preencha e-mail e senha.', 'error'); return false; }
+        try {
+          if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
+          await checkoutSignOutAnonymousIfNeeded();
+          await signIn(email, password);
+          await finishCheckoutAuthFlow(snapshot);
+        } catch (e) {
+          restoreCheckoutSnapshotToLocalCart(snapshot);
+          showToast((e && e.message) || 'Não foi possível entrar.', 'error');
+          await loadCheckout().catch(function () {});
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = 'Entrar e continuar no checkout'; }
+        }
+        return false;
+      };
+
+      window.handleCheckoutInlineSignUp = async function(ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        var snapshot = checkoutCartSnapshot();
+        var name = String(document.getElementById('checkoutInlineSignupName') && document.getElementById('checkoutInlineSignupName').value || '').trim();
+        var email = String(document.getElementById('checkoutInlineSignupEmail') && document.getElementById('checkoutInlineSignupEmail').value || '').trim();
+        var phone = String(document.getElementById('checkoutInlineSignupPhone') && document.getElementById('checkoutInlineSignupPhone').value || '').trim();
+        var password = String(document.getElementById('checkoutInlineSignupPassword') && document.getElementById('checkoutInlineSignupPassword').value || '');
+        var btn = document.getElementById('checkoutInlineSignupBtn');
+        if (!name || !email || !password) { showToast('Preencha nome, e-mail e senha.', 'error'); return false; }
+        if (password.length < 6) { showToast('Senha deve ter no mínimo 6 caracteres.', 'error'); return false; }
+        try {
+          if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
+          await checkoutSignOutAnonymousIfNeeded();
+          var data = await signUp(email, password, name, phone);
+          var hasSession = data && data.session;
+          if (hasSession) {
+            await finishCheckoutAuthFlow(snapshot);
+          } else {
+            restoreCheckoutSnapshotToLocalCart(snapshot);
+            var saved = readGuestCheckoutData();
+            saved.customer = Object.assign({}, saved.customer || {}, { full_name: name, email: email, phone: phone });
+            writeGuestCheckoutData(saved);
+            window.closeCheckoutModals();
+            showToast('Conta criada. Se pedir confirmação por e-mail, você ainda pode pagar como visitante agora.', 'success');
+            await loadCheckout();
+          }
+        } catch (e) {
+          restoreCheckoutSnapshotToLocalCart(snapshot);
+          var msg = (e && e.message) || 'Não foi possível criar conta.';
+          if (/already|registered|exists|user/i.test(msg)) msg = 'Este e-mail já tem conta. Toque em “Já tenho conta” e entre sem sair do checkout.';
+          showToast(msg, 'error');
+          await loadCheckout().catch(function () {});
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = 'Criar conta e continuar'; }
+        }
+        return false;
+      };
 
       function buildCheckoutGuestFieldsHtml(user, showAddress) {
         var saved = readGuestCheckoutData();
@@ -627,9 +944,9 @@
         var docDigits = getCheckoutDocumentDigits();
         var missing = [];
         if (!name || name.split(/\s+/).filter(Boolean).length < 2) missing.push('nome completo');
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) missing.push('e-mail (conta ou campo no checkout)');
-        if (phone.replace(/\D/g, '').length < 10) missing.push('telefone');
-        if (!isValidBrazilTaxId(docDigits)) missing.push('CPF ou CNPJ valido');
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) missing.push('e-mail no checkout');
+        if (phone && phone.replace(/\D/g, '').length < 10) missing.push('telefone com DDD');
+        if (docDigits && !isValidBrazilTaxId(docDigits)) missing.push('CPF ou CNPJ valido');
         return missing;
       }
 
@@ -653,7 +970,7 @@
         var docDisplay = docDigits ? maskTaxIdDigits(docDigits) : '';
         return (
           checkoutProfileWarnHtml(user) +
-          '<p class="section-copy" style="margin-top:0;margin-bottom:14px">Edite nome, telefone e documento antes de pagar. O e-mail de login só pode ser alterado em <a href="perfil.html#section-dados">Meu perfil</a>.</p>' +
+          '<p class="section-copy" style="margin-top:0;margin-bottom:14px">Informe os dados usados somente nesta compra. Não precisa criar conta para continuar.</p>' +
           '<div class="form-group"><label for="checkoutProfileFullName">Nome completo</label>' +
           '<input type="text" class="form-input" id="checkoutProfileFullName" autocomplete="name" value="' +
           escHtml(name) +
@@ -666,12 +983,12 @@
           '<input type="text" class="form-input" id="checkoutProfileDoc" inputmode="numeric" maxlength="18" placeholder="000.000.000-00" value="' +
           escHtml(docDisplay) +
           '"></div>' +
-          '<div class="form-group"><span class="section-copy" style="margin:0">E-mail da conta (somente leitura)</span>' +
+          '<div class="form-group"><span class="section-copy" style="margin:0">E-mail da compra</span>' +
           '<div style="font-weight:800;color:var(--ink);margin-top:6px;font-size:0.92rem">' +
           escHtml(email || '—') +
           '</div></div>' +
           '<button type="button" class="btn btn-primary btn-block" id="btnCheckoutSaveProfile" onclick="window.saveCheckoutProfile()">Salvar dados</button>' +
-          '<a class="btn btn-outline btn-block" style="margin-top:10px" href="perfil.html#section-dados">Abrir perfil completo</a>'
+          ''
         );
       }
 
@@ -1037,7 +1354,7 @@
           '<div class="checkout-modal-backdrop" tabindex="-1" data-checkout-modal-close="1"></div>' +
           '<div class="checkout-modal-panel">' +
           '<button type="button" class="checkout-modal-close" data-checkout-modal-close="1" aria-label="Fechar">&times;</button>' +
-          '<h2 id="checkoutModalAccountTitle">Dados da conta</h2>' +
+          '<h2 id="checkoutModalAccountTitle">Dados do cliente</h2>' +
           '<div id="checkoutModalAccountInner">' +
           buildCheckoutAccountSummary(user) +
           '</div>' +
@@ -1049,8 +1366,9 @@
           '<h2 id="checkoutModalAddressTitle">Endereco de entrega</h2>' +
           addrHead +
           buildCheckoutAddressFormHtml() +
-          '<a class="btn btn-outline btn-block" style="margin-top:14px" href="perfil.html#section-enderecos">Gerenciar todos no perfil</a>' +
-          '</div></div>'
+          '<p class="section-copy" style="margin-top:12px">Tudo pode ser ajustado aqui sem sair do checkout.</p>' +
+          '</div></div>' +
+          renderCheckoutAuthModal()
         );
       }
 
@@ -1315,7 +1633,7 @@
           '<button type="submit" class="btn btn-primary btn-block" id="checkoutLoginSubmit">Entrar e continuar</button>' +
           '</form>' +
           '<p class="checkout-login-foot" style="margin-top:16px;font-size:0.86rem;color:var(--muted);">' +
-          '<a href="perfil.html?next=checkout.html">Criar conta ou esqueci a senha</a> · ' +
+          '<a href="#" onclick="window.openCheckoutAuthModal && window.openCheckoutAuthModal(\'signup\');return false;">Criar conta sem sair do checkout</a> · ' +
           '<a href="carrinho.html">Voltar ao carrinho</a></p>' +
           '</div></div>';
         var form = document.getElementById('checkoutLoginForm');
@@ -1360,23 +1678,8 @@
         var container = document.getElementById('checkoutContent');
         try {
           var user = await checkAuth();
-          if (!user && sb && typeof window.tryEnsureAnonymousSession === 'function') {
-            await window.tryEnsureAnonymousSession();
-            user = await checkAuth();
-          }
           if (!user) {
-            if (sb) {
-              renderCheckoutLoginGate(container);
-            } else {
-              container.innerHTML =
-                '<div class="checkout-state">' +
-                '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
-                '<h2>Checkout indisponivel</h2>' +
-                '<p>Nao foi possivel conectar ao servidor. Tente de novo em instantes ou volte ao carrinho.</p>' +
-                '<div class="state-actions"><a href="carrinho.html" class="btn btn-primary">Ir ao carrinho</a></div>' +
-                '</div>';
-            }
-            return;
+            user = makeLocalCheckoutGuestUser();
           }
 
           var items = await getCartItems();
@@ -1394,10 +1697,12 @@
           cartItems = items;
 
           var addresses = [];
-          try {
-            var addrResp = await sb.from('addresses').select('*').eq('user_id', user.id).order('is_default', { ascending: false });
-            addresses = addrResp.data || [];
-          } catch(e) {}
+          if (sb && isRealSupabaseUser(user)) {
+            try {
+              var addrResp = await sb.from('addresses').select('*').eq('user_id', user.id).order('is_default', { ascending: false });
+              addresses = addrResp.data || [];
+            } catch(e) {}
+          }
           userAddresses = addresses;
 
           var defaultAddr = addresses.find(function(a) { return a.is_default; }) || addresses[0] || null;
@@ -1405,11 +1710,13 @@
 
           window.__checkoutUser = user;
           try {
-            if (typeof getProfile === 'function') {
+            if (sb && isRealSupabaseUser(user) && typeof getProfile === 'function') {
               window.__checkoutProfile = await getProfile(user.id);
-            } else {
+            } else if (sb && isRealSupabaseUser(user)) {
               var pr = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
               window.__checkoutProfile = pr.data || {};
+            } else {
+              window.__checkoutProfile = {};
             }
           } catch (e) {
             window.__checkoutProfile = {};
@@ -1428,8 +1735,8 @@
         var container = document.getElementById('checkoutContent');
         var total = items.reduce(function(acc, item) { return acc + getItemPrice(item) * lineQty(item); }, 0);
         var addr = selectedAddress() || defaultAddr || null;
-        var showGuestAddress = addresses.length === 0;
-        var guestDetailsSection = buildCheckoutGuestFieldsHtml(user, showGuestAddress);
+        var showGuestAddress = true;
+        var guestDetailsSection = renderCheckoutIdentitySection(user, addresses, showGuestAddress);
 
         var addrOptions = addresses.map(function(a) {
           var selected = String(a.id) === String(selectedAddressId) ? 'selected' : '';
@@ -1439,16 +1746,9 @@
 
         container.innerHTML =
           '<div class="checkout-link-rows">' +
-          '<button type="button" class="checkout-link-row" id="btnCheckoutOpenAccount">' +
-          '<span class="clr-stack"><span class="clr-main">Dados do cliente</span><span class="clr-sub" id="checkoutAccountSubtitle">' +
-          checkoutAccountSubtitle(user) +
-          '</span></span>' +
-          '<span class="clr-arrow" aria-hidden="true">›</span></button>' +
-          '<button type="button" class="checkout-link-row" id="btnCheckoutOpenAddress">' +
-          '<span class="clr-stack"><span class="clr-main">Endereco de entrega</span><span class="clr-sub" id="checkoutAddressSubtitle">' +
-          checkoutAddressSubtitle(addr) +
-          '</span></span>' +
-          '<span class="clr-arrow" aria-hidden="true">›</span></button>' +
+          '<div class="checkout-link-row" style="cursor:default;">' +
+          '<span class="clr-stack"><span class="clr-main">Pagamento pelo Mercado Pago</span><span class="clr-sub">Sem login obrigatório na loja. O Mercado Pago abre em seguida com Pix, cartão, boleto e os dados necessários por lá.</span></span>' +
+          '<span class="clr-arrow" aria-hidden="true">↗</span></div>' +
           '</div>' +
           '<div class="checkout-layout">' +
           renderSummary(items, total) +
@@ -1458,15 +1758,13 @@
           guestDetailsSection +
 
           '<div class="checkout-section">' +
-          '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">Escolha Pix direto na loja ou cartão/boleto no Checkout Pro do Mercado Pago.</p></div></div>' +
+          '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">O botão abaixo abre o Checkout Pro do Mercado Pago. As opções de Pix, cartão, boleto, parcelas e dados do comprador aparecem no próprio Mercado Pago.</p></div></div>' +
           '<div class="payment-mode-grid" role="group" aria-label="Forma de pagamento">' +
-          '<button type="button" class="payment-mode-option active" data-payment-mode="pix" aria-pressed="true" onclick="window.selectCheckoutPaymentMode(&quot;pix&quot;)">' +
-          '<span class="payment-mode-badge" aria-hidden="true">◆</span><span class="payment-mode-copy"><strong>Pix copia e cola / QR Code</strong><small>Gere o QR Code aqui na loja e pague pelo app do seu banco.</small></span><span class="payment-mode-check">✓</span></button>' +
-          '<button type="button" class="payment-mode-option" data-payment-mode="checkout_pro" aria-pressed="false" onclick="window.selectCheckoutPaymentMode(&quot;checkout_pro&quot;)">' +
-          '<span class="payment-mode-badge" aria-hidden="true">💳</span><span class="payment-mode-copy"><strong>Cartão, boleto e outros</strong><small>Abre o ambiente seguro do Mercado Pago para concluir a compra.</small></span><span class="payment-mode-check">✓</span></button>' +
+          '<div class="payment-mode-option active" style="cursor:default;" aria-pressed="true">' +
+          '<span class="payment-mode-badge" aria-hidden="true">💳</span><span class="payment-mode-copy"><strong>Mercado Pago Checkout Pro</strong><small>Sem login obrigatório nesta loja. Você continua direto no Mercado Pago.</small></span><span class="payment-mode-check">✓</span></div>' +
           '</div>' +
-          '<div class="payment-note" style="margin-bottom:14px;">O valor final e o frete sao confirmados no servidor no momento de iniciar o pagamento.</div>' +
-          '<div class="trust-list checkout-trust-pills" style="margin-bottom:16px;"><span>Mercado Pago</span><span>Pix direto</span><span>Cartão seguro</span><span>Confirmação do pedido</span></div>' +
+          '<div class="payment-note" style="margin-bottom:14px;">Pix só aparece no Mercado Pago se a conta vendedora tiver chave Pix habilitada no painel do Mercado Pago.</div>' +
+          '<div class="trust-list checkout-trust-pills" style="margin-bottom:16px;"><span>Mercado Pago</span><span>Pix no Mercado Pago</span><span>Cartão seguro</span><span>Boleto/parcelamento</span></div>' +
           '</div>' +
 
           '<div class="checkout-section">' +
@@ -1583,13 +1881,9 @@
 
         try {
           var user = await checkAuth();
-          if (!user && sb && typeof window.tryEnsureAnonymousSession === 'function') {
-            await window.tryEnsureAnonymousSession();
-            user = await checkAuth();
-          }
           if (!user) {
-            showToast('Sessao expirada. Atualize a pagina e entre de novo.', 'error');
-            return;
+            user = makeLocalCheckoutGuestUser();
+            window.__checkoutUser = user;
           }
 
           if (!checkoutFreightDelivered && getAddressCep(selectedAddress())) {
@@ -1608,40 +1902,23 @@
             }
           }
 
+          selectedPaymentMode = 'checkout_pro';
           var guestCustomer = collectGuestCustomer();
           var guestAddress = collectGuestAddress();
           var customerName = String(guestCustomer.full_name || 'Cliente visitante').trim();
           var customerEmail = String(guestCustomer.email || '').trim();
           var customerPhone = String(guestCustomer.phone || '').trim();
-          var hasValidationError = false;
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
-            showToast('Informe um e-mail valido no checkout para o Mercado Pago e o comprovante.', 'error');
-            hasValidationError = true;
-          }
-          if (customerPhone && customerPhone.replace(/\D/g, '').length < 10) {
-            showToast('Telefone incompleto. Informe DDD + numero ou deixe em branco.', 'error');
-            hasValidationError = true;
-          }
-          if (!shipAddrId && userAddresses.length > 0) {
-            showToast('Selecione um endereço de entrega ou cadastre outro no checkout.', 'error');
-            hasValidationError = true;
-          }
-          if (!shipAddrId && userAddresses.length === 0 && !hasUsableGuestAddress(guestAddress)) {
-            showToast('Preencha CEP, rua, cidade e UF do endereco de entrega no checkout.', 'error');
-            hasValidationError = true;
-          }
+          var taxIdDigits = getCheckoutDocumentDigits();
           var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           if (shipAddrId && !uuidRe.test(shipAddrId)) {
-            showToast('Endereco invalido. Abra Endereco de entrega e selecione ou salve de novo.', 'error');
-            hasValidationError = true;
-          }
-          var taxIdDigits = getCheckoutDocumentDigits();
-          if (taxIdDigits && !isValidBrazilTaxId(taxIdDigits)) {
-            showToast('CPF ou CNPJ invalido. Corrija ou deixe em branco para continuar.', 'error');
-            hasValidationError = true;
-          }
-          if (hasValidationError) {
+            showToast('Endereco invalido. Atualize a pagina e tente novamente.', 'error');
             return;
+          }
+          if (customerPhone && customerPhone.replace(/\D/g, '').length < 10) {
+            customerPhone = '';
+          }
+          if (taxIdDigits && !isValidBrazilTaxId(taxIdDigits)) {
+            taxIdDigits = '';
           }
           saveGuestCheckoutFields();
 
@@ -1655,11 +1932,14 @@
             sessionStorage.setItem(idemKey, idem);
           }
 
-          var sess = await sb.auth.getSession();
-          var tok = sess && sess.data && sess.data.session && sess.data.session.access_token;
-          if (!tok) {
-            showToast('Sessao expirada. Entre novamente.', 'error');
-            return;
+          var tok = '';
+          if (sb && isRealSupabaseUser(user)) {
+            var sess = await sb.auth.getSession();
+            tok = sess && sess.data && sess.data.session && sess.data.session.access_token;
+            if (!tok) {
+              showToast('Sessao expirada. Entre novamente.', 'error');
+              return;
+            }
           }
 
           processingOrder = true;
@@ -1674,8 +1954,10 @@
 
           var payBody = {
             shipping_address_id: shipAddrId,
-            payment_mode: selectedPaymentMode,
+            payment_mode: 'checkout_pro',
             guest_session_id: ensureGuestDeviceId(),
+            guest_checkout: !tok,
+            cart_items: checkoutCartPayload(),
             guest_customer: {
               full_name: customerName,
               email: customerEmail,
@@ -1683,7 +1965,7 @@
               cpf_cnpj: taxIdDigits || ''
             }
           };
-          if (!shipAddrId) {
+          if (!shipAddrId && hasUsableGuestAddress(guestAddress)) {
             payBody.guest_shipping_address = guestAddress;
           }
           if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
@@ -1692,11 +1974,7 @@
 
           var r = await fetch('/api/mercadopago-create-preference', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: 'Bearer ' + tok,
-              'X-Idempotency-Key': idem
-            },
+            headers: checkoutFetchHeaders(tok, idem),
             body: JSON.stringify(payBody)
           });
           var j = await r.json().catch(function () {
@@ -1797,18 +2075,22 @@
         var orderId = window.__checkoutPixOrderId || '';
         var paymentId = window.__checkoutPixPaymentId || '';
         var statusEl = document.getElementById('checkoutPixStatus');
-        if (!orderId || !paymentId || !sb) return false;
+        if (!orderId || !paymentId) return false;
         try {
-          var sess = await sb.auth.getSession();
-          var tok = sess && sess.data && sess.data.session && sess.data.session.access_token;
-          if (!tok) throw new Error('Sessao expirada');
-          var url = '/api/mercadopago-payment-status?order_id=' + encodeURIComponent(orderId) + '&payment_id=' + encodeURIComponent(paymentId);
-          var r = await fetch(url, { headers: { Authorization: 'Bearer ' + tok } });
+          var tok = '';
+          if (sb) {
+            var sess = await sb.auth.getSession();
+            tok = sess && sess.data && sess.data.session && sess.data.session.access_token;
+          }
+          var url = '/api/mercadopago-payment-status?order_id=' + encodeURIComponent(orderId) + '&payment_id=' + encodeURIComponent(paymentId) + checkoutGuestSessionQuery();
+          var statusHeaders = tok ? { Authorization: 'Bearer ' + tok } : {};
+          var r = await fetch(url, { headers: statusHeaders });
           var j = await r.json().catch(function() { return {}; });
           if (!r.ok) throw new Error((j && (j.error || j.message)) || 'Falha ao consultar pagamento');
           var ps = String(j.payment_status || '').toLowerCase();
           var mpStatus = j.mercado_pago && j.mercado_pago.status ? String(j.mercado_pago.status) : '';
           if (ps === 'paid') {
+            try { localStorage.removeItem('conforta_local_cart_items_v1'); } catch (_) {}
             if (window.__checkoutPixIdemKey) sessionStorage.removeItem(window.__checkoutPixIdemKey);
             if (statusEl) statusEl.textContent = 'Pagamento confirmado! Redirecionando...';
             showToast('Pagamento Pix confirmado.', 'success');
@@ -1866,8 +2148,7 @@
       };
 
       window.goToProfileAddresses = function() {
-        if (typeof siteNavigate === 'function') siteNavigate('perfil.html#section-enderecos');
-        else window.location.href = 'perfil.html#section-enderecos';
+        window.openCheckoutModal('address');
       };
 
       window.copyToClipboard = function(text, msg) {

@@ -10,6 +10,23 @@ const {
   clearCartForOrderUser
 } = require('./mercadopago-sync');
 
+
+function rawPayloadGuestSession(row) {
+  const raw = row && row.raw_provider_payload ? row.raw_provider_payload : {};
+  if (!raw || typeof raw !== 'object') return '';
+  return String(raw.guest_session_id || '').trim();
+}
+
+async function guestOwnsOrder(cfg, orderId, guestSessionId) {
+  if (!guestSessionId) return false;
+  const pay = await restGet(
+    cfg,
+    '/rest/v1/payments?order_id=eq.' + encodeURIComponent(orderId) + '&select=raw_provider_payload&limit=1'
+  );
+  if (!pay.ok || !Array.isArray(pay.data) || !pay.data[0]) return false;
+  return rawPayloadGuestSession(pay.data[0]) === String(guestSessionId).trim();
+}
+
 function mergeQuery(req) {
   const fromReq = typeof req.query === 'object' && req.query && !Array.isArray(req.query) ? req.query : {};
   const out = Object.assign({}, fromReq);
@@ -52,15 +69,12 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  const q = mergeQuery(req);
   const auth = req.headers.authorization || '';
   const jwt = auth.replace(/^Bearer\s+/i, '').trim();
-  const user = await verifySupabaseUserJwt(jwt);
-  if (!user) {
-    res.status(401).json({ error: 'Nao autorizado' });
-    return;
-  }
+  const user = jwt ? await verifySupabaseUserJwt(jwt) : null;
+  const guestSessionId = String(q.guest_session_id || q.guestSessionId || '').trim();
 
-  const q = mergeQuery(req);
   let orderId = String(q.order_id || '').trim();
   if (!orderId) orderId = String(q.external_reference || '').trim();
   if (!orderId) {
@@ -68,19 +82,22 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  let ord = await restGet(
-    cfg,
+  let ordPath =
     '/rest/v1/orders?id=eq.' +
-      encodeURIComponent(orderId) +
-      '&user_id=eq.' +
-      encodeURIComponent(user.id) +
-      '&select=id,order_number,total_amount,payment_status,status,created_at&limit=1'
-  );
+    encodeURIComponent(orderId) +
+    '&select=id,order_number,user_id,total_amount,payment_status,status,created_at&limit=1';
+  let ord = await restGet(cfg, ordPath);
   if (!ord.ok || !Array.isArray(ord.data) || !ord.data[0]) {
     res.status(404).json({ error: 'Pedido não encontrado' });
     return;
   }
   let order = ord.data[0];
+  const ownsByUser = !!(user && String(order.user_id || '') === String(user.id));
+  const ownsByGuest = !ownsByUser && (await guestOwnsOrder(cfg, orderId, guestSessionId));
+  if (!ownsByUser && !ownsByGuest) {
+    res.status(401).json({ error: 'Nao autorizado' });
+    return;
+  }
 
   const paymentIdParam = String(q.payment_id || q.collection_id || '').trim();
   let mpStatus = null;
@@ -116,16 +133,14 @@ module.exports = async function handler(req, res) {
     mpStatus = pj.status;
     mpDetail = pj.status_detail || null;
     syncResult = await applyMercadoPagoApproved(cfg, pj, 'return_url_poll');
-    if (syncResult.ok && syncResult.paid && syncResult.order_id) {
+    if (syncResult.ok && syncResult.paid && syncResult.order_id && ownsByUser) {
       await clearCartForOrderUser(cfg, syncResult.order_id);
     }
     ord = await restGet(
       cfg,
       '/rest/v1/orders?id=eq.' +
         encodeURIComponent(orderId) +
-        '&user_id=eq.' +
-        encodeURIComponent(user.id) +
-        '&select=id,order_number,total_amount,payment_status,status,created_at&limit=1'
+        '&select=id,order_number,user_id,total_amount,payment_status,status,created_at&limit=1'
     );
     if (ord.ok && Array.isArray(ord.data) && ord.data[0]) order = ord.data[0];
   } else {
@@ -153,16 +168,14 @@ module.exports = async function handler(req, res) {
         const extRef = String(pj.external_reference || '').trim();
         if (extRef && extRef === orderId) {
           syncResult = await applyMercadoPagoApproved(cfg, pj, 'status_poll');
-          if (syncResult.ok && syncResult.paid && syncResult.order_id) {
+          if (syncResult.ok && syncResult.paid && syncResult.order_id && ownsByUser) {
             await clearCartForOrderUser(cfg, syncResult.order_id);
           }
           ord = await restGet(
             cfg,
             '/rest/v1/orders?id=eq.' +
               encodeURIComponent(orderId) +
-              '&user_id=eq.' +
-              encodeURIComponent(user.id) +
-              '&select=id,order_number,total_amount,payment_status,status,created_at&limit=1'
+              '&select=id,order_number,user_id,total_amount,payment_status,status,created_at&limit=1'
           );
           if (ord.ok && Array.isArray(ord.data) && ord.data[0]) order = ord.data[0];
         }

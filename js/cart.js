@@ -20,6 +20,86 @@ window.getConfortaGuestDeviceId = getConfortaGuestDeviceId;
 try { getConfortaGuestDeviceId(); } catch (_) {}
 
 
+const CONFORTA_LOCAL_CART_KEY = 'conforta_local_cart_items_v1';
+
+function readLocalCartItems() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(CONFORTA_LOCAL_CART_KEY) || '[]');
+    return Array.isArray(arr) ? arr.filter(Boolean) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function writeLocalCartItems(items) {
+  try {
+    localStorage.setItem(CONFORTA_LOCAL_CART_KEY, JSON.stringify(Array.isArray(items) ? items : []));
+  } catch (_) {}
+}
+
+function localCartItemId(productId, photoId) {
+  return 'local-' + String(productId || '').replace(/[^a-zA-Z0-9_-]/g, '') + '-' + String(photoId || 'no-photo').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+async function buildLocalCartItem(productId, photoId, quantity, unitPrice) {
+  const sb = getSupabase();
+  let product = null;
+  let photo = null;
+  if (sb) {
+    try {
+      const { data: prod } = await sb.from('products')
+        .select('id, name, slug, base_price, discount_price, active')
+        .eq('id', productId)
+        .maybeSingle();
+      product = prod || null;
+    } catch (_) {}
+    if (photoId) {
+      try {
+        const { data: ph } = await sb.from('product_photos')
+          .select('id, url, thumb_url, color_name, color_hex, price, discount_price, custom_label')
+          .eq('id', photoId)
+          .maybeSingle();
+        photo = ph || null;
+      } catch (_) {}
+    }
+  }
+  const fallbackPrice = parseFloat(unitPrice);
+  return {
+    id: localCartItemId(productId, photoId),
+    cart_id: 'local-' + getConfortaGuestDeviceId(),
+    product_id: productId,
+    photo_id: photoId || null,
+    quantity: Math.max(1, parseInt(quantity, 10) || 1),
+    unit_price: isFinite(fallbackPrice) ? fallbackPrice : 0,
+    created_at: new Date().toISOString(),
+    product: product,
+    photo: photo,
+    is_local_guest_cart: true
+  };
+}
+
+async function addProductToLocalCart(productId, photoId, quantity, unitPrice) {
+  const addQty = Math.max(1, parseInt(quantity, 10) || 1);
+  const items = readLocalCartItems();
+  const id = localCartItemId(productId, photoId);
+  const idx = items.findIndex(function (it) { return String(it.id) === id; });
+  if (idx >= 0) {
+    items[idx].quantity = Math.max(1, (parseInt(items[idx].quantity, 10) || 0) + addQty);
+  } else {
+    items.unshift(await buildLocalCartItem(productId, photoId, addQty, unitPrice));
+  }
+  writeLocalCartItems(items);
+  return items;
+}
+
+function isLocalCartItemId(itemId) {
+  return String(itemId || '').indexOf('local-') === 0;
+}
+
+window.getConfortaLocalCartItems = readLocalCartItems;
+window.clearConfortaLocalCart = function () { writeLocalCartItems([]); };
+
+
 /**
  * Compra sem cadastro: cria sessão anônima no Supabase (Authentication → Providers → Anonymous).
  * Não pede e-mail/senha; o carrinho fica ligado a esse usuário até limpar cookies ou converter conta.
@@ -80,7 +160,10 @@ async function addProductToCart(productId, photoId, quantity, unitPrice) {
       user = await tryEnsureAnonymousSession();
     }
     if (!user) {
-      showToast('Nao foi possivel iniciar o carrinho. Tente de novo ou faça login em Meu perfil.', 'error');
+      await addProductToLocalCart(productId, photoId, quantity, unitPrice);
+      updateCartCount();
+      showToast('Produto adicionado ao carrinho', 'success');
+      refreshCartViews();
       return;
     }
 
@@ -133,8 +216,15 @@ async function addProductToCart(productId, photoId, quantity, unitPrice) {
     showToast('Produto adicionado ao carrinho', 'success');
     refreshCartViews();
   } catch (e) {
-    var msg = (e && (e.message || e.error_description)) || 'Erro ao adicionar ao carrinho';
-    showToast(msg, 'error');
+    try {
+      await addProductToLocalCart(productId, photoId, quantity, unitPrice);
+      updateCartCount();
+      showToast('Produto adicionado ao carrinho', 'success');
+      refreshCartViews();
+    } catch (_) {
+      var msg = (e && (e.message || e.error_description)) || 'Erro ao adicionar ao carrinho';
+      showToast(msg, 'error');
+    }
   } finally {
     showLoading(false);
   }
@@ -188,12 +278,13 @@ async function enrichCartItems(sb, items) {
 
 async function getCartItems() {
   const sb = getSupabase();
-  if (!sb) return [];
+  const localFallback = readLocalCartItems();
+  if (!sb) return localFallback;
   try {
     const { data: { user } } = await sb.auth.getUser();
-    if (!user) return [];
+    if (!user) return localFallback;
     const { data: cart } = await sb.from('carts').select('id').eq('user_id', user.id).maybeSingle();
-    if (!cart) return [];
+    if (!cart) return localFallback;
     const { data: items, error } = await sb
       .from('cart_items')
       .select(`
@@ -233,11 +324,13 @@ async function getCartItems() {
         .order('created_at', { ascending: false });
       if (fb.error) throw fb.error;
       const raw = (fb.data || []).map(function(it) { return { ...it, product: null, photo: null }; });
-      return await enrichCartItems(sb, raw);
+      const enrichedFallback = await enrichCartItems(sb, raw);
+      return (enrichedFallback && enrichedFallback.length) ? enrichedFallback : localFallback;
     }
-    return await enrichCartItems(sb, items || []);
+    const enriched = await enrichCartItems(sb, items || []);
+    return (enriched && enriched.length) ? enriched : localFallback;
   } catch (e) {
-    return [];
+    return localFallback;
   }
 }
 
@@ -245,7 +338,15 @@ async function updateCartItemQuantity(itemId, quantity) {
   try {
     if (quantity < 1) return;
     showLoading(true);
-    await supabaseUpdate('cart_items', { quantity }, { id: itemId });
+    if (isLocalCartItemId(itemId)) {
+      const items = readLocalCartItems().map(function (it) {
+        if (String(it.id) === String(itemId)) it.quantity = parseInt(quantity, 10) || 1;
+        return it;
+      });
+      writeLocalCartItems(items);
+    } else {
+      await supabaseUpdate('cart_items', { quantity }, { id: itemId });
+    }
     updateCartCount();
     refreshCartViews();
   } catch (e) {
@@ -259,7 +360,11 @@ async function updateCartItemQuantity(itemId, quantity) {
 async function removeCartItem(itemId) {
   try {
     showLoading(true);
-    await supabaseDelete('cart_items', { id: itemId });
+    if (isLocalCartItemId(itemId)) {
+      writeLocalCartItems(readLocalCartItems().filter(function (it) { return String(it.id) !== String(itemId); }));
+    } else {
+      await supabaseDelete('cart_items', { id: itemId });
+    }
     updateCartCount();
     showToast('Item removido do carrinho', 'success');
     refreshCartViews();
@@ -282,11 +387,15 @@ async function getCartTotal() {
 async function clearCart() {
   try {
     showLoading(true);
-    const { data: { user } } = await getSupabase().auth.getUser();
-    if (!user) return;
-    const { data: cart } = await getSupabase().from('carts').select('id').eq('user_id', user.id).maybeSingle();
-    if (cart) {
-      await supabaseDelete('cart_items', { cart_id: cart.id });
+    const sb = getSupabase();
+    const { data: { user } } = sb ? await sb.auth.getUser() : { data: { user: null } };
+    if (!user) {
+      writeLocalCartItems([]);
+    } else {
+      const { data: cart } = await sb.from('carts').select('id').eq('user_id', user.id).maybeSingle();
+      if (cart) {
+        await supabaseDelete('cart_items', { cart_id: cart.id });
+      }
     }
     updateCartCount();
     showToast('Carrinho limpo', 'success');

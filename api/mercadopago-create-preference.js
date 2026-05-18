@@ -515,6 +515,58 @@ function uniqIds(arr) {
   return out;
 }
 
+
+
+async function createShadowGuestUser(cfg, guestSessionId, guestCustomer) {
+  const localPart = ('guest-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10)).toLowerCase();
+  const email = localPart + '@guest.conforta.local';
+  try {
+    const res = await fetch(cfg.base + '/auth/v1/admin/users', {
+      method: 'POST',
+      headers: {
+        apikey: cfg.service,
+        Authorization: 'Bearer ' + cfg.service,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email,
+        email_confirm: true,
+        user_metadata: {
+          guest_checkout: true,
+          guest_session_id: String(guestSessionId || '').slice(0, 120),
+          full_name: String(guestCustomer && guestCustomer.full_name || '').slice(0, 180),
+          phone: String(guestCustomer && guestCustomer.phone || '').slice(0, 40),
+          contact_email: String(guestCustomer && guestCustomer.email || '').slice(0, 180)
+        },
+        app_metadata: { provider: 'guest_checkout' }
+      })
+    });
+    const data = await res.json().catch(function () { return null; });
+    if (res.ok && data && data.id) return String(data.id);
+    logMpCheckoutDiag('shadow_guest_user_failed', { status: res.status, data: data && (data.message || data.error || data.msg) });
+  } catch (e) {
+    logMpCheckoutDiag('shadow_guest_user_fetch_failed', { message: e && e.message });
+  }
+  return '';
+}
+
+function normalizeClientCartItems(raw) {
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.slice(0, 60).map(function (it) {
+    const r = it && typeof it === 'object' ? it : {};
+    return {
+      id: String(r.id || '').slice(0, 120),
+      product_id: String(r.product_id || r.productId || r.product || '').trim(),
+      photo_id: String(r.photo_id || r.photoId || r.variant_id || r.variantId || '').trim() || null,
+      quantity: parseInt(r.quantity || r.qty || 1, 10) || 1
+    };
+  }).filter(function (it) { return !!it.product_id; });
+}
+
+function isUuidLike(s) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s || '').trim());
+}
+
 async function fetchIn(cfg, table, ids, select) {
   if (!ids.length) return {};
   const q = ids.map(function (id) {
@@ -574,14 +626,6 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const auth = req.headers.authorization || '';
-  const jwt = auth.replace(/^Bearer\s+/i, '').trim();
-  const user = await verifySupabaseUserJwt(jwt);
-  if (!user) {
-    jsonError(res, 401, 'UNAUTHORIZED', 'Sessao invalida ou expirada.');
-    return;
-  }
-
   const body = await readMergedJsonBody(req);
   const requestedPaymentMode = normalizeRequestedPaymentMode(body);
   const isPixPaymentMode = requestedPaymentMode === 'pix';
@@ -590,6 +634,20 @@ module.exports = async function handler(req, res) {
   const guestShippingAddress = normalizeGuestShippingAddress(
     body.guest_shipping_address || body.guestShippingAddress || body.shipping_address || body.shippingAddress || {}
   );
+  const clientCartRows = normalizeClientCartItems(body.cart_items || body.cartItems || body.items || []);
+
+  const auth = req.headers.authorization || '';
+  const jwt = auth.replace(/^Bearer\s+/i, '').trim();
+  const user = jwt ? await verifySupabaseUserJwt(jwt) : null;
+  const isGuestCheckout = !user;
+  if (!user) {
+    if (!guestSessionId || clientCartRows.length === 0) {
+      jsonError(res, 401, 'GUEST_CHECKOUT_REQUIRED', 'Nao foi possivel abrir o Mercado Pago sem a sessao do carrinho.', {
+        hint: 'Envie guest_session_id e cart_items no corpo da requisicao. E-mail, CPF e endereco nao sao obrigatorios antes de abrir o Checkout Pro.'
+      });
+      return;
+    }
+  }
 
   logMpCheckoutDiag('request', {
     method: req.method,
@@ -602,27 +660,31 @@ module.exports = async function handler(req, res) {
     hasContactEmailKey: !!String(
       body.contact_email || body.contactEmail || body.customer_email || body.customerEmail || body.email || ''
     ).trim(),
-    jwtUserIdLen: user.id ? String(user.id).length : 0,
-    jwtHasEmail: !!String(user.email || '').trim()
+    jwtUserIdLen: user && user.id ? String(user.id).length : 0,
+    jwtHasEmail: !!String(user && user.email || '').trim(),
+    guestCheckout: isGuestCheckout,
+    clientCartRows: clientCartRows.length
   });
 
   let profileRow = null;
-  let profResOnce = await restGet(
-    cfg,
-    '/rest/v1/profiles?id=eq.' +
-      encodeURIComponent(user.id) +
-      '&select=full_name,cpf_cnpj,email,phone&limit=1'
-  );
-  if (!profResOnce.ok) {
-    profResOnce = await restGet(
+  if (user && user.id) {
+    let profResOnce = await restGet(
       cfg,
       '/rest/v1/profiles?id=eq.' +
         encodeURIComponent(user.id) +
-        '&select=full_name,cpf_cnpj,phone&limit=1'
+        '&select=full_name,cpf_cnpj,email,phone&limit=1'
     );
-  }
-  if (profResOnce.ok && Array.isArray(profResOnce.data) && profResOnce.data[0]) {
-    profileRow = profResOnce.data[0];
+    if (!profResOnce.ok) {
+      profResOnce = await restGet(
+        cfg,
+        '/rest/v1/profiles?id=eq.' +
+          encodeURIComponent(user.id) +
+          '&select=full_name,cpf_cnpj,phone&limit=1'
+      );
+    }
+    if (profResOnce.ok && Array.isArray(profResOnce.data) && profResOnce.data[0]) {
+      profileRow = profResOnce.data[0];
+    }
   }
 
   const contactEmail = String(
@@ -634,7 +696,7 @@ module.exports = async function handler(req, res) {
       guestCustomer.email ||
       ''
   ).trim();
-  let payerEmailForMp = String(user.email || '').trim();
+  let payerEmailForMp = String(user && user.email || '').trim();
   if (!payerEmailForMp && profileRow && profileRow.email != null) {
     const pe = String(profileRow.email).trim();
     if (isValidPayerEmail(pe)) payerEmailForMp = pe;
@@ -642,13 +704,15 @@ module.exports = async function handler(req, res) {
   if (!payerEmailForMp && isValidPayerEmail(contactEmail)) {
     payerEmailForMp = contactEmail;
   }
-  if (!payerEmailForMp) {
-    jsonError(res, 400, 'EMAIL_REQUIRED', 'Informe um e-mail valido para o pagamento.', {
+  if (isPixPaymentMode && !payerEmailForMp) {
+    jsonError(res, 400, 'EMAIL_REQUIRED', 'Informe um e-mail valido para gerar Pix direto.', {
       hint:
-        'Conta sem e-mail no JWT: envie contact_email no JSON, preencha o campo no checkout, ou cadastre e-mail em profiles.'
+        'Para o Checkout Pro nao e necessario e-mail antes do redirecionamento; para Pix direto via API, Mercado Pago exige payer.email.'
     });
     return;
   }
+
+  let checkoutUserId = user && user.id ? String(user.id) : '';
 
   let shippingAddressId = String(
     body.shipping_address_id || body.shippingAddressId || body.address_id || body.addressId || ''
@@ -658,9 +722,9 @@ module.exports = async function handler(req, res) {
     .trim()
     .slice(0, 128);
 
-  if (!shippingAddressId && !hasGuestAddress) {
+  if (isPixPaymentMode && !shippingAddressId && !hasGuestAddress) {
     jsonError(res, 400, 'NO_SHIPPING_ADDRESS', 'Informe o endereco de entrega no checkout.', {
-      hint: 'Envie shipping_address_id de um endereco salvo ou guest_shipping_address com cep, street, city e state.'
+      hint: 'Pix direto na loja precisa de endereco para calcular entrega. No Checkout Pro, endereco/e-mail podem ser preenchidos no Mercado Pago.'
     });
     return;
   }
@@ -670,8 +734,11 @@ module.exports = async function handler(req, res) {
     });
     return;
   }
+  if (!user && shippingAddressId) {
+    shippingAddressId = '';
+  }
 
-  if (idempotencyKey) {
+  if (idempotencyKey && user) {
     const prevPay = await restGet(
       cfg,
       '/rest/v1/payments?idempotency_key=eq.' +
@@ -732,28 +799,32 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const cartQ = await restGet(
-    cfg,
-    '/rest/v1/carts?user_id=eq.' + encodeURIComponent(user.id) + '&select=id&limit=1'
-  );
-  if (!cartQ.ok || !Array.isArray(cartQ.data) || !cartQ.data[0]) {
+  let rawRows = [];
+  if (user) {
+    const cartQ = await restGet(
+      cfg,
+      '/rest/v1/carts?user_id=eq.' + encodeURIComponent(user.id) + '&select=id&limit=1'
+    );
+    if (cartQ.ok && Array.isArray(cartQ.data) && cartQ.data[0]) {
+      const cartId = cartQ.data[0].id;
+      const itemsRes = await restGet(
+        cfg,
+        '/rest/v1/cart_items?cart_id=eq.' + encodeURIComponent(cartId) + '&select=id,product_id,photo_id,quantity'
+      );
+      if (itemsRes.ok && Array.isArray(itemsRes.data) && itemsRes.data.length > 0) {
+        rawRows = itemsRes.data;
+      }
+    }
+  }
+  if (!rawRows.length && clientCartRows.length) {
+    rawRows = clientCartRows;
+  }
+  if (!rawRows.length) {
     jsonError(res, 400, 'CART_EMPTY', 'Carrinho vazio.', {
-      hint: 'Adicione itens ao carrinho logado; o servidor usa o carrinho do Supabase deste usuario.'
+      hint: user ? 'Adicione itens ao carrinho.' : 'Envie cart_items no checkout visitante.'
     });
     return;
   }
-  const cartId = cartQ.data[0].id;
-
-  const itemsRes = await restGet(
-    cfg,
-    '/rest/v1/cart_items?cart_id=eq.' + encodeURIComponent(cartId) + '&select=id,product_id,photo_id,quantity'
-  );
-  if (!itemsRes.ok || !Array.isArray(itemsRes.data) || itemsRes.data.length === 0) {
-    jsonError(res, 400, 'CART_EMPTY', 'Carrinho vazio.');
-    return;
-  }
-
-  const rawRows = itemsRes.data;
   const prodIds = uniqIds(rawRows.map(function (r) {
     return r.product_id;
   }));
@@ -818,7 +889,7 @@ module.exports = async function handler(req, res) {
   let cep = '';
   let checkoutAddressRow = null;
   let usingGuestShippingAddress = false;
-  if (shippingAddressId) {
+  if (shippingAddressId && user) {
     const addrRes = await fetchShippingAddressRow(cfg, shippingAddressId, user.id);
     if (!addrRes.ok || !addrRes.row) {
       jsonError(res, 400, 'INVALID_SHIPPING_ADDRESS', 'Endereco de entrega invalido.', {
@@ -828,12 +899,12 @@ module.exports = async function handler(req, res) {
     }
     checkoutAddressRow = addrRes.row;
     cep = cepDigitsFromAddressRow(addrRes.row);
-  } else {
+  } else if (hasGuestAddress) {
     usingGuestShippingAddress = true;
     checkoutAddressRow = guestShippingAddress;
     cep = guestShippingAddress.cep;
   }
-  if (!cep) {
+  if (isPixPaymentMode && !cep) {
     jsonError(res, 400, 'INVALID_ADDRESS_CEP', 'CEP inválido no endereço selecionado.');
     return;
   }
@@ -843,24 +914,27 @@ module.exports = async function handler(req, res) {
       return a + l.unit_price * l.quantity;
     }, 0)
   );
-  const fr = await fetchFreightAmount(cfg, cep, subtotal);
-  if (fr.freightQueryFailed) {
-    jsonError(res, 503, 'FREIGHT_DB_ERROR', 'Nao foi possivel consultar o frete no servidor. Tente novamente.', {
-      hint: 'Verifique Supabase (service role) e a tabela delivery_cep_rates.',
-      status: fr.freightHttpStatus
-    });
-    return;
+  let shipping = 0;
+  if (cep) {
+    const fr = await fetchFreightAmount(cfg, cep, subtotal);
+    if (fr.freightQueryFailed) {
+      jsonError(res, 503, 'FREIGHT_DB_ERROR', 'Nao foi possivel consultar o frete no servidor. Tente novamente.', {
+        hint: 'Verifique Supabase (service role) e a tabela delivery_cep_rates.',
+        status: fr.freightHttpStatus
+      });
+      return;
+    }
+    if (!fr.delivered) {
+      jsonError(res, 400, 'CEP_OUT_OF_DELIVERY_AREA', 'CEP fora da area de entrega.', {
+        hint: 'Cadastre o CEP em delivery_cep_rates no painel (CEP / Frete).'
+      });
+      return;
+    }
+    shipping = toMoney2(fr.delivered ? fr.amount : 0);
   }
-  if (!fr.delivered) {
-    jsonError(res, 400, 'CEP_OUT_OF_DELIVERY_AREA', 'CEP fora da area de entrega.', {
-      hint: 'Cadastre o CEP em delivery_cep_rates no painel (CEP / Frete).'
-    });
-    return;
-  }
-  const shipping = toMoney2(fr.delivered ? fr.amount : 0);
   const total = toMoney2(subtotal + shipping);
 
-  if (!shippingAddressId && usingGuestShippingAddress) {
+  if (user && !shippingAddressId && usingGuestShippingAddress) {
     const createdAddr = await createAddressFromGuestCheckout(cfg, user.id, guestShippingAddress);
     if (createdAddr.ok && createdAddr.id) {
       shippingAddressId = String(createdAddr.id);
@@ -881,7 +955,7 @@ module.exports = async function handler(req, res) {
     : String(process.env.MP_ORDER_PAYMENT_METHOD || 'mercadopago').trim() || 'mercadopago';
 
   const orderRow = {
-    user_id: user.id,
+    user_id: checkoutUserId || null,
     order_number: orderNumber,
     status: 'pending',
     payment_status: 'pending',
@@ -889,10 +963,25 @@ module.exports = async function handler(req, res) {
     total_amount: total,
     shipping_amount: shipping,
     discount_amount: 0,
-    shipping_address_id: shippingAddressId || null
+    shipping_address_id: shippingAddressId || null,
+    guest_session_id: guestSessionId || null,
+    guest_customer: cleanObject(guestCustomer),
+    guest_shipping_address: cleanObject(guestShippingAddress)
   };
 
-  const insOrder = await restPost(cfg, 'orders', orderRow);
+  let insOrder = await restPostSchemaTolerant(cfg, 'orders', orderRow, { protectedKeys: ['order_number', 'status', 'payment_status', 'payment_method', 'total_amount'] });
+  if ((!insOrder.ok || !Array.isArray(insOrder.data) || !insOrder.data[0]) && !user && !checkoutUserId) {
+    const pgFirst = postgrestErrorDetails(insOrder.data);
+    logMpCheckoutDiag('orders_insert_guest_null_failed_try_shadow_user', {
+      http_status: insOrder.status,
+      pg: pgFirst
+    });
+    checkoutUserId = await createShadowGuestUser(cfg, guestSessionId, guestCustomer);
+    if (checkoutUserId) {
+      orderRow.user_id = checkoutUserId;
+      insOrder = await restPostSchemaTolerant(cfg, 'orders', orderRow, { protectedKeys: ['order_number', 'status', 'payment_status', 'payment_method', 'total_amount'] });
+    }
+  }
   if (!insOrder.ok || !Array.isArray(insOrder.data) || !insOrder.data[0]) {
     const pg = postgrestErrorDetails(insOrder.data);
     logMpCheckoutDiag('orders_insert_failed', {
@@ -909,6 +998,7 @@ module.exports = async function handler(req, res) {
       ok: false,
       code: 'ORDER_INSERT_FAILED',
       error: 'Nao foi possivel criar o pedido.',
+      hint: !user ? 'A compra sem login tentou salvar o pedido como visitante. Se o seu Supabase bloquear user_id nulo, rode database/guest_checkout_no_login.sql ou permita a criacao tecnica de visitante.' : undefined,
       pg: pg || undefined,
       http_status: insOrder.status
     });
@@ -970,7 +1060,7 @@ module.exports = async function handler(req, res) {
     }
 
     const fullName = String(
-      (profileRow && profileRow.full_name) || guestCustomer.full_name || user.email || payerEmailForMp || 'Cliente'
+      (profileRow && profileRow.full_name) || guestCustomer.full_name || (user && user.email) || payerEmailForMp || 'Cliente'
     ).trim();
     const nameParts = fullName.split(/\s+/).filter(Boolean);
     const firstName = nameParts[0] || 'Cliente';
@@ -981,7 +1071,7 @@ module.exports = async function handler(req, res) {
       surname: surname.slice(0, 60)
     };
     if (payerEmailForMp) payer.email = payerEmailForMp;
-    const phoneMp = brPhoneForMp(user.phone || (profileRow && profileRow.phone) || guestCustomer.phone);
+    const phoneMp = brPhoneForMp((user && user.phone) || (profileRow && profileRow.phone) || guestCustomer.phone);
     if (phoneMp) payer.phone = { area_code: phoneMp.area_code, number: phoneMp.number };
     if (docDigits.length === 11) {
       payer.identification = { type: 'CPF', number: docDigits };
@@ -1061,7 +1151,7 @@ module.exports = async function handler(req, res) {
             };
           })
         },
-        metadata: { order_id: orderId, order_number: orderNumber, user_id: user.id, payment_mode: 'pix', guest_session_id: guestSessionId || undefined }
+        metadata: cleanObject({ order_id: orderId, order_number: orderNumber, user_id: checkoutUserId || (user && user.id), payment_mode: 'pix', guest_session_id: guestSessionId || undefined })
       });
 
       logMpCheckoutDiag('outgoing_pix_payment', {
@@ -1177,7 +1267,21 @@ module.exports = async function handler(req, res) {
         default_payment_method_id:
           String(process.env.MERCADO_PAGO_DEFAULT_PAYMENT_METHOD_ID || '').trim() || undefined
       },
-      metadata: { order_id: orderId, order_number: orderNumber, user_id: user.id, guest_session_id: guestSessionId || undefined }
+      shipments: cep
+        ? cleanObject({
+            cost: Number(toMoney2(shipping)),
+            free_shipping: toMoney2(shipping) <= 0,
+            receiver_address: {
+              zip_code: cep,
+              street_name: checkoutAddressRow && (checkoutAddressRow.street || checkoutAddressRow.address || checkoutAddressRow.logradouro),
+              street_number: checkoutAddressRow && (checkoutAddressRow.number || checkoutAddressRow.numero),
+              city_name: checkoutAddressRow && (checkoutAddressRow.city || checkoutAddressRow.cidade),
+              state_name: checkoutAddressRow && (checkoutAddressRow.state || checkoutAddressRow.uf),
+              country_name: 'Brasil'
+            }
+          })
+        : undefined,
+      metadata: cleanObject({ order_id: orderId, order_number: orderNumber, user_id: checkoutUserId || (user && user.id), guest_session_id: guestSessionId || undefined, checkout_without_store_login: !user || undefined, shipping_collected_in_mp: !cep || undefined })
     });
 
     logMpCheckoutDiag('outgoing_preference', {
