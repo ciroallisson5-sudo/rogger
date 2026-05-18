@@ -57,8 +57,6 @@
     return (
       link('index.html', 'Início', !!a.home) +
       link('produtos.html', 'Produtos', !!a.products) +
-      link('produtos.html?promo=offer', 'Ofertas', false) +
-      link('index.html#entrega', 'Entrega', false) +
       link('index.html#garantia', 'Garantia', false)
     );
   };
@@ -98,7 +96,7 @@
       whats.className = 'header-whatsapp js-global-whatsapp';
       whats.setAttribute(
         'data-message',
-        'Olá! Preciso tirar uma dúvida sobre o colchão ideal (tamanho, densidade ou entrega).'
+        'Olá! Preciso tirar uma dúvida sobre o colchão ideal (tamanho ou densidade).'
       );
       whats.setAttribute('aria-label', 'Falar no WhatsApp com a Conforta Colchões');
       whats.innerHTML =
@@ -115,18 +113,21 @@
     }
 
     var mobileMenu = header.querySelector('#mobileMenu');
-    if (mobileMenu && !mobileMenu.dataset.polished) {
+    if (mobileMenu) {
+      /* Sempre sobrescreve: antes `data-polished` impedia atualizar após deploy (menu ficava com links velhos). */
       mobileMenu.innerHTML = [
         '<a href="index.html">Início</a>',
         '<a href="produtos.html">Produtos</a>',
-        '<a href="produtos.html?promo=offer">Ofertas</a>',
-        '<a href="index.html#entrega">Entrega</a>',
         '<a href="index.html#garantia">Garantia</a>',
         '<a href="#" class="js-global-whatsapp" data-message="Olá! Preciso de ajuda para escolher colchão ou cama box.">WhatsApp</a>',
         '<a href="carrinho.html">Carrinho</a>',
         '<a href="perfil.html" class="cc-mobile-menu-secondary">Minha conta</a>'
       ].join('');
-      mobileMenu.dataset.polished = 'true';
+    }
+
+    var stripLegacy = header.querySelectorAll('a[href*="promo=offer"], a[href*="#entrega"], a[href*="so_ofertas"]');
+    for (var si = 0; si < stripLegacy.length; si++) {
+      stripLegacy[si].remove();
     }
   };
 })();

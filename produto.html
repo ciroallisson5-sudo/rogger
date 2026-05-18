@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="Detalhes do colchão ou móvel Conforta — entrega em Serra, Vitória e Espírito Santo. Linha Querubim e condições especiais.">
+  <meta name="description" content="Detalhes do colchão ou móvel Conforta em Serra, Vitória e Espírito Santo. Linha Querubim e condições especiais.">
   <meta name="keywords" content="colchão Vitória, colchão Serra, Espírito Santo, Conforta Colchões, Querubim, Grande Vitória">
   <title>Produto — Conforta Colchões | ES</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
@@ -587,7 +587,7 @@
         document.title = productData.name + ' - Conforta Colchões';
         var meta = document.querySelector('meta[name="description"]');
         if (meta) {
-          meta.content = productData.seo_description || stripHtml(productData.description || 'Produto Conforta Colchões com atendimento especializado e entrega rápida na região.').slice(0, 155);
+          meta.content = productData.seo_description || stripHtml(productData.description || 'Produto Conforta Colchões com atendimento especializado na região.').slice(0, 155);
         }
       }
 
@@ -612,7 +612,7 @@
                 '<div class="pdp-badges">' + renderBadges(product, discounted, unavailable) + '</div>' +
                 (catName ? '<div class="pdp-category">' + escHtml(catName) + '</div>' : '') +
                 '<h1>' + escHtml(product.name) + '</h1>' +
-                '<div class="pdp-meta">' + (product.sku ? '<span>SKU: ' + escHtml(product.sku) + '</span>' : '') + '<span>Dúvidas de medidas ou entrega? Fale no WhatsApp antes de comprar.</span></div>' +
+                '<div class="pdp-meta">' + (product.sku ? '<span>SKU: ' + escHtml(product.sku) + '</span>' : '') + '<span>Dúvidas de medidas? Fale no WhatsApp antes de comprar.</span></div>' +
                 '<p class="pdp-short">' + escHtml(shortCopy(product)) + '</p>' +
                 renderPrice(current, original, discounted, discount) +
                 renderVariants() +
@@ -636,9 +636,8 @@
       function renderBadges(product, discounted, unavailable) {
         var html = '';
         if (unavailable) html += '<span class="pdp-badge unavailable">Indisponível no momento</span>';
-        if (discounted) html += '<span class="pdp-badge offer">Oferta</span>';
+        if (discounted) html += '<span class="pdp-badge offer">Desconto</span>';
         if (product.featured || product.best_seller) html += '<span class="pdp-badge">Mais vendido</span>';
-        html += '<span class="pdp-badge fast">Entrega rápida</span>';
         if (product.warranty) html += '<span class="pdp-badge warranty">Garantia</span>';
         if (isNew(product)) html += '<span class="pdp-badge new">Novo</span>';
         return html;
@@ -769,13 +768,13 @@
           note = 'Estoque limitado: ' + stock + ' unidade' + (stock === 1 ? '' : 's') + ' disponível' + (stock === 1 ? '' : 'is') + '.';
           cls += ' warn';
         } else {
-          note = 'Produto selecionado para mais conforto e entrega rápida.';
+          note = 'Produto selecionado para mais conforto.';
         }
         return '<div class="qty-row"><label for="qtyInput">Quantidade</label><div class="qty-control"><button type="button" id="qtyMinus" aria-label="Diminuir quantidade">-</button><input id="qtyInput" type="text" value="' + selectedQty + '" readonly aria-label="Quantidade"><button type="button" id="qtyPlus" aria-label="Aumentar quantidade">+</button></div></div><div class="' + cls + '">' + escHtml(note) + '</div>';
       }
 
       function renderDeliveryBlock() {
-        return '<section class="delivery-card"><h2>Entrega e disponibilidade</h2><p class="delivery-message">Entrega rápida em Serra, Vitória e região. Confirme o prazo e disponibilidade com nossa equipe pelo WhatsApp.</p><div class="cep-row"><input type="text" id="cepInput" inputmode="numeric" placeholder="Digite seu CEP" aria-label="Digite seu CEP"><button class="btn btn-outline" type="button" id="cepBtn" aria-label="Calcular frete ou prazo pelo CEP">Calcular</button></div><p class="delivery-message" id="cepMessage">Fale conosco para confirmar prazo e disponibilidade.</p></section>';
+        return '<section class="delivery-card"><h2>Disponibilidade pelo CEP</h2><p class="delivery-message">Confirme prazo e disponibilidade com nossa equipe pelo WhatsApp.</p><div class="cep-row"><input type="text" id="cepInput" inputmode="numeric" placeholder="Digite seu CEP" aria-label="Digite seu CEP"><button class="btn btn-outline" type="button" id="cepBtn" aria-label="Consultar CEP">Calcular</button></div><p class="delivery-message" id="cepMessage">Fale conosco para confirmar prazo e disponibilidade.</p></section>';
       }
 
       function renderActions(unavailable) {
@@ -818,7 +817,7 @@
 
       function renderBenefits(product) {
         return '<div class="benefit-grid">' +
-          benefitIcon('Entrega rápida') +
+          benefitIcon('Atendimento na região') +
           benefitIcon('Até 12x sem juros') +
           benefitIcon('Atendimento especializado') +
           benefitIcon('Compra segura') +
@@ -843,7 +842,7 @@
 
       function indicationBullets(product, catName) {
         var text = productText(product);
-        var items = ['Para quem busca mais conforto no sono.', 'Para quem quer renovar o quarto com praticidade.', 'Para quem valoriza entrega rápida e atendimento especializado.'];
+        var items = ['Para quem busca mais conforto no sono.', 'Para quem quer renovar o quarto com praticidade.', 'Para quem valoriza atendimento especializado.'];
         if (/casal|queen|king|solteiro/i.test(text)) items.splice(1, 0, 'Para quartos de casal, solteiro ou suite, conforme o produto.');
         if (/firme|ortoped/i.test(text)) items.splice(1, 0, 'Para quem prefere suporte mais firme e estavel.');
         if (/macio|confort/i.test(text)) items.splice(1, 0, 'Para quem prefere uma sensacao mais confortavel ao deitar.');
@@ -985,9 +984,12 @@
         var msg = document.getElementById('cepMessage');
         if (!msg) return;
         var raw = input ? String(input.value || '') : '';
-        var cep = raw.replace(/\D/g, '');
-        if (cep.length !== 8) {
-          msg.textContent = 'Digite um CEP com 8 digitos.';
+        var d = raw.replace(/\D/g, '');
+        if (d.length > 8) d = d.slice(0, 8);
+        if (d.length >= 1 && d.length < 8) d = d.padStart(8, '0');
+        var cep = d.length === 8 && /^[0-9]{8}$/.test(d) ? d : '';
+        if (!cep) {
+          msg.textContent = 'Digite um CEP valido (8 digitos).';
           return;
         }
         msg.textContent = 'Consultando frete...';
@@ -1015,7 +1017,7 @@
             return;
           }
           if (j.delivered === false) {
-            msg.textContent = j.message || 'Infelizmente não realizamos entrega para este CEP.';
+            msg.textContent = j.message || 'Infelizmente não atendemos este CEP no momento.';
             return;
           }
           if (j.delivered) {
