@@ -984,9 +984,12 @@
         var msg = document.getElementById('cepMessage');
         if (!msg) return;
         var raw = input ? String(input.value || '') : '';
-        var cep = raw.replace(/\D/g, '');
-        if (cep.length !== 8) {
-          msg.textContent = 'Digite um CEP com 8 digitos.';
+        var d = raw.replace(/\D/g, '');
+        if (d.length > 8) d = d.slice(0, 8);
+        if (d.length >= 1 && d.length < 8) d = d.padStart(8, '0');
+        var cep = d.length === 8 && /^[0-9]{8}$/.test(d) ? d : '';
+        if (!cep) {
+          msg.textContent = 'Digite um CEP valido (8 digitos).';
           return;
         }
         msg.textContent = 'Consultando frete...';

@@ -4,6 +4,7 @@ const { applyBrowserCors, handleOptions, parseBody } = require('./_http');
 const { verifySupabaseUserJwt } = require('./_supabase-user');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
 const { adminConfig, restGet, restPost, resolvePublicBaseUrl } = require('./mercadopago-sync');
+const { normalizeBrazilCepDigits } = require('./_cep');
 
 function lineUnitPrice(product, photo) {
   if (!product) return 0;
@@ -17,10 +18,11 @@ function lineUnitPrice(product, photo) {
 }
 
 async function fetchFreightAmount(cfg, cepDigits, subtotal) {
-  if (!cepDigits || cepDigits.length !== 8) return { delivered: false, amount: 0 };
+  const cepNorm = normalizeBrazilCepDigits(cepDigits);
+  if (!cepNorm) return { delivered: false, amount: 0 };
   const rowRes = await restGet(
     cfg,
-    '/rest/v1/delivery_cep_rates?cep=eq.' + encodeURIComponent(cepDigits) + '&select=freight_amount&limit=1'
+    '/rest/v1/delivery_cep_rates?cep=eq.' + encodeURIComponent(cepNorm) + '&select=freight_amount&limit=1'
   );
   if (!rowRes.ok || !Array.isArray(rowRes.data) || !rowRes.data[0]) {
     return { delivered: false, amount: 0 };
@@ -266,8 +268,8 @@ module.exports = async function handler(req, res) {
     return;
   }
   const z = addr.data[0].zip_code != null ? addr.data[0].zip_code : addr.data[0].cep;
-  cep = String(z || '').replace(/\D/g, '');
-  if (cep.length !== 8 || cep[0] === '0') {
+  cep = normalizeBrazilCepDigits(z);
+  if (!cep) {
     res.status(400).json({ error: 'CEP inválido no endereço selecionado.' });
     return;
   }

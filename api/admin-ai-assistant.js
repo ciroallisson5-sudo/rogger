@@ -14,6 +14,7 @@ const { randomUUID } = require('crypto');
 const { verifySupabaseAdmin } = require('./_supabase-admin');
 const { applyBrowserCors, handleOptions } = require('./_http');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
+const { normalizeBrazilCepDigits } = require('./_cep');
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -107,15 +108,6 @@ function slugifyName(name) {
 
 function isUuid(s) {
   return typeof s === 'string' && UUID_RE.test(s);
-}
-
-/** CEP brasileiro: 8 digitos. Completa com zeros a esquerda se tiver menos digitos (ex.: 5656000 -> 05656000). */
-function normalizeCepDigits(s) {
-  let d = String(s || '').replace(/\D/g, '');
-  if (d.length > 8) d = d.slice(0, 8);
-  if (d.length >= 1 && d.length < 8) d = d.padStart(8, '0');
-  if (d.length === 8 && /^[0-9]{8}$/.test(d)) return d;
-  return '';
 }
 
 function pickProductPatch(obj) {
@@ -818,7 +810,7 @@ function validateActions(actions) {
         alt_text: a.alt_text != null ? String(a.alt_text).slice(0, 500) : ''
       });
     } else if (t === 'upsert_delivery_cep' || t === 'insert_delivery_cep') {
-      const cep = normalizeCepDigits(a.cep);
+      const cep = normalizeBrazilCepDigits(a.cep);
       const amt = parseFloat(a.freight_amount);
       if (!cep || isNaN(amt) || amt < 0) continue;
       const lab = a.label != null ? String(a.label).trim().slice(0, 120) : '';
@@ -835,14 +827,14 @@ function validateActions(actions) {
       if (a.label !== undefined) {
         item.label = a.label === null ? null : String(a.label).trim().slice(0, 120) || null;
       }
-      const nc = normalizeCepDigits(a.cep);
+      const nc = normalizeBrazilCepDigits(a.cep);
       if (nc) item.cep = nc;
       clean.push(item);
     } else if (t === 'delete_delivery_cep') {
       if (isUuid(a.id)) {
         clean.push({ type: 'delete_delivery_cep', id: a.id });
       } else {
-        const cep = normalizeCepDigits(a.cep);
+        const cep = normalizeBrazilCepDigits(a.cep);
         if (cep) clean.push({ type: 'delete_delivery_cep', cep: cep });
       }
     } else if (t === 'insert_category') {

@@ -274,11 +274,17 @@
       var checkoutFreightAmount = 0;
       var checkoutFreightMsg = '';
 
+      function normalizeBrazilCepDigits(raw) {
+        var d = String(raw || '').replace(/\D/g, '');
+        if (d.length > 8) d = d.slice(0, 8);
+        if (d.length >= 1 && d.length < 8) d = d.padStart(8, '0');
+        return d.length === 8 && /^[0-9]{8}$/.test(d) ? d : '';
+      }
+
       function getAddressCep(addr) {
         if (!addr) return '';
         var z = addr.zip_code != null ? addr.zip_code : addr.cep;
-        var d = String(z || '').replace(/\D/g, '');
-        return d.length === 8 ? d : '';
+        return normalizeBrazilCepDigits(z);
       }
 
       function checkoutGrandTotal() {
@@ -293,6 +299,12 @@
         checkoutFreightDelivered = true;
         checkoutFreightAmount = 0;
         checkoutFreightMsg = '';
+        if (addr && !cep) {
+          checkoutFreightDelivered = false;
+          checkoutFreightMsg = 'CEP invalido ou incompleto no endereco. Atualize no perfil.';
+          updateCheckoutFreightDom();
+          return;
+        }
         if (!cep) {
           updateCheckoutFreightDom();
           return;
@@ -306,6 +318,14 @@
           var j = await r.json().catch(function () {
             return {};
           });
+          if (!r.ok) {
+            checkoutFreightDelivered = false;
+            checkoutFreightMsg =
+              (j && (j.message || j.error) && String(j.message || j.error).trim()) ||
+              'Nao foi possivel calcular o frete. Tente de novo.';
+            updateCheckoutFreightDom();
+            return;
+          }
           if (j && j.delivered === false) {
             checkoutFreightDelivered = false;
             checkoutFreightMsg = j.message || 'CEP fora da area de entrega.';
@@ -314,8 +334,9 @@
           }
         } catch (e1) {
           void e1;
-          checkoutFreightDelivered = true;
+          checkoutFreightDelivered = false;
           checkoutFreightAmount = 0;
+          checkoutFreightMsg = 'Erro de rede ao calcular o frete. Tente de novo.';
         }
         updateCheckoutFreightDom();
       }
@@ -350,12 +371,14 @@
         var mTot = document.getElementById('mobileSubmitTotal');
         if (mTot) mTot.textContent = formatPrice(checkoutFreightDelivered ? grand : sub);
         var mbtn = document.getElementById('mobilePlaceOrderBtn');
+        var addrSel = selectedAddress();
+        var freightBlocked = !checkoutFreightDelivered && !!addrSel;
         if (mbtn) {
           mbtn.textContent = 'Pagar com Mercado Pago — ' + formatPrice(checkoutFreightDelivered ? grand : sub);
-          mbtn.disabled = !checkoutFreightDelivered && !!getAddressCep(selectedAddress());
+          mbtn.disabled = freightBlocked;
         }
         if (btn) {
-          var block = !checkoutFreightDelivered && !!getAddressCep(selectedAddress());
+          var block = freightBlocked;
           btn.disabled = block;
           var btot = checkoutFreightDelivered ? grand : sub;
           btn.textContent = 'Pagar com Mercado Pago — ' + formatPrice(btot);
@@ -972,6 +995,10 @@
           if (mbtn) mbtn.textContent = 'Redirecionando...';
           window.location.href = j.init_point;
         } catch (e) {
+          var errText = e && e.message ? String(e.message).trim() : '';
+          if (!errText || errText === 'Failed to fetch' || errText === 'NetworkError when attempting to fetch resource.') {
+            showToast('Nao foi possivel finalizar seu pedido agora.', 'error');
+          }
           showCheckoutFailure(e, grandTotal);
           var restoreTot = checkoutGrandTotal();
           if (btn) {
@@ -992,7 +1019,6 @@
         var container = document.getElementById('checkoutContent');
         void error;
         void total;
-        showToast('Nao foi possivel finalizar seu pedido agora.', 'error');
         var previous = document.getElementById('checkoutFailure');
         if (previous) previous.remove();
         container.insertAdjacentHTML('afterbegin',
