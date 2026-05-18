@@ -3,7 +3,7 @@
 const { applyBrowserCors, handleOptions, parseBody } = require('./_http');
 const { verifySupabaseUserJwt } = require('./_supabase-user');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
-const { adminConfig, restGet, restPost } = require('./mercadopago-sync');
+const { adminConfig, restGet, restPost, resolvePublicBaseUrl } = require('./mercadopago-sync');
 
 function lineUnitPrice(product, photo) {
   if (!product) return 0;
@@ -105,11 +105,19 @@ module.exports = async function handler(req, res) {
 
   const cfg = adminConfig();
   const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || '').trim();
-  const appUrl = (process.env.APP_URL || process.env.SITE_URL || process.env.SITE_PUBLIC_URL || '')
-    .trim()
-    .replace(/\/$/, '');
+  const appUrl = resolvePublicBaseUrl(req);
   if (!cfg.ok || !accessToken || !appUrl) {
-    res.status(503).json({ error: 'Pagamento não configurado no servidor.' });
+    var missing = [];
+    if (!cfg.ok) {
+      if (!(process.env.SUPABASE_URL || '').trim()) missing.push('SUPABASE_URL');
+      if (!(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim()) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+    }
+    if (!accessToken) missing.push('MERCADO_PAGO_ACCESS_TOKEN');
+    if (!appUrl) missing.push('APP_URL');
+    res.status(503).json({
+      error: 'Pagamento não configurado no servidor.',
+      missing: missing
+    });
     return;
   }
 

@@ -956,6 +956,9 @@
           });
           if (!r.ok) {
             var errMsg = j && j.error ? String(j.error) : 'Nao foi possivel iniciar o pagamento.';
+            if (j && Array.isArray(j.missing) && j.missing.length) {
+              errMsg += ' Configure na Vercel: ' + j.missing.join(', ') + '.';
+            }
             showToast(errMsg, 'error');
             throw new Error(errMsg);
           }

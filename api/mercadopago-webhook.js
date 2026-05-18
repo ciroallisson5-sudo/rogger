@@ -35,6 +35,21 @@ module.exports = async function handler(req, res) {
     res.status(204).end();
     return;
   }
+  if (req.method === 'GET') {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.status(200).end(
+      JSON.stringify({
+        ok: true,
+        endpoint: 'mercadopago-webhook',
+        hint: 'Mercado Pago envia notificacoes via POST com assinatura x-signature.'
+      })
+    );
+    return;
+  }
+  if (req.method === 'HEAD') {
+    res.status(200).end();
+    return;
+  }
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -46,10 +61,17 @@ module.exports = async function handler(req, res) {
 
   const parsed = parseBody(req.body);
   const raw = rawBodyString(req, parsed);
-  const query = typeof req.query === 'object' && req.query ? req.query : parseQuery(req.url || '');
+  var query = typeof req.query === 'object' && req.query && Object.keys(req.query).length ? req.query : parseQuery(req.url || '');
 
   if (!secret || !accessToken || !cfg.ok) {
-    res.status(503).json({ error: 'Webhook não configurado' });
+    var miss = [];
+    if (!secret) miss.push('MERCADO_PAGO_WEBHOOK_SECRET');
+    if (!accessToken) miss.push('MERCADO_PAGO_ACCESS_TOKEN');
+    if (!cfg.ok) {
+      if (!(process.env.SUPABASE_URL || '').trim()) miss.push('SUPABASE_URL');
+      if (!(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim()) miss.push('SUPABASE_SERVICE_ROLE_KEY');
+    }
+    res.status(503).json({ error: 'Webhook não configurado', missing: miss });
     return;
   }
 
