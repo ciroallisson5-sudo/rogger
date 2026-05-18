@@ -76,7 +76,15 @@
 
       async function main() {
         var orderId = qs('order_id');
+        var extRef = qs('external_reference');
+        if (!orderId && extRef) orderId = extRef;
+
+        var paymentId = qs('payment_id') || qs('collection_id');
         var urlStatus = qs('status');
+        var collectionStatus = qs('collection_status');
+        var preferenceId = qs('preference_id');
+        var merchantOrderId = qs('merchant_order_id');
+
         var title = document.getElementById('retornoTitle');
         var msg = document.getElementById('retornoMsg');
         var detail = document.getElementById('retornoDetail');
@@ -108,10 +116,17 @@
 
         var tries = 0;
         var maxTries = 8;
-        function mapPaymentLine(ps, mp) {
+        function mapPaymentLine(ps, mp, sync) {
+          if (sync && sync.ok === false && sync.reason === 'live_mode_mismatch') {
+            return {
+              title: 'Ambiente do pagamento',
+              cls: 'state-warn',
+              text: 'O token do Mercado Pago (sandbox ou produção) não corresponde ao modo deste pagamento. Ajuste MERCADO_PAGO_ENV na Vercel e o token no painel MP.'
+            };
+          }
           if (ps === 'paid') return { title: 'Pagamento aprovado', cls: 'state-ok', text: 'Seu pedido foi confirmado como pago. Acompanhe a separação em Meus pedidos.' };
           if (ps === 'pending_payment' || ps === 'pending') {
-            if (urlStatus === 'failure') {
+            if (urlStatus === 'failure' || String(collectionStatus || '').toLowerCase() === 'rejected') {
               return { title: 'Pagamento não concluído', cls: 'state-bad', text: 'O Mercado Pago indicou que o pagamento não foi concluído. Você pode tentar de novo no perfil ou falar com a loja.' };
             }
             if (mp && mp.status && String(mp.status).toLowerCase() === 'rejected') {
@@ -126,12 +141,21 @@
           if (ps === 'failed' || ps === 'cancelled') {
             return { title: 'Pagamento não aprovado', cls: 'state-bad', text: 'O pedido consta como não pago. Em caso de dúvida, fale com a loja.' };
           }
+          if (ps === 'refunded') {
+            return { title: 'Reembolsado', cls: 'state-warn', text: 'Este pagamento consta como reembolsado.' };
+          }
           return { title: 'Status do pedido', cls: 'state-warn', text: 'Pagamento: ' + esc(String(ps || '—')) };
+        }
+
+        function statusApiUrl() {
+          var u = '/api/mercadopago-payment-status?order_id=' + encodeURIComponent(orderId);
+          if (paymentId) u += '&payment_id=' + encodeURIComponent(paymentId);
+          return u;
         }
 
         async function poll() {
           tries++;
-          var r = await fetch('/api/mercadopago-payment-status?order_id=' + encodeURIComponent(orderId), {
+          var r = await fetch(statusApiUrl(), {
             headers: { Authorization: 'Bearer ' + tok }
           });
           var j = await r.json().catch(function () {
@@ -145,15 +169,18 @@
           }
           var ps = String(j.payment_status || '');
           var mp = j.mercado_pago || {};
-          var m = mapPaymentLine(ps, mp);
+          var sync = j.mercadopago_sync || null;
+          var m = mapPaymentLine(ps, mp, sync);
           title.textContent = m.title;
           title.className = m.cls;
           msg.textContent = m.text;
           var extra = [];
           if (j.order_number) extra.push('Pedido #' + esc(String(j.order_number)));
           if (mp && mp.status) extra.push('Mercado Pago: ' + esc(String(mp.status)));
+          if (preferenceId) extra.push('Pref. ' + esc(String(preferenceId).slice(0, 12)) + '…');
+          if (merchantOrderId) extra.push('MO ' + esc(String(merchantOrderId)));
           detail.textContent = extra.length ? extra.join(' · ') : '';
-          if (ps === 'paid' || ps === 'failed' || ps === 'cancelled' || tries >= maxTries) {
+          if (ps === 'paid' || ps === 'failed' || ps === 'cancelled' || ps === 'refunded' || tries >= maxTries) {
             actions.style.display = 'block';
             return;
           }

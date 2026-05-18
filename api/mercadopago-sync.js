@@ -99,14 +99,32 @@ async function applyMercadoPagoApproved(cfg, mpPayment, eventType) {
 
   const envProd = String(process.env.MERCADO_PAGO_ENV || 'production').toLowerCase() === 'production';
   if (envProd !== live) {
-    return { ok: false, reason: 'live_mode_mismatch' };
+    console.error(
+      '[mercadopago-sync] live_mode_mismatch: MERCADO_PAGO_ENV=' +
+        (envProd ? 'production' : 'sandbox') +
+        ' espera pagamento live_mode=' +
+        String(envProd) +
+        ', mas o MP retornou live_mode=' +
+        String(live) +
+        ' (payment_id=' +
+        (mpId || '?') +
+        ')'
+    );
+    return {
+      ok: false,
+      reason: 'live_mode_mismatch',
+      expected_live_mode: envProd,
+      payment_live_mode: live
+    };
   }
 
   if (!ext || !mpId || currency !== 'BRL' || !isFinite(amount)) {
     return { ok: false, reason: 'invalid_payment_payload' };
   }
 
-  const st = String(mpPayment.status || '').toLowerCase();
+  const st = String(mpPayment.status || '')
+    .toLowerCase()
+    .replace(/^canceled$/, 'cancelled');
 
   const ord = await restGet(
     cfg,
@@ -147,8 +165,9 @@ async function applyMercadoPagoApproved(cfg, mpPayment, eventType) {
     await restPatch(cfg, 'payments', 'order_id=eq.' + encodeURIComponent(ext), {
       provider: 'mercadopago',
       provider_payment_id: mpId,
-      provider_status: mpPayment.status,
-      provider_status_detail: mpPayment.status_detail || null,
+      provider_status: mpPayment.status != null ? String(mpPayment.status) : null,
+      provider_status_detail:
+        mpPayment.status_detail != null ? String(mpPayment.status_detail) : null,
       status: 'approved',
       paid_at: new Date().toISOString(),
       raw_provider_payload: mpPayment
@@ -180,24 +199,33 @@ async function applyMercadoPagoApproved(cfg, mpPayment, eventType) {
 
   if (st === 'pending' || st === 'in_process' || st === 'in_mediation') {
     await restPatch(cfg, 'payments', 'order_id=eq.' + encodeURIComponent(ext), {
-      provider_status: mpPayment.status,
+      provider: 'mercadopago',
+      provider_payment_id: mpId,
+      provider_status: mpPayment.status != null ? String(mpPayment.status) : null,
+      provider_status_detail:
+        mpPayment.status_detail != null ? String(mpPayment.status_detail) : null,
       raw_provider_payload: mpPayment
     });
     await restPatch(cfg, 'orders', 'id=eq.' + encodeURIComponent(ext), {
-      payment_status: 'pending_payment',
+      payment_status: 'pending',
       status: 'pending'
     });
     return { ok: true, pending: true };
   }
 
   if (st === 'rejected' || st === 'cancelled' || st === 'refunded' || st === 'charged_back') {
+    const orderPaymentStatus = st === 'refunded' ? 'refunded' : 'cancelled';
     await restPatch(cfg, 'payments', 'order_id=eq.' + encodeURIComponent(ext), {
-      provider_status: mpPayment.status,
-      status: st,
+      provider: 'mercadopago',
+      provider_payment_id: mpId,
+      provider_status: mpPayment.status != null ? String(mpPayment.status) : null,
+      provider_status_detail:
+        mpPayment.status_detail != null ? String(mpPayment.status_detail) : null,
+      status: st === 'refunded' ? 'refunded' : st === 'charged_back' ? 'charged_back' : 'cancelled',
       raw_provider_payload: mpPayment
     });
     await restPatch(cfg, 'orders', 'id=eq.' + encodeURIComponent(ext), {
-      payment_status: 'failed',
+      payment_status: orderPaymentStatus,
       status: 'cancelled'
     });
     return { ok: true, failed: true };
@@ -228,7 +256,7 @@ function validateMercadoPagoWebhookSignature(rawBodyStr, headers, query, secret)
   let dataId = '';
   try {
     const q = typeof query === 'object' && query ? query : {};
-    dataId = String(q['data.id'] || q['data_id'] || '');
+    dataId = String(q['data.id'] || q['data_id'] || '').trim();
   } catch (_) {
     /**/
   }

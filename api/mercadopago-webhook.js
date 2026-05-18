@@ -61,7 +61,9 @@ module.exports = async function handler(req, res) {
 
   const parsed = parseBody(req.body);
   const raw = rawBodyString(req, parsed);
-  var query = typeof req.query === 'object' && req.query && Object.keys(req.query).length ? req.query : parseQuery(req.url || '');
+  const fromUrl = parseQuery(req.url || '');
+  const fromReq = typeof req.query === 'object' && req.query && !Array.isArray(req.query) ? req.query : {};
+  const query = Object.assign({}, fromUrl, fromReq);
 
   if (!secret || !accessToken || !cfg.ok) {
     var miss = [];
@@ -76,20 +78,23 @@ module.exports = async function handler(req, res) {
   }
 
   if (!validateMercadoPagoWebhookSignature(raw, req.headers, query, secret)) {
+    console.error('[mercadopago-webhook] assinatura invalida ou cabecalhos ausentes (x-signature / x-request-id / data.id)');
     res.status(401).json({ error: 'Assinatura invalida' });
     return;
   }
 
-  let dataId = String(query['data.id'] || query['data_id'] || '');
-  if (!dataId && parsed && parsed.data) dataId = String(parsed.data.id || '');
+  let dataId = String(query['data.id'] || query.data_id || '').trim();
+  if (!dataId && parsed && parsed.data) dataId = String(parsed.data.id || '').trim();
   if (!dataId) {
     res.status(400).json({ error: 'data.id ausente' });
     return;
   }
 
-  const typ = String(query.type || parsed.type || 'payment');
+  const typ = String(query.type || (parsed && parsed.type) || 'payment')
+    .trim()
+    .toLowerCase();
   if (typ !== 'payment') {
-    res.status(200).json({ ok: true, ignored: true });
+    res.status(200).json({ ok: true, ignored: true, type: typ });
     return;
   }
 
@@ -107,6 +112,10 @@ module.exports = async function handler(req, res) {
 
     const result = await applyMercadoPagoApproved(cfg, payment, typ || 'payment');
     if (!result.ok) {
+      if (result.reason === 'live_mode_mismatch') {
+        res.status(409).json({ error: result.reason });
+        return;
+      }
       if (result.reason === 'amount_mismatch' || result.reason === 'order_not_found') {
         res.status(400).json({ error: result.reason });
         return;

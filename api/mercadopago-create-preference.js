@@ -114,6 +114,73 @@ function postgrestErrorDetails(data) {
   return Object.keys(out).length ? out : null;
 }
 
+/** Produção na Vercel: nunca usar APP_URL localhost nem HTTP inseguro. */
+function isVercelProductionDeploy() {
+  return String(process.env.VERCEL || '').trim() === '1';
+}
+
+function isLocalhostHostname(hostname) {
+  const h = String(hostname || '').toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h.endsWith('.local');
+}
+
+/**
+ * Base pública para back_urls / notification_url do MP.
+ * Em Vercel: exige HTTPS e rejeita localhost vindo de APP_URL.
+ */
+function resolveMercadoPagoSiteBaseUrl(req) {
+  const v = isVercelProductionDeploy();
+  const envUrls = [
+    String(process.env.APP_URL || '').trim(),
+    String(process.env.SITE_URL || '').trim(),
+    String(process.env.SITE_PUBLIC_URL || '').trim()
+  ];
+  for (let i = 0; i < envUrls.length; i++) {
+    let raw = envUrls[i].replace(/\/$/, '');
+    if (!raw) continue;
+    if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
+    try {
+      const u = new URL(raw);
+      if (v && isLocalhostHostname(u.hostname)) continue;
+      if (v && u.protocol !== 'https:') continue;
+      return u.origin;
+    } catch (e) {
+      void e;
+    }
+  }
+  const vu = String(process.env.VERCEL_URL || '')
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/$/, '');
+  if (vu && v) return 'https://' + vu;
+  const fromHeaders = resolvePublicBaseUrl(req);
+  if (fromHeaders) {
+    try {
+      const u = new URL(
+        fromHeaders.includes('://') ? fromHeaders : 'https://' + fromHeaders.replace(/\/$/, '')
+      );
+      if (v && isLocalhostHostname(u.hostname)) return '';
+      if (v && u.protocol !== 'https:') return '';
+      return u.origin;
+    } catch (e2) {
+      void e2;
+    }
+  }
+  if (!v) {
+    for (let j = 0; j < envUrls.length; j++) {
+      let raw2 = envUrls[j].replace(/\/$/, '');
+      if (!raw2) continue;
+      if (!/^https?:\/\//i.test(raw2)) raw2 = 'http://' + raw2;
+      try {
+        return new URL(raw2).origin;
+      } catch (e3) {
+        void e3;
+      }
+    }
+  }
+  return '';
+}
+
 /**
  * Endereco por id + dono (user_id = auth user). Fallback: busca so por id e confere user_id na linha.
  */
@@ -295,7 +362,7 @@ module.exports = async function handler(req, res) {
 
   const cfg = adminConfig();
   const accessToken = resolveMercadoPagoAccessToken();
-  const appUrl = resolvePublicBaseUrl(req);
+  const appUrl = resolveMercadoPagoSiteBaseUrl(req);
   if (!cfg.ok || !accessToken || !appUrl) {
     var missing = [];
     if (!cfg.ok) {
@@ -306,11 +373,15 @@ module.exports = async function handler(req, res) {
       missing.push('MERCADO_PAGO_ACCESS_TOKEN');
       missing.push('(ou MERCADOPAGO_ACCESS_TOKEN / MP_ACCESS_TOKEN)');
     }
-    if (!appUrl) missing.push('APP_URL');
-    res.status(503).json({
-      ok: false,
-      code: 'SERVER_CONFIG',
-      error: 'Pagamento não configurado no servidor.',
+    if (!appUrl) {
+      missing.push('APP_URL');
+      if (isVercelProductionDeploy()) {
+        missing.push('URL pública HTTPS (não localhost na Vercel; use https://seu-dominio ou deixe VERCEL_URL)');
+      }
+    }
+    jsonError(res, 503, 'SERVER_CONFIG', isVercelProductionDeploy()
+      ? 'APP_URL precisa ser URL pública HTTPS em produção na Vercel (não use localhost).'
+      : 'Pagamento não configurado no servidor.', {
       missing: missing
     });
     return;
@@ -570,7 +641,7 @@ module.exports = async function handler(req, res) {
     user_id: user.id,
     order_number: orderNumber,
     status: 'pending',
-    payment_status: 'pending_payment',
+    payment_status: 'pending',
     payment_method: paymentMethod,
     total_amount: total,
     shipping_amount: shipping,

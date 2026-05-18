@@ -90,18 +90,26 @@ function resolveApiModule(urlPath) {
   return fs.existsSync(file) ? file : null;
 }
 
-async function handleApi(urlPath, req, res) {
+async function handleApi(fullUrl, urlPath, req, res) {
   const modulePath = resolveApiModule(urlPath);
   if (!modulePath) return false;
 
   delete require.cache[require.resolve(modulePath)];
   const handler = require(modulePath);
   const body = await readBody(req);
+  let query = {};
+  try {
+    const parsedUrl = new URL(fullUrl || '/', 'http://127.0.0.1:' + PORT);
+    query = Object.fromEntries(parsedUrl.searchParams.entries());
+  } catch (_) {
+    /**/
+  }
   const vercelReq = {
     method: req.method,
     headers: req.headers,
     body: body,
-    query: {}
+    url: fullUrl,
+    query: query
   };
   const vercelRes = createVercelRes(res);
   await handler(vercelReq, vercelRes);
@@ -165,11 +173,12 @@ function serveStatic(urlPath, res) {
 loadEnvFile();
 
 const server = http.createServer(async function (req, res) {
-  const urlPath = (req.url || '/').split('?')[0] || '/';
+  const fullUrl = req.url || '/';
+  const urlPath = fullUrl.split('?')[0] || '/';
 
   if (urlPath.startsWith('/api/')) {
     try {
-      const handled = await handleApi(urlPath, req, res);
+      const handled = await handleApi(fullUrl, urlPath, req, res);
       if (handled) return;
     } catch (err) {
       console.error('[dev-server] API error', urlPath, err);
