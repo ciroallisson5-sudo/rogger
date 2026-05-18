@@ -1,6 +1,25 @@
 // Conforta Store - Cart
 // Nome da API: addProductToCart — evita conflito com window.addToCart em produto.html.
 
+
+function getConfortaGuestDeviceId() {
+  const key = 'conforta_guest_device_id';
+  try {
+    let current = localStorage.getItem(key);
+    if (current) return current;
+    current = (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID()
+      : 'guest-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+    localStorage.setItem(key, current);
+    return current;
+  } catch (_) {
+    return 'guest-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+  }
+}
+window.getConfortaGuestDeviceId = getConfortaGuestDeviceId;
+try { getConfortaGuestDeviceId(); } catch (_) {}
+
+
 /**
  * Compra sem cadastro: cria sessão anônima no Supabase (Authentication → Providers → Anonymous).
  * Não pede e-mail/senha; o carrinho fica ligado a esse usuário até limpar cookies ou converter conta.

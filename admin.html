@@ -584,8 +584,12 @@
                 <input type="text" id="contactPhone" class="form-input" placeholder="(27) 3333-3333">
               </div>
               <div>
-                <label class="form-label-light">WhatsApp (so numeros, com DDI+DDD)</label>
+                <label class="form-label-light">WhatsApp atendente (so numeros, com DDI+DDD)</label>
                 <input type="text" id="whatsappNumber" class="form-input" placeholder="552733333333">
+              </div>
+              <div>
+                <label class="form-label-light">WhatsApp de urgencia</label>
+                <input type="text" id="whatsappEmergencyNumber" class="form-input" placeholder="5527998108962">
               </div>
               <div>
                 <label class="form-label-light">Nome da loja</label>
@@ -690,7 +694,8 @@
           <h3>Informações da loja</h3>
           <div class="form-group"><label class="form-label">Nome da Loja</label><input class="form-input" id="setStoreName"></div>
           <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="setStoreDesc" rows="3"></textarea></div>
-          <div class="form-group"><label class="form-label">WhatsApp (com codigo pais)</label><input class="form-input" id="setWhatsApp" placeholder="5527999999999"></div>
+          <div class="form-group"><label class="form-label">WhatsApp atendente normal (com codigo pais)</label><input class="form-input" id="setWhatsApp" placeholder="5527999999999"></div>
+          <div class="form-group"><label class="form-label">WhatsApp de urgencia (com codigo pais)</label><input class="form-input" id="setWhatsAppEmergency" placeholder="5527998108962"></div>
           <div class="form-group"><label class="form-label">Cor Primaria</label><div style="display:flex;align-items:center;gap:8px;"><input class="form-input" id="setPrimaryColor" placeholder="#1a56db" style="flex:1;"><input type="color" id="setPrimaryColorPicker" value="#1a56db" style="width:40px;height:38px;border:1px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;"></div></div>
         </div>
         <div class="settings-section">
@@ -2226,6 +2231,15 @@
           var r = await query;
           if (r.error) { showToast('Erro ao carregar pedidos: ' + (r.error.message || r.error), 'error'); renderOrdersFallback(); return; }
           state.orders = r.data || [];
+          var paymentMap = {};
+          try {
+            var orderIds = state.orders.map(function(o) { return o.id; }).filter(Boolean);
+            if (orderIds.length) {
+              var pr = await sb.from('payments').select('order_id, raw_provider_payload, provider_payment_id, provider_status').in('order_id', orderIds);
+              (pr.data || []).forEach(function(p) { paymentMap[String(p.order_id)] = p; });
+            }
+          } catch (ePay) { void ePay; }
+          state.orders.forEach(function(o) { o.__payment = paymentMap[String(o.id)] || null; });
 
           var list = document.getElementById('ordersList');
           if (state.orders.length === 0) {
@@ -2234,9 +2248,12 @@
           }
 
           list.innerHTML = state.orders.map(function(o) {
-            var client = o.profiles ? (o.profiles.full_name || o.profiles.email || '--') : '--';
+            var rawPay = o.__payment && o.__payment.raw_provider_payload ? o.__payment.raw_provider_payload : {};
+            var guestCustomer = rawPay.guest_customer || {};
+            var guestAddress = rawPay.guest_shipping_address || {};
+            var client = o.profiles ? (o.profiles.full_name || o.profiles.email || '--') : (guestCustomer.full_name || guestCustomer.email || 'Cliente visitante');
             var addr = o.addresses;
-            var addrStr = addr ? (addr.street + (addr.number ? ', ' + addr.number : '') + ' - ' + (addr.neighborhood || '') + ', ' + (addr.city || '') + '/' + (addr.state || '')) : '--';
+            var addrStr = addr ? (addr.street + (addr.number ? ', ' + addr.number : '') + ' - ' + (addr.neighborhood || '') + ', ' + (addr.city || '') + '/' + (addr.state || '')) : (guestAddress.street ? (guestAddress.street + (guestAddress.number ? ', ' + guestAddress.number : '') + ' - ' + (guestAddress.neighborhood || '') + ', ' + (guestAddress.city || '') + '/' + (guestAddress.state || '') + ' - CEP ' + (guestAddress.cep || '')) : '--');
             return '<div class="order-card">' +
               '<div class="order-header" onclick="toggleOrderDetails(this)">' +
               '<div><span class="order-id">#' + escHtml(o.order_number) + '</span><div class="order-date">' + formatDate(o.created_at) + '</div></div>' +
@@ -2249,6 +2266,7 @@
               '<div class="order-details">' +
               '<div class="order-details-grid">' +
               '<div class="order-detail-item"><label>Cliente</label><span>' + escHtml(client) + '</span></div>' +
+              (guestCustomer.email || guestCustomer.phone ? '<div class="order-detail-item"><label>Contato visitante</label><span>' + escHtml([guestCustomer.email, guestCustomer.phone].filter(Boolean).join(' | ')) + '</span></div>' : '') +
               '<div class="order-detail-item"><label>Endereco</label><span>' + escHtml(addrStr) + '</span></div>' +
               '<div class="order-detail-item"><label>Metodo Pagamento</label><span>' + (o.payment_method ? statusLabel(o.payment_method) : '--') + '</span></div>' +
               '<div class="order-detail-item"><label>Status Pagamento</label><span>' + statusBadge(o.payment_status) + '</span></div>' +
@@ -2378,6 +2396,7 @@
           document.getElementById('setStoreName').value = (map.store_name && typeof map.store_name === 'object' ? map.store_name : map.store_name) || '';
           document.getElementById('setStoreDesc').value = (map.store_description && typeof map.store_description === 'object' ? map.store_description : map.store_description) || '';
           document.getElementById('setWhatsApp').value = (map.whatsapp_number && typeof map.whatsapp_number === 'object' ? map.whatsapp_number : map.whatsapp_number) || '';
+          document.getElementById('setWhatsAppEmergency').value = (map.whatsapp_emergency_number && typeof map.whatsapp_emergency_number === 'object' ? map.whatsapp_emergency_number : map.whatsapp_emergency_number) || '5527998108962';
           document.getElementById('setPrimaryColor').value = (map.primary_color && typeof map.primary_color === 'object' ? map.primary_color : map.primary_color) || '#1a56db';
           document.getElementById('setPrimaryColorPicker').value = document.getElementById('setPrimaryColor').value;
           var mpWh = document.getElementById('mpWebhookUrl');
@@ -2404,6 +2423,7 @@
           { key: 'store_name', value: document.getElementById('setStoreName').value.trim() },
           { key: 'store_description', value: document.getElementById('setStoreDesc').value.trim() },
           { key: 'whatsapp_number', value: document.getElementById('setWhatsApp').value.trim() },
+          { key: 'whatsapp_emergency_number', value: document.getElementById('setWhatsAppEmergency').value.trim() || '5527998108962' },
           { key: 'primary_color', value: document.getElementById('setPrimaryColor').value.trim() },
           { key: 'n8n_webhook_url', value: document.getElementById('setN8nUrl').value.trim() },
           { key: 'delivery_info', value: {
@@ -3045,6 +3065,7 @@
           document.getElementById('contactEmail').value = typeof settings.contact_email === 'string' ? settings.contact_email : '';
           document.getElementById('contactPhone').value = typeof settings.contact_phone === 'string' ? settings.contact_phone : '';
           document.getElementById('whatsappNumber').value = typeof settings.whatsapp_number === 'string' ? settings.whatsapp_number : '';
+          document.getElementById('whatsappEmergencyNumber').value = typeof settings.whatsapp_emergency_number === 'string' ? settings.whatsapp_emergency_number : '5527998108962';
           document.getElementById('storeName').value = typeof settings.store_name === 'string' ? settings.store_name : '';
 
           var heroRaw = settings.home_hero_image_url;
@@ -3179,6 +3200,7 @@
           await upsertSetting('contact_email', document.getElementById('contactEmail').value.trim());
           await upsertSetting('contact_phone', document.getElementById('contactPhone').value.trim());
           await upsertSetting('whatsapp_number', document.getElementById('whatsappNumber').value.trim());
+          await upsertSetting('whatsapp_emergency_number', document.getElementById('whatsappEmergencyNumber').value.trim() || '5527998108962');
           await upsertSetting('store_name', document.getElementById('storeName').value.trim());
           showToast('Contato salvo', 'success');
         } catch(e) { showToast('Erro: ' + (e.message || e), 'error'); }

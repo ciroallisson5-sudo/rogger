@@ -388,44 +388,63 @@ function syncGlobalBottomCartCount() {
 }
 
 async function configureGlobalWhatsappLinks() {
+  function normalizeWa(raw) {
+    const digits = String(raw || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return (digits.length === 10 || digits.length === 11) ? '55' + digits : digits;
+  }
   try {
     var cfgDigits = '';
-    if (typeof CONFORTA_STORE_EDITABLE !== 'undefined' && CONFORTA_STORE_EDITABLE && CONFORTA_STORE_EDITABLE.whatsappE164) {
-      cfgDigits = String(CONFORTA_STORE_EDITABLE.whatsappE164).replace(/\D/g, '');
+    var cfgEmergencyDigits = '';
+    if (typeof CONFORTA_STORE_EDITABLE !== 'undefined' && CONFORTA_STORE_EDITABLE) {
+      if (CONFORTA_STORE_EDITABLE.whatsappE164) cfgDigits = normalizeWa(CONFORTA_STORE_EDITABLE.whatsappE164);
+      if (CONFORTA_STORE_EDITABLE.emergencyWhatsappE164) cfgEmergencyDigits = normalizeWa(CONFORTA_STORE_EDITABLE.emergencyWhatsappE164);
     }
     if (cfgDigits) {
-      const normalizedCfg = (cfgDigits.length === 10 || cfgDigits.length === 11) ? '55' + cfgDigits : cfgDigits;
-      window.CONFORTA_WHATSAPP_URL = window.CONFORTA_WHATSAPP_URL || `https://wa.me/${normalizedCfg}`;
+      window.CONFORTA_WHATSAPP_NORMAL_URL = window.CONFORTA_WHATSAPP_NORMAL_URL || `https://wa.me/${cfgDigits}`;
+      window.CONFORTA_WHATSAPP_URL = window.CONFORTA_WHATSAPP_URL || window.CONFORTA_WHATSAPP_NORMAL_URL;
     }
-    let phone = '';
-    if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
-    if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
-    const digits = String(phone || '').replace(/\D/g, '');
-    if (digits) {
-      const normalized = (digits.length === 10 || digits.length === 11) ? '55' + digits : digits;
-      window.CONFORTA_WHATSAPP_URL = window.CONFORTA_WHATSAPP_URL || `https://wa.me/${normalized}`;
+    if (cfgEmergencyDigits) {
+      window.CONFORTA_WHATSAPP_EMERGENCY_URL = window.CONFORTA_WHATSAPP_EMERGENCY_URL || `https://wa.me/${cfgEmergencyDigits}`;
     }
+    let normalPhone = '';
+    let emergencyPhone = '';
+    if (typeof getSetting === 'function') normalPhone = await getSetting('whatsapp_number');
+    if (!normalPhone && typeof getSetting === 'function') normalPhone = await getSetting('contact_phone');
+    if (typeof getSetting === 'function') emergencyPhone = await getSetting('whatsapp_emergency_number');
+    const normalDigits = normalizeWa(normalPhone);
+    const emergencyDigits = normalizeWa(emergencyPhone) || cfgEmergencyDigits || '5527998108962';
+    if (normalDigits) {
+      window.CONFORTA_WHATSAPP_NORMAL_URL = `https://wa.me/${normalDigits}`;
+      window.CONFORTA_WHATSAPP_URL = window.CONFORTA_WHATSAPP_NORMAL_URL;
+    }
+    if (emergencyDigits) window.CONFORTA_WHATSAPP_EMERGENCY_URL = `https://wa.me/${emergencyDigits}`;
   } catch { /* silent */ }
 
   injectMobileWhatsappFab();
 
-  document.querySelectorAll('.js-global-whatsapp').forEach(function(link) {
-    if (link.dataset.ccWaGlobalBound === '1') return;
-    link.dataset.ccWaGlobalBound = '1';
-    const message = link.getAttribute('data-message') || 'Olá! Quero atendimento da Conforta Colchões.';
-    if (window.CONFORTA_WHATSAPP_URL) {
-      link.href = `${window.CONFORTA_WHATSAPP_URL}?text=${encodeURIComponent(message)}`;
-      link.target = '_blank';
-      link.rel = 'noopener';
-    }
-    link.addEventListener('click', function(e) {
-      if (window.CONFORTA_WHATSAPP_URL) return;
-      e.preventDefault();
-      if (typeof window.openChatWidget === 'function') window.openChatWidget();
-      else if (typeof window.toggleChat === 'function') window.toggleChat();
-      else if (typeof showToast === 'function') showToast('Atendimento indisponível no momento', 'info');
+  function bindWaLinks(selector, url, fallbackMessage) {
+    document.querySelectorAll(selector).forEach(function(link) {
+      if (link.dataset.ccWaGlobalBound === '1') return;
+      link.dataset.ccWaGlobalBound = '1';
+      const message = link.getAttribute('data-message') || fallbackMessage;
+      if (url) {
+        link.href = `${url}?text=${encodeURIComponent(message)}`;
+        link.target = '_blank';
+        link.rel = 'noopener';
+      }
+      link.addEventListener('click', function(e) {
+        if (url) return;
+        e.preventDefault();
+        if (typeof window.openChatWidget === 'function') window.openChatWidget();
+        else if (typeof window.toggleChat === 'function') window.toggleChat();
+        else if (typeof showToast === 'function') showToast('Atendimento indisponível no momento', 'info');
+      });
     });
-  });
+  }
+
+  bindWaLinks('.js-global-whatsapp', window.CONFORTA_WHATSAPP_URL, 'Olá! Quero atendimento da Conforta Colchões.');
+  bindWaLinks('.js-global-whatsapp-emergency', window.CONFORTA_WHATSAPP_EMERGENCY_URL, 'Olá! Preciso de atendimento urgente na Conforta Colchões.');
 }
 
 function injectMobileWhatsappFab() {

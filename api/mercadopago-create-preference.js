@@ -365,6 +365,86 @@ function brPhoneForMp(digits) {
   return null;
 }
 
+function normalizeGuestCustomer(raw) {
+  const r = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  return {
+    full_name: String(r.full_name || r.fullName || r.name || '').trim().slice(0, 180),
+    email: String(r.email || r.contact_email || r.contactEmail || '').trim().slice(0, 180),
+    phone: String(r.phone || r.whatsapp || r.telefone || '').trim().slice(0, 40),
+    cpf_cnpj: onlyDigits(r.cpf_cnpj || r.cpfCnpj || r.document || r.cpf || r.cnpj || '').slice(0, 14)
+  };
+}
+
+function normalizeGuestShippingAddress(raw) {
+  const r = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const state = String(r.state || r.uf || '').trim().toUpperCase().slice(0, 2);
+  return {
+    label: String(r.label || 'Checkout visitante').trim().slice(0, 80) || 'Checkout visitante',
+    cep: normalizeBrazilCepDigits(r.cep || r.zip_code || r.zipCode || r.postal_code || r.postalCode || ''),
+    street: String(r.street || r.address || r.logradouro || '').trim().slice(0, 180),
+    number: String(r.number || r.numero || '').trim().slice(0, 40),
+    complement: String(r.complement || r.complemento || '').trim().slice(0, 120),
+    neighborhood: String(r.neighborhood || r.bairro || '').trim().slice(0, 120),
+    city: String(r.city || r.cidade || '').trim().slice(0, 120),
+    state: state
+  };
+}
+
+function hasUsableGuestShippingAddress(addr) {
+  return !!(addr && addr.cep && addr.street && addr.city && addr.state && addr.state.length === 2);
+}
+
+async function createAddressFromGuestCheckout(cfg, userId, addr) {
+  if (!hasUsableGuestShippingAddress(addr)) return { ok: false };
+  const row = {
+    user_id: userId,
+    label: addr.label || 'Checkout visitante',
+    cep: addr.cep,
+    zip_code: addr.cep,
+    street: addr.street,
+    number: addr.number || '',
+    complement: addr.complement || '',
+    neighborhood: addr.neighborhood || '',
+    city: addr.city,
+    state: addr.state,
+    is_default: false
+  };
+  const r = await restPostSchemaTolerant(cfg, 'addresses', row, { protectedKeys: ['user_id'] });
+  if (r.ok && Array.isArray(r.data) && r.data[0] && r.data[0].id) return { ok: true, id: r.data[0].id, row: r.data[0] };
+  return { ok: false, response: r };
+}
+
+function normalizeRequestedPaymentMode(body) {
+  const raw = String(
+    (body && (body.payment_mode || body.paymentMode || body.payment_method || body.paymentMethod || body.method)) ||
+      ''
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+  if (raw === 'pix' || raw === 'mercadopago_pix') return 'pix';
+  return 'checkout_pro';
+}
+
+function pixDataFromMercadoPagoPayment(mpJson) {
+  const poi = mpJson && mpJson.point_of_interaction ? mpJson.point_of_interaction : {};
+  const td = poi && poi.transaction_data ? poi.transaction_data : {};
+  const details = mpJson && mpJson.transaction_details ? mpJson.transaction_details : {};
+  return {
+    payment_id: mpJson && mpJson.id != null ? String(mpJson.id) : '',
+    status: mpJson && mpJson.status != null ? String(mpJson.status) : '',
+    status_detail: mpJson && mpJson.status_detail != null ? String(mpJson.status_detail) : '',
+    qr_code: td.qr_code != null ? String(td.qr_code) : '',
+    qr_code_base64: td.qr_code_base64 != null ? String(td.qr_code_base64) : '',
+    ticket_url:
+      td.ticket_url != null
+        ? String(td.ticket_url)
+        : details.external_resource_url != null
+          ? String(details.external_resource_url)
+          : ''
+  };
+}
+
 function lineUnitPrice(product, photo) {
   if (!product) return 0;
   const ph = photo || {};
@@ -503,11 +583,19 @@ module.exports = async function handler(req, res) {
   }
 
   const body = await readMergedJsonBody(req);
+  const requestedPaymentMode = normalizeRequestedPaymentMode(body);
+  const isPixPaymentMode = requestedPaymentMode === 'pix';
+  const guestSessionId = String(body.guest_session_id || body.guestSessionId || '').trim().slice(0, 120);
+  const guestCustomer = normalizeGuestCustomer(body.guest_customer || body.guestCustomer || body.customer || {});
+  const guestShippingAddress = normalizeGuestShippingAddress(
+    body.guest_shipping_address || body.guestShippingAddress || body.shipping_address || body.shippingAddress || {}
+  );
 
   logMpCheckoutDiag('request', {
     method: req.method,
     contentType: req.headers['content-type'],
     bodyKeys: Object.keys(body),
+    paymentMode: requestedPaymentMode,
     hasShippingAddressId: !!String(
       body.shipping_address_id || body.shippingAddressId || body.address_id || ''
     ).trim(),
@@ -543,6 +631,7 @@ module.exports = async function handler(req, res) {
       body.customer_email ||
       body.customerEmail ||
       body.payer_email ||
+      guestCustomer.email ||
       ''
   ).trim();
   let payerEmailForMp = String(user.email || '').trim();
@@ -561,20 +650,21 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const shippingAddressId = String(
+  let shippingAddressId = String(
     body.shipping_address_id || body.shippingAddressId || body.address_id || body.addressId || ''
   ).trim();
+  const hasGuestAddress = hasUsableGuestShippingAddress(guestShippingAddress);
   const idempotencyKey = String(req.headers['x-idempotency-key'] || body.idempotency_key || '')
     .trim()
     .slice(0, 128);
 
-  if (!shippingAddressId) {
-    jsonError(res, 400, 'NO_SHIPPING_ADDRESS', 'Selecione um endereco de entrega.', {
-      hint: 'Envie JSON: {"shipping_address_id":"<uuid do endereco>"}'
+  if (!shippingAddressId && !hasGuestAddress) {
+    jsonError(res, 400, 'NO_SHIPPING_ADDRESS', 'Informe o endereco de entrega no checkout.', {
+      hint: 'Envie shipping_address_id de um endereco salvo ou guest_shipping_address com cep, street, city e state.'
     });
     return;
   }
-  if (!isShippingAddressUuid(shippingAddressId)) {
+  if (shippingAddressId && !isShippingAddressUuid(shippingAddressId)) {
     jsonError(res, 400, 'NO_SHIPPING_ADDRESS', 'ID do endereco invalido. Atualize a pagina e selecione o endereco de entrega de novo.', {
       hint: 'shipping_address_id deve ser um UUID do endereco no Supabase.'
     });
@@ -601,11 +691,34 @@ module.exports = async function handler(req, res) {
       );
       if (ordChk.ok && Array.isArray(ordChk.data) && ordChk.data[0]) {
         const raw = row.raw_provider_payload || {};
+        const rawPaymentMode = String(raw.payment_mode || '').toLowerCase();
+        if (
+          rawPaymentMode === 'pix' &&
+          raw.payment_id &&
+          String(ordChk.data[0].payment_status || '') !== 'paid' &&
+          (raw.qr_code || raw.qr_code_base64 || raw.ticket_url)
+        ) {
+          res.status(200).json({
+            ok: true,
+            payment_mode: 'pix',
+            order_id: oid,
+            order_number: ordChk.data[0].order_number,
+            payment_id: raw.payment_id,
+            status: raw.status || 'pending',
+            status_detail: raw.status_detail || null,
+            qr_code: raw.qr_code || null,
+            qr_code_base64: raw.qr_code_base64 || null,
+            ticket_url: raw.ticket_url || null,
+            reused: true
+          });
+          return;
+        }
         const initPoint = raw.init_point || raw.sandbox_init_point;
         const prefId = row.provider_preference_id || raw.preference_id;
         if (initPoint && prefId && String(ordChk.data[0].payment_status || '') !== 'paid') {
           res.status(200).json({
             ok: true,
+            payment_mode: 'checkout_pro',
             init_point: initPoint,
             sandbox_init_point: raw.sandbox_init_point || null,
             preference_id: prefId,
@@ -703,14 +816,23 @@ module.exports = async function handler(req, res) {
   }
 
   let cep = '';
-  const addrRes = await fetchShippingAddressRow(cfg, shippingAddressId, user.id);
-  if (!addrRes.ok || !addrRes.row) {
-    jsonError(res, 400, 'INVALID_SHIPPING_ADDRESS', 'Endereco de entrega invalido.', {
-      hint: addrRes.hint || 'Salve o endereco de novo no checkout ou confira se esta logado na mesma conta.'
-    });
-    return;
+  let checkoutAddressRow = null;
+  let usingGuestShippingAddress = false;
+  if (shippingAddressId) {
+    const addrRes = await fetchShippingAddressRow(cfg, shippingAddressId, user.id);
+    if (!addrRes.ok || !addrRes.row) {
+      jsonError(res, 400, 'INVALID_SHIPPING_ADDRESS', 'Endereco de entrega invalido.', {
+        hint: addrRes.hint || 'Salve o endereco de novo no checkout ou confira se esta logado na mesma conta.'
+      });
+      return;
+    }
+    checkoutAddressRow = addrRes.row;
+    cep = cepDigitsFromAddressRow(addrRes.row);
+  } else {
+    usingGuestShippingAddress = true;
+    checkoutAddressRow = guestShippingAddress;
+    cep = guestShippingAddress.cep;
   }
-  cep = cepDigitsFromAddressRow(addrRes.row);
   if (!cep) {
     jsonError(res, 400, 'INVALID_ADDRESS_CEP', 'CEP inválido no endereço selecionado.');
     return;
@@ -738,11 +860,25 @@ module.exports = async function handler(req, res) {
   const shipping = toMoney2(fr.delivered ? fr.amount : 0);
   const total = toMoney2(subtotal + shipping);
 
+  if (!shippingAddressId && usingGuestShippingAddress) {
+    const createdAddr = await createAddressFromGuestCheckout(cfg, user.id, guestShippingAddress);
+    if (createdAddr.ok && createdAddr.id) {
+      shippingAddressId = String(createdAddr.id);
+      checkoutAddressRow = createdAddr.row || checkoutAddressRow;
+    } else {
+      logMpCheckoutDiag('guest_address_insert_failed_non_blocking', {
+        status: createdAddr.response && createdAddr.response.status,
+        attempts: createdAddr.response && createdAddr.response.attempts
+      });
+    }
+  }
+
   const orderNumber = 'CF' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
 
   /* Colunas curtas: muitos schemas usam varchar curto em payment_method; "mercadopago_checkout_pro" estoura varchar(20). */
-  const paymentMethod =
-    String(process.env.MP_ORDER_PAYMENT_METHOD || 'mercadopago').trim() || 'mercadopago';
+  const paymentMethod = isPixPaymentMode
+    ? 'mercadopago_pix'
+    : String(process.env.MP_ORDER_PAYMENT_METHOD || 'mercadopago').trim() || 'mercadopago';
 
   const orderRow = {
     user_id: user.id,
@@ -813,14 +949,19 @@ module.exports = async function handler(req, res) {
       {
         order_id: orderId,
         provider: 'mercadopago',
-        payment_method: 'mercadopago',
-        method: 'mercadopago',
+        payment_method: isPixPaymentMode ? 'pix' : 'mercadopago',
+        method: isPixPaymentMode ? 'pix' : 'mercadopago',
         status: 'pending',
         amount: total,
         currency: 'BRL',
         external_reference: orderId,
         idempotency_key: idempotencyKey || null,
-        raw_provider_payload: {}
+        raw_provider_payload: {
+          guest_checkout: guestSessionId ? true : false,
+          guest_session_id: guestSessionId || null,
+          guest_customer: cleanObject(guestCustomer),
+          guest_shipping_address: cleanObject(guestShippingAddress)
+        }
       },
       { protectedKeys: ['order_id'] }
     );
@@ -829,18 +970,18 @@ module.exports = async function handler(req, res) {
     }
 
     const fullName = String(
-      (profileRow && profileRow.full_name) || user.email || payerEmailForMp || 'Cliente'
+      (profileRow && profileRow.full_name) || guestCustomer.full_name || user.email || payerEmailForMp || 'Cliente'
     ).trim();
     const nameParts = fullName.split(/\s+/).filter(Boolean);
     const firstName = nameParts[0] || 'Cliente';
     const surname = nameParts.length > 1 ? nameParts.slice(1).join(' ').slice(0, 60) : firstName;
-    const docDigits = onlyDigits((profileRow && profileRow.cpf_cnpj) || '').slice(0, 14);
+    const docDigits = onlyDigits((profileRow && profileRow.cpf_cnpj) || guestCustomer.cpf_cnpj || '').slice(0, 14);
     const payer = {
       first_name: firstName.slice(0, 50),
       surname: surname.slice(0, 60)
     };
     if (payerEmailForMp) payer.email = payerEmailForMp;
-    const phoneMp = brPhoneForMp(user.phone || (profileRow && profileRow.phone));
+    const phoneMp = brPhoneForMp(user.phone || (profileRow && profileRow.phone) || guestCustomer.phone);
     if (phoneMp) payer.phone = { area_code: phoneMp.area_code, number: phoneMp.number };
     if (docDigits.length === 11) {
       payer.identification = { type: 'CPF', number: docDigits };
@@ -893,6 +1034,132 @@ module.exports = async function handler(req, res) {
     if (!isFinite(maxInst) || maxInst < 1) maxInst = 12;
     maxInst = Math.min(12, Math.max(1, maxInst));
 
+    if (isPixPaymentMode) {
+      const pixPayer = cleanObject({
+        email: payer.email,
+        first_name: payer.first_name,
+        last_name: payer.surname,
+        identification: payer.identification,
+        phone: payer.phone
+      });
+      const pixBody = cleanObject({
+        transaction_amount: Number(toMoney2(total)),
+        description: ('Pedido ' + orderNumber + ' - Conforta Colchoes').slice(0, 255),
+        payment_method_id: 'pix',
+        payer: pixPayer,
+        external_reference: orderId,
+        notification_url: appUrl + '/api/mercadopago-webhook?source_news=webhooks',
+        callback_url: appUrl + '/checkout-retorno.html?order_id=' + encodeURIComponent(orderId) + '&status=pending',
+        statement_descriptor: statement,
+        additional_info: {
+          items: mpItemsSafe.map(function (it) {
+            return {
+              id: it.id,
+              title: it.title,
+              quantity: it.quantity,
+              unit_price: it.unit_price
+            };
+          })
+        },
+        metadata: { order_id: orderId, order_number: orderNumber, user_id: user.id, payment_mode: 'pix', guest_session_id: guestSessionId || undefined }
+      });
+
+      logMpCheckoutDiag('outgoing_pix_payment', {
+        itemCount: mpItemsSafe.length,
+        total: total,
+        payerHasEmail: !!pixPayer.email,
+        payerHasId: !!pixPayer.identification
+      });
+
+      let pixRes;
+      try {
+        pixRes = await fetch('https://api.mercadopago.com/v1/payments', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + accessToken,
+            'Content-Type': 'application/json',
+            'X-Idempotency-Key': idem + '-pix'
+          },
+          body: JSON.stringify(pixBody)
+        });
+      } catch (fetchErr) {
+        console.error(
+          '[mercadopago-create-preference] fetch MP pix failed',
+          fetchErr && fetchErr.message ? fetchErr.message : fetchErr
+        );
+        throw makeCheckoutStageError('MERCADOPAGO_FETCH_FAILED', null, 'mercadopago_pix_fetch_failed', {
+          networkMessage: fetchErr && fetchErr.message ? String(fetchErr.message).slice(0, 300) : undefined
+        });
+      }
+
+      const pixJson = await pixRes.json().catch(function () {
+        return {};
+      });
+      if (!pixRes.ok) {
+        const details = sanitizeMpError(pixJson);
+        console.error('[mercadopago-create-preference] MP pix HTTP', pixRes.status, JSON.stringify(details));
+        const mpErr = new Error('mp_pix_http');
+        mpErr.mpDetails = details;
+        mpErr.mpHttpStatus = pixRes.status;
+        throw mpErr;
+      }
+
+      const pixData = pixDataFromMercadoPagoPayment(pixJson);
+      if (!pixData.payment_id || (!pixData.qr_code && !pixData.qr_code_base64 && !pixData.ticket_url)) {
+        console.error('[mercadopago-create-preference] MP pix missing qr', JSON.stringify(sanitizeMpError(pixJson)));
+        const mpErr = new Error('mp_pix_qr_missing');
+        mpErr.mpDetails = { message: 'Mercado Pago nao retornou QR Code Pix.' };
+        mpErr.mpHttpStatus = pixRes.status;
+        throw mpErr;
+      }
+
+      const pixRawForDb = {
+        payment_mode: 'pix',
+        payment_id: pixData.payment_id,
+        status: pixData.status || null,
+        status_detail: pixData.status_detail || null,
+        qr_code: pixData.qr_code || null,
+        qr_code_base64: pixData.qr_code_base64 || null,
+        ticket_url: pixData.ticket_url || null,
+        provider_payload: pixJson,
+        guest_checkout: guestSessionId ? true : false,
+        guest_session_id: guestSessionId || null,
+        guest_customer: cleanObject(guestCustomer),
+        guest_shipping_address: cleanObject(guestShippingAddress)
+      };
+
+      await fetch(cfg.base + '/rest/v1/payments?order_id=eq.' + encodeURIComponent(orderId), {
+        method: 'PATCH',
+        headers: {
+          apikey: cfg.service,
+          Authorization: 'Bearer ' + cfg.service,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal'
+        },
+        body: JSON.stringify({
+          provider_payment_id: pixData.payment_id,
+          provider_status: pixData.status || null,
+          provider_status_detail: pixData.status_detail || null,
+          status: 'pending',
+          raw_provider_payload: pixRawForDb
+        })
+      }).catch(function () {});
+
+      res.status(200).json({
+        ok: true,
+        payment_mode: 'pix',
+        order_id: orderId,
+        order_number: orderNumber,
+        payment_id: pixData.payment_id,
+        status: pixData.status || 'pending',
+        status_detail: pixData.status_detail || null,
+        qr_code: pixData.qr_code || null,
+        qr_code_base64: pixData.qr_code_base64 || null,
+        ticket_url: pixData.ticket_url || null
+      });
+      return;
+    }
+
     const prefBody = cleanObject({
       items: mpItemsSafe,
       payer: payer,
@@ -905,8 +1172,12 @@ module.exports = async function handler(req, res) {
       notification_url: appUrl + '/api/mercadopago-webhook?source_news=webhooks',
       external_reference: orderId,
       statement_descriptor: statement,
-      payment_methods: { installments: maxInst },
-      metadata: { order_id: orderId, order_number: orderNumber, user_id: user.id }
+      payment_methods: {
+        installments: maxInst,
+        default_payment_method_id:
+          String(process.env.MERCADO_PAGO_DEFAULT_PAYMENT_METHOD_ID || '').trim() || undefined
+      },
+      metadata: { order_id: orderId, order_number: orderNumber, user_id: user.id, guest_session_id: guestSessionId || undefined }
     });
 
     logMpCheckoutDiag('outgoing_preference', {
@@ -982,13 +1253,18 @@ module.exports = async function handler(req, res) {
         raw_provider_payload: {
           preference_id: prefId,
           init_point: mpJson.init_point || null,
-          sandbox_init_point: mpJson.sandbox_init_point || null
+          sandbox_init_point: mpJson.sandbox_init_point || null,
+          guest_checkout: guestSessionId ? true : false,
+          guest_session_id: guestSessionId || null,
+          guest_customer: cleanObject(guestCustomer),
+          guest_shipping_address: cleanObject(guestShippingAddress)
         }
       })
     }).catch(function () {});
 
     res.status(200).json({
       ok: true,
+      payment_mode: 'checkout_pro',
       init_point: initPoint,
       sandbox_init_point: mpJson.sandbox_init_point || null,
       preference_id: prefId,
@@ -1007,7 +1283,7 @@ module.exports = async function handler(req, res) {
       res.status(502).json({
         ok: false,
         code: 'MERCADOPAGO_API_ERROR',
-        error: 'Falha ao criar preferência no Mercado Pago. Tente novamente.',
+        error: 'Falha ao criar pagamento no Mercado Pago. Tente novamente.',
         details: err.mpDetails,
         mp_http_status: err.mpHttpStatus != null ? err.mpHttpStatus : undefined
       });

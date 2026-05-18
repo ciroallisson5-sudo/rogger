@@ -34,6 +34,7 @@
     var email = INSTITUTIONAL;
     var phone = '(27) 3333-3333';
     var whatsapp = '';
+    var whatsappEmergency = '5527998108962';
     var storeName = 'Conforta Colchões';
     var instagramHandle = '';
 
@@ -48,6 +49,10 @@
             if (row.key === 'contact_phone' && typeof v === 'string') phone = v;
             if (row.key === 'whatsapp_number' && typeof v === 'string') {
               whatsapp = String(v).replace(/\D/g, '');
+            }
+            if (row.key === 'whatsapp_emergency_number' && typeof v === 'string') {
+              var ed = String(v).replace(/\D/g, '');
+              if (ed) whatsappEmergency = ed.length === 10 || ed.length === 11 ? '55' + ed : ed;
             }
             if (row.key === 'store_name' && typeof v === 'string') {
               storeName =
@@ -65,8 +70,12 @@
 
     var year = new Date().getFullYear();
     var whatsLink = whatsapp ? 'https://wa.me/' + whatsapp : null;
+    var emergencyWhatsLink = whatsappEmergency ? 'https://wa.me/' + whatsappEmergency : null;
     var formattedWhats = whatsapp
       ? whatsapp.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '+$1 ($2) $3-$4')
+      : '';
+    var formattedEmergencyWhats = whatsappEmergency
+      ? whatsappEmergency.replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '+$1 ($2) $3-$4')
       : '';
     var igHandle = instagramHandle.replace(/^@+/, '').trim();
     var instagramLink = igHandle
@@ -111,6 +120,7 @@
         '<span class="hcs-sep" aria-hidden="true">|</span>' +
         phoneBlock +
         '<span class="hcs-sep" aria-hidden="true">|</span>' +
+        (emergencyWhatsLink ? '<a class="hcs-item" href="' + emergencyWhatsLink + '" target="_blank" rel="noopener">Urgência: ' + escFooter(formattedEmergencyWhats) + '</a><span class="hcs-sep" aria-hidden="true">|</span>' : '') +
         '<span class="hcs-item hcs-muted" title="Checkout Pro Mercado Pago">Pagamentos Mercado Pago</span>' +
         '<span class="hcs-sep" aria-hidden="true">|</span>' +
         '<span class="hcs-copy">&copy; ' +
@@ -158,6 +168,16 @@
           escFooter(phone) +
           '</span>' +
           '</span>') +
+      (emergencyWhatsLink
+        ? '<a class="footer-contact-item footer-contact-item--urgent" href="' +
+          emergencyWhatsLink +
+          '" target="_blank" rel="noopener" aria-label="Abrir WhatsApp de urgência Conforta Colchões">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.3.3-1 .9-1 2.3s1 2.7 1.1 2.9c.1.2 2 3 4.7 4.2 1.6.7 2.3.7 3.1.6.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20m5.5-15.5A7.7 7.7 0 0 0 12 4a7.7 7.7 0 0 0-7.8 7.8c0 1.4.4 2.7 1.1 3.9L4.2 20l4.4-1.1c1.2.7 2.5 1 3.9 1a7.7 7.7 0 0 0 7.8-7.8c0-2-.8-4-2.3-5.6"/></svg>' +
+          '<span>Urgência: ' +
+          escFooter(formattedEmergencyWhats || 'WhatsApp urgente') +
+          '</span>' +
+          '</a>'
+        : '') +
       (instagramLink
         ? '<a class="footer-contact-item" href="' +
           instagramLink +

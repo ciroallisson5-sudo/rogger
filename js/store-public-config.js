@@ -17,6 +17,9 @@
      */
     whatsappE164: '',
 
+    /** WhatsApp de urgencia em formato E.164 sem +. Usado em rodape, perfil e ajuda. */
+    emergencyWhatsappE164: '5527998108962',
+
     /** Endereço completo da loja (uma linha). Vazio = não exibir bloco de endereço. */
     storeAddressLine: '',
 

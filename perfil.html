@@ -435,7 +435,7 @@
             </button>
             <button class="profile-nav-item" data-section="atendimento" onclick="navigateProfile('atendimento')">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
-              Atendimento
+              Ajuda
             </button>
             <button class="profile-nav-item" data-section="config" onclick="navigateProfile('config')">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -496,10 +496,11 @@
           </div>
 
           <div class="profile-section" id="section-atendimento">
-            <h2>Precisa de ajuda?</h2>
+            <h2>Ajuda e WhatsApp</h2>
             <p class="section-desc">Nossa equipe está pronta para ajudar com pedidos, produtos, entregas e dúvidas sobre o colchão ideal.</p>
             <div class="summary-actions">
-              <a class="btn btn-whatsapp js-account-whatsapp" data-message="Olá! Preciso de ajuda com meu pedido na Conforta Colchões." href="#">Falar no WhatsApp</a>
+              <a class="btn btn-whatsapp js-account-whatsapp" data-message="Olá! Preciso de atendimento normal na Conforta Colchões." href="#">WhatsApp atendente</a>
+              <a class="btn btn-danger-outline js-account-whatsapp-emergency" data-message="Olá! Preciso de atendimento urgente na Conforta Colchões." href="#">WhatsApp urgência</a>
               <a class="btn btn-outline" href="produtos.html">Ver produtos</a>
               <button class="btn btn-outline" onclick="navigateProfile('pedidos')">Acompanhar pedidos</button>
             </div>
@@ -507,6 +508,7 @@
               <article class="support-card"><h3>Dúvidas sobre entrega</h3><p>Consulte prazo, região e disponibilidade.</p><a class="btn btn-outline btn-sm js-account-whatsapp" data-message="Olá! Quero consultar informações sobre entrega." href="#">Chamar atendimento</a></article>
               <article class="support-card"><h3>Ajuda para escolher colchão</h3><p>Receba orientação para peso, rotina e conforto.</p><a class="btn btn-outline btn-sm js-account-whatsapp" data-message="Olá! Quero ajuda para escolher o colchão ideal." href="#">Receber ajuda</a></article>
               <article class="support-card"><h3>Problemas com pedido</h3><p>Fale com a equipe sobre status, pagamento ou entrega.</p><a class="btn btn-outline btn-sm js-account-whatsapp" data-message="Olá! Preciso de ajuda com meu pedido na Conforta Colchões." href="#">Falar sobre pedido</a></article>
+              <article class="support-card"><h3>Urgência</h3><p>Use quando houver pagamento parado, entrega crítica ou atendimento imediato.</p><a class="btn btn-danger-outline btn-sm js-account-whatsapp-emergency" data-message="Olá! Preciso de atendimento urgente na Conforta Colchões." href="#">Chamar urgência</a></article>
               <article class="support-card"><h3>Garantia e troca</h3><p>Entenda orientações sobre produto e suporte pós-compra.</p><a class="btn btn-outline btn-sm js-account-whatsapp" data-message="Olá! Quero informações sobre garantia e troca." href="#">Consultar suporte</a></article>
             </div>
           </div>
@@ -651,32 +653,36 @@
       }
 
       async function configureWhatsapp() {
-        if (!window.CONFORTA_WHATSAPP_URL) {
-          try {
-            if (typeof CONFORTA_STORE_EDITABLE !== 'undefined' && CONFORTA_STORE_EDITABLE && CONFORTA_STORE_EDITABLE.whatsappE164) {
-              var cfgDigits = String(CONFORTA_STORE_EDITABLE.whatsappE164).replace(/\D/g, '');
-              if (cfgDigits) {
-                var nCfg = (cfgDigits.length === 10 || cfgDigits.length === 11) ? '55' + cfgDigits : cfgDigits;
-                window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + nCfg;
-              }
-            }
-            if (!window.CONFORTA_WHATSAPP_URL) {
-              var phone = '';
-              if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
-              if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
-              var normalized = normalizeWhatsapp(phone);
-              if (normalized) window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + normalized;
-            }
-          } catch(e) {}
+        function setUrlFromDigits(kind, raw) {
+          var normalized = normalizeWhatsapp(raw);
+          if (!normalized) return;
+          if (kind === 'emergency') window.CONFORTA_WHATSAPP_EMERGENCY_URL = 'https://wa.me/' + normalized;
+          else {
+            window.CONFORTA_WHATSAPP_URL = 'https://wa.me/' + normalized;
+            window.CONFORTA_WHATSAPP_NORMAL_URL = window.CONFORTA_WHATSAPP_URL;
+          }
         }
+        try {
+          if (typeof CONFORTA_STORE_EDITABLE !== 'undefined' && CONFORTA_STORE_EDITABLE) {
+            if (CONFORTA_STORE_EDITABLE.whatsappE164 && !window.CONFORTA_WHATSAPP_URL) setUrlFromDigits('normal', CONFORTA_STORE_EDITABLE.whatsappE164);
+            if (CONFORTA_STORE_EDITABLE.emergencyWhatsappE164 && !window.CONFORTA_WHATSAPP_EMERGENCY_URL) setUrlFromDigits('emergency', CONFORTA_STORE_EDITABLE.emergencyWhatsappE164);
+          }
+          var phone = '';
+          var emergency = '';
+          if (typeof getSetting === 'function') phone = await getSetting('whatsapp_number');
+          if (!phone && typeof getSetting === 'function') phone = await getSetting('contact_phone');
+          if (typeof getSetting === 'function') emergency = await getSetting('whatsapp_emergency_number');
+          if (phone) setUrlFromDigits('normal', phone);
+          setUrlFromDigits('emergency', emergency || '5527998108962');
+        } catch(e) {}
         updateWhatsappLinks();
       }
 
-      function updateWhatsappLinks() {
-        document.querySelectorAll('.js-account-whatsapp').forEach(function(link) {
-          var msg = link.getAttribute('data-message') || 'Olá! Preciso de ajuda na minha conta da Conforta Colchões.';
-          if (window.CONFORTA_WHATSAPP_URL) {
-            link.href = window.CONFORTA_WHATSAPP_URL + '?text=' + encodeURIComponent(msg);
+      function bindWhatsappSelector(selector, url, fallbackMessage) {
+        document.querySelectorAll(selector).forEach(function(link) {
+          var msg = link.getAttribute('data-message') || fallbackMessage;
+          if (url) {
+            link.href = url + '?text=' + encodeURIComponent(msg);
             link.target = '_blank';
             link.rel = 'noopener';
             link.onclick = null;
@@ -690,6 +696,11 @@
             };
           }
         });
+      }
+
+      function updateWhatsappLinks() {
+        bindWhatsappSelector('.js-account-whatsapp', window.CONFORTA_WHATSAPP_URL, 'Olá! Preciso de ajuda na minha conta da Conforta Colchões.');
+        bindWhatsappSelector('.js-account-whatsapp-emergency', window.CONFORTA_WHATSAPP_EMERGENCY_URL, 'Olá! Preciso de atendimento urgente na Conforta Colchões.');
       }
 
       function profileSkeleton(count) {
