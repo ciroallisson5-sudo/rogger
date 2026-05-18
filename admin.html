@@ -292,7 +292,7 @@
       <div class="auth-msg" id="authMsg"></div>
       <div id="authLoginView">
         <div class="form-group">
-          <label class="form-label">Email</label>
+          <label class="form-label">E-mail</label>
           <input class="form-input" type="email" id="authGateEmail" placeholder="seu@email.com" autocomplete="username">
         </div>
         <div class="form-group">
@@ -372,7 +372,7 @@
     <div class="topbar">
       <h2 id="pageTitle">Dashboard</h2>
       <div class="topbar-right">
-        <span class="topbar-user" id="topbarUser">Carregando...</span>
+        <span class="topbar-user" id="topbarUser">Carregando…</span>
         <button class="btn btn-sm btn-ghost" onclick="handleSignOut()">Sair</button>
       </div>
     </div>
@@ -398,7 +398,7 @@
             <strong>Produtos:</strong> crie ou atualize descrevendo ou enviando foto de etiqueta/vitrine.
             <strong>Pedidos / clientes:</strong> peça histórico por e-mail da conta — a consulta roda ao enviar (não precisa Aplicar). Alterações de pedido (status, excluir) vão no <strong>Aplicar</strong>.
             <strong>Categorias, banners, config do site, frete CEP:</strong> também podem ser montados pela IA e confirmados em Aplicar.
-            <strong>Frete por CEP:</strong> ex. &quot;adicione o CEP 29100100 por 45 reais&quot; ou &quot;CEP 05656000 frete 300&quot; — isso grava na tabela do painel <strong>CEP / Frete</strong>, nao no catalogo de produtos. CEP com menos de 8 digitos e completado com zeros a esquerda.
+            <strong>Frete por CEP:</strong> ex. &quot;adicione o CEP 29100100 por 45 reais&quot; ou &quot;CEP 05656000 frete 300&quot; — isso grava na tabela do painel <strong>CEP / Frete</strong>, não no catálogo de produtos. CEP com menos de 8 dígitos é completado com zeros à esquerda.
             <strong>JSON catálogo (WhatsApp / n8n):</strong> use a aba <strong>Estúdio IA</strong> — briefing, foto de referência e geração de JSON em um só lugar.
             Ao clicar em <strong>Aplicar no Supabase</strong>, as alterações são gravadas; se você enviou <strong>foto</strong> no plano, ela pode ir ao Storage (<code>public/imagens/ai-assistant/</code>) como primeira foto do produto (criação ou um único update no lote).
             Requer <code>OPENAI_API_KEY</code> na Vercel. Para <strong>Aplicar</strong> gravar no banco, a API usa <code>SUPABASE_URL</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> (mesmas variáveis das outras rotas admin). Uso apenas com sessão de administrador.
@@ -576,7 +576,7 @@
             <p class="home-card-hint">Usado pelo rodape compacto do site.</p>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
               <div>
-                <label class="form-label-light">Email de contato</label>
+                <label class="form-label-light">E-mail de contato</label>
                 <input type="email" id="contactEmail" class="form-input" placeholder="contato@empresa.com">
               </div>
               <div>
@@ -645,7 +645,7 @@
           <div class="settings-section">
             <h3>Mensagem para CEP fora da area</h3>
             <p style="font-size:0.8rem;color:var(--text2);line-height:1.5;margin:-4px 0 10px;">
-              Exibida na pagina do produto e no checkout quando o cliente consulta um CEP que <strong>nao</strong> esta na tabela abaixo.
+              Exibida na pagina do produto e no checkout quando o cliente consulta um CEP que <strong>não</strong> está na tabela abaixo.
               Tambem aumenta o contador de consultas apenas para CEPs cadastrados.
             </p>
             <textarea class="form-textarea" id="cepNoDeliveryMessage" rows="4" placeholder="Infelizmente não realizamos entrega neste CEP..."></textarea>
@@ -707,7 +707,7 @@
           </p>
           <div class="form-group">
             <label class="form-label">URL do webhook (painel Mercado Pago → Webhooks)</label>
-            <div class="endpoint-url" style="margin-top:6px;"><code id="mpWebhookUrl">Carregando...</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyMpWebhookUrl()">Copiar</button></div>
+            <div class="endpoint-url" style="margin-top:6px;"><code id="mpWebhookUrl">Carregando…</code><button type="button" class="btn btn-sm btn-ghost" onclick="copyMpWebhookUrl()">Copiar</button></div>
             <p style="font-size:0.78rem;color:var(--text2);margin-top:8px;">Inclua <code>source_news=webhooks</code> na URL (ja preenchida abaixo). Eventos recomendados: pagamentos.</p>
           </div>
         </div>
@@ -737,11 +737,11 @@
           <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;line-height:1.55;">Depois do deploy na <strong>Vercel</strong>, o admin e as rotas <code>/api/*</code> ficam no <strong>mesmo domínio</strong> (ex.: <code>https://sua-loja.vercel.app</code>). O navegador já chama <code>/api/openai-chat</code> e <code>/api/gerar-3d</code> relativos — não precisa apontar para API local no código. Abra o admin sempre por esse URL (não <code>file://</code>), senão o <code>/api/</code> não existe.</p>
           <p style="font-size:0.78rem;color:var(--text2);margin-bottom:6px;">Base deste deploy (cole no n8n antes de <code>openai-chat</code>, <code>gerar-3d</code>, etc.):</p>
           <div class="endpoint-url" style="margin-bottom:16px;">
-            <code id="n8nSiteApiBase">Carregando...</code>
+            <code id="n8nSiteApiBase">Carregando…</code>
             <button type="button" class="btn btn-sm btn-ghost" onclick="copyN8nSiteApiBase()">Copiar</button>
           </div>
           <div class="endpoint-url">
-            <code id="n8nEndpointUrl">Carregando...</code>
+            <code id="n8nEndpointUrl">Carregando…</code>
             <button class="btn btn-sm btn-ghost" onclick="copyN8nUrl()">Copiar URL</button>
           </div>
           <div style="display:flex;gap:8px;margin-bottom:16px;">
@@ -770,7 +770,7 @@
             </ol>
             <p style="margin-top:12px;">URL da API REST Supabase:</p>
             <div class="endpoint-url" style="margin:8px 0 0;">
-              <code id="supabaseRestUrl">Carregando...</code>
+              <code id="supabaseRestUrl">Carregando…</code>
               <button class="btn btn-sm btn-ghost" onclick="copySupabaseRestUrl()">Copiar</button>
             </div>
           </div>
@@ -1108,11 +1108,11 @@
         var password = document.getElementById('authGatePassword').value || '';
         if (!email || !password) { setAuthMsg('Informe email e senha.', 'error'); return; }
         var btn = document.getElementById('authGateSubmit');
-        btn.disabled = true; var oldText = btn.textContent; btn.textContent = 'Entrando...';
+        btn.disabled = true; var oldText = btn.textContent; btn.textContent = 'Entrando…';
         setAuthMsg('', null);
         try {
           var r = await sb.auth.signInWithPassword({ email: email, password: password });
-          if (r.error) { setAuthMsg('Email ou senha invalidos.', 'error'); return; }
+          if (r.error) { setAuthMsg('E-mail ou senha inválidos.', 'error'); return; }
           var ok = await isAdminUser(r.data.user && r.data.user.email);
           if (!ok) { showAuthGate('blocked', r.data.user && r.data.user.email); return; }
           location.reload();
@@ -1221,7 +1221,7 @@
             var p = await getProfile(u.id);
             document.getElementById('topbarUser').textContent = p ? (p.full_name || u.email) : u.email;
           } else {
-            document.getElementById('topbarUser').textContent = 'Nao autenticado';
+            document.getElementById('topbarUser').textContent = 'Não autenticado';
           }
         } catch(e) {
           document.getElementById('topbarUser').textContent = 'Erro';
@@ -1747,7 +1747,7 @@
               else showToast('Sessao expirada; entre de novo para gerar 3D.', 'error');
             } catch (eTripo) {
               void eTripo;
-              showToast('Nao foi possivel iniciar geracao 3D.', 'error');
+              showToast('Não foi possível iniciar geracao 3D.', 'error');
             }
           }
 
@@ -1951,7 +1951,7 @@
 
         renderPhotoGrid();
         closeModalById('photoConfigModal');
-        showToast('Configuracao da foto salva', 'success');
+        showToast('Configuração da foto salva.', 'success');
       };
 
       // ===================== CATEGORIES =====================
@@ -2267,7 +2267,7 @@
               '<div class="order-details-grid">' +
               '<div class="order-detail-item"><label>Cliente</label><span>' + escHtml(client) + '</span></div>' +
               (guestCustomer.email || guestCustomer.phone ? '<div class="order-detail-item"><label>Contato visitante</label><span>' + escHtml([guestCustomer.email, guestCustomer.phone].filter(Boolean).join(' | ')) + '</span></div>' : '') +
-              '<div class="order-detail-item"><label>Endereco</label><span>' + escHtml(addrStr) + '</span></div>' +
+              '<div class="order-detail-item"><label>Endereço</label><span>' + escHtml(addrStr) + '</span></div>' +
               '<div class="order-detail-item"><label>Metodo Pagamento</label><span>' + (o.payment_method ? statusLabel(o.payment_method) : '--') + '</span></div>' +
               '<div class="order-detail-item"><label>Status Pagamento</label><span>' + statusBadge(o.payment_status) + '</span></div>' +
               '<div class="order-detail-item"><label>Frete</label><span>' + formatMoney(o.shipping_amount) + '</span></div>' +
@@ -2338,7 +2338,7 @@
       };
 
       window.deleteOrder = async function(id, number) {
-        if (!confirm('Excluir o pedido #' + number + '? Esta acao remove o pedido e os itens. Nao pode ser desfeita.')) return;
+        if (!confirm('Excluir o pedido #' + number + '? Esta ação remove o pedido e os itens. Não pode ser desfeita.')) return;
         try {
           var r = await sb.from('orders').delete().eq('id', id);
           if (r.error) throw r.error;
@@ -2536,7 +2536,7 @@
           navigator.clipboard.writeText(txt).then(function() {
             showToast('JSON copiado.', 'success');
           }).catch(function() {
-            showToast('Nao foi possivel copiar automaticamente.', 'warning');
+            showToast('Não foi possível copiar automaticamente.', 'warning');
           });
         } else {
           showToast('Copie manualmente do painel.', 'warning');
@@ -2711,7 +2711,7 @@
 
       window.applyAdminAssistantActions = async function() {
         var acts = window.__adminAssistantPendingActions;
-        if (!acts || !acts.length) { showToast('Nenhuma acao para aplicar.', 'info'); return; }
+        if (!acts || !acts.length) { showToast('Nenhuma ação para aplicar.', 'info'); return; }
         var tok = await getAdminJwt();
         if (!tok) { showToast('Sessao invalida.', 'error'); return; }
         var apiBase = '';

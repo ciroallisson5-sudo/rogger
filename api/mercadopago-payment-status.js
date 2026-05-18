@@ -78,7 +78,7 @@ module.exports = async function handler(req, res) {
   let orderId = String(q.order_id || '').trim();
   if (!orderId) orderId = String(q.external_reference || '').trim();
   if (!orderId) {
-    res.status(400).json({ error: 'order_id ou external_reference obrigatorio' });
+    res.status(400).json({ error: 'order_id ou external_reference obrigatório' });
     return;
   }
 
@@ -95,7 +95,7 @@ module.exports = async function handler(req, res) {
   const ownsByUser = !!(user && String(order.user_id || '') === String(user.id));
   const ownsByGuest = !ownsByUser && (await guestOwnsOrder(cfg, orderId, guestSessionId));
   if (!ownsByUser && !ownsByGuest) {
-    res.status(401).json({ error: 'Nao autorizado' });
+    res.status(401).json({ error: 'Não autorizado' });
     return;
   }
 
@@ -124,7 +124,7 @@ module.exports = async function handler(req, res) {
     const extRef = String(pj.external_reference || '').trim();
     if (!extRef || extRef !== orderId) {
       res.status(400).json({
-        error: 'Pagamento nao corresponde ao pedido (external_reference)',
+        error: 'Pagamento não corresponde ao pedido (external_reference)',
         code: 'MP_EXTERNAL_REF_MISMATCH'
       });
       return;

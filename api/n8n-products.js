@@ -67,7 +67,7 @@ module.exports = async function handler(req, res) {
 
   const key = rateLimitKey(req, 'n8n-prod');
   if (!allow(key, 40, 60000)) {
-    res.status(429).json({ error: 'Muitas requisicoes. Aguarde.' });
+    res.status(429).json({ error: 'Muitas requisições. Aguarde.' });
     return;
   }
 

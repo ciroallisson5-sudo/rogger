@@ -931,7 +931,7 @@
             product_page_url: pageUrl,
             nota_precos:
               'O preço correto a citar para esta página é preco_exibido_vitrine (variante da foto selecionada). ' +
-              'Nao substitua por outro produto do catalogo. Orcamento com frete e condicao de parcelamento: checkout ou WhatsApp da loja.'
+              'Não substitua por outro produto do catalogo. Orçamento com frete e condição de parcelamento: checkout ou WhatsApp da loja.'
           };
         } catch (_) {
           window.CONFORTA_PAGE_PRODUCT_FOR_CHAT = null;
@@ -1013,7 +1013,7 @@
             return {};
           });
           if (!r.ok && j.error) {
-            msg.textContent = 'Nao foi possivel consultar o CEP agora. Tente de novo em instantes.';
+            msg.textContent = 'Não foi possível consultar o CEP agora. Tente novamente em instantes.';
             return;
           }
           if (j.delivered === false) {

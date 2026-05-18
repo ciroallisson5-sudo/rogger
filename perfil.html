@@ -458,7 +458,7 @@
           </div>
 
           <div class="profile-section" id="section-enderecos">
-            <h2>Enderecos</h2>
+            <h2>Endereços</h2>
             <p class="section-desc">Salve seu endereço para finalizar suas próximas compras mais rápido.</p>
             <div id="addressesContainer">
               <div class="profile-skeleton"><span class="sk sk-card"></span><span class="sk sk-card"></span></div>
@@ -518,7 +518,7 @@
             <p class="section-desc">Ações importantes da sua conta, sem distrações.</p>
             <div class="security-card">
               <h3>Acesso da conta</h3>
-              <p>Para alterar sua senha, use a recuperacao de senha na tela de login.</p>
+              <p>Para alterar sua senha, use a recuperação de senha na tela de login.</p>
               <button class="btn btn-outline" onclick="requestPasswordResetFromProfile()">Alterar senha</button>
             </div>
             <div class="security-card" style="margin-top:12px">
@@ -528,7 +528,7 @@
             </div>
             <div class="security-card" style="margin-top:12px">
               <h3>Ações avançadas</h3>
-              <p>Excluir conta e uma acao sensivel. Se precisar, fale com o suporte antes.</p>
+              <p>Excluir conta é uma ação sensível. Se precisar, fale com o suporte antes.</p>
               <button class="btn btn-danger-outline btn-sm" onclick="confirmDeleteAccount()">Excluir minha conta</button>
             </div>
           </div>
@@ -548,7 +548,7 @@
           <form id="addressForm">
             <input type="hidden" id="addressId">
             <div class="form-group">
-              <label for="addressLabel">Identificacao</label>
+              <label for="addressLabel">Identificação</label>
               <input class="form-input" type="text" id="addressLabel" placeholder="Ex: Casa, Trabalho">
             </div>
             <div class="form-row">
@@ -610,7 +610,7 @@
           </button>
         </div>
         <div class="modal-body">
-          <p id="confirmModalText" style="font-size:0.9rem;color:#475569">Tem certeza que deseja realizar esta acao?</p>
+          <p id="confirmModalText" style="font-size:0.9rem;color:#475569">Tem certeza de que deseja realizar esta ação?</p>
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline" onclick="closeModal('confirmModal')">Cancelar</button>
@@ -736,8 +736,8 @@
       function getStatusLabel(status) {
         var map = {
           'pending': 'Pedido recebido',
-          'confirmed': 'Em separacao',
-          'preparing': 'Em separacao',
+          'confirmed': 'Em separação',
+          'preparing': 'Em separação',
           'shipped': 'Saiu para entrega',
           'delivered': 'Entregue',
           'cancelled': 'Cancelado'
@@ -874,14 +874,14 @@
             '</div>' +
             '<div class="auth-error" id="authError"></div>' +
             '<form class="auth-form active" id="loginForm" onsubmit="window.submitLogin(event)">' +
-              '<div class="form-group"><label>Email</label><input class="form-input" type="email" id="loginEmail" required autocomplete="email"></div>' +
+              '<div class="form-group"><label>E-mail</label><input class="form-input" type="email" id="loginEmail" required autocomplete="email"></div>' +
               '<div class="form-group"><label>Senha</label><input class="form-input" type="password" id="loginPassword" required autocomplete="current-password"></div>' +
               '<button type="submit" class="btn" id="loginBtn">Entrar</button>' +
               '<a class="forgot" href="#" onclick="window.requestPasswordReset(event)">Esqueci minha senha</a>' +
             '</form>' +
             '<form class="auth-form" id="signupForm" onsubmit="window.submitSignup(event)">' +
               '<div class="form-group"><label>Nome completo</label><input class="form-input" type="text" id="signupName" required></div>' +
-              '<div class="form-group"><label>Email</label><input class="form-input" type="email" id="signupEmail" required autocomplete="email"></div>' +
+              '<div class="form-group"><label>E-mail</label><input class="form-input" type="email" id="signupEmail" required autocomplete="email"></div>' +
               '<div class="form-group"><label>Telefone</label><input class="form-input" type="tel" id="signupPhone" placeholder="(27) 99999-9999"></div>' +
               '<div class="form-group"><label>Senha (mín. 6 caracteres)</label><input class="form-input" type="password" id="signupPassword" minlength="6" required autocomplete="new-password"></div>' +
               '<button type="submit" class="btn" id="signupBtn">Criar conta</button>' +
@@ -912,9 +912,9 @@
         ev.preventDefault();
         var email = document.getElementById('loginEmail').value.trim();
         var password = document.getElementById('loginPassword').value;
-        if (!email || !password) { showAuthError('Preencha email e senha'); return; }
+        if (!email || !password) { showAuthError('Preencha e-mail e senha.'); return; }
         var btn = document.getElementById('loginBtn');
-        btn.disabled = true; btn.textContent = 'Entrando...';
+        btn.disabled = true; btn.textContent = 'Entrando…';
         try {
           await signIn(email, password);
           showToast('Login realizado!', 'success');
@@ -933,7 +933,7 @@
           }, 400);
         } catch (e) {
           var msg = (e && e.message) || 'Falha no login';
-          if (/invalid login|invalid credentials/i.test(msg)) msg = 'Email ou senha incorretos';
+          if (/invalid login|invalid credentials/i.test(msg)) msg = 'E-mail ou senha incorretos.';
           showAuthError(msg);
           btn.disabled = false; btn.textContent = 'Entrar';
         }
@@ -945,7 +945,7 @@
         var email = document.getElementById('signupEmail').value.trim();
         var phone = document.getElementById('signupPhone').value.trim();
         var password = document.getElementById('signupPassword').value;
-        if (!name || !email || !password) { showAuthError('Preencha todos os campos obrigatorios'); return; }
+        if (!name || !email || !password) { showAuthError('Preencha todos os campos. obrigatorios'); return; }
         if (password.length < 6) { showAuthError('Senha deve ter no minimo 6 caracteres'); return; }
         var btn = document.getElementById('signupBtn');
         btn.disabled = true; btn.textContent = 'Criando conta...';
@@ -956,7 +956,7 @@
           var loginEmail = document.getElementById('loginEmail');
           if (loginEmail) loginEmail.value = email;
         } catch (e) {
-          showAuthError((e && e.message) || 'Erro ao criar conta');
+          showAuthError((e && e.message) || 'Erro ao criar conta.');
         } finally {
           btn.disabled = false; btn.textContent = 'Criar conta';
         }
@@ -972,7 +972,7 @@
           var redirectTo = new URL('perfil.html', window.location.href).href;
           var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
           if (res.error) throw res.error;
-          showToast('Email de recuperacao enviado!', 'success');
+          showToast('E-mail de recuperação enviado!', 'success');
         } catch (e) {
           showAuthError((e && e.message) || 'Erro ao enviar email');
         }
@@ -987,7 +987,7 @@
           var redirectTo = new URL('perfil.html', window.location.href).href;
           var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
           if (res.error) throw res.error;
-          showToast('Email de recuperacao enviado!', 'success');
+          showToast('E-mail de recuperação enviado!', 'success');
         } catch (e) {
           showToast('Não foi possível enviar o e-mail agora', 'error');
         }
@@ -1153,7 +1153,7 @@
           showToast('CPF deve ter 11 digitos ou CNPJ 14 digitos.', 'error'); return;
         }
         if (documentRaw && typeof isValidBrazilTaxId === 'function' && !isValidBrazilTaxId(documentRaw)) {
-          showToast('CPF ou CNPJ invalido. Confira os numeros digitados.', 'error'); return;
+          showToast('CPF ou CNPJ inválido. Confira os numeros digitados.', 'error'); return;
         }
 
         try {
@@ -1221,10 +1221,10 @@
 
           container.innerHTML = '<div class="address-list">' +
             data.map(function(a) {
-              var isDefault = a.is_default ? '<span class="default-badge">Endereco principal</span>' : '';
+              var isDefault = a.is_default ? '<span class="default-badge">Endereço principal</span>' : '';
               return '<div class="address-card" data-id="' + a.id + '">' +
                 '<div class="address-info">' +
-                '<div class="address-label">' + escHtml(a.label || 'Endereco') + ' ' + isDefault + '</div>' +
+                '<div class="address-label">' + escHtml(a.label || 'Endereço') + ' ' + isDefault + '</div>' +
                 '<div class="address-text">' +
                 escHtml(a.street || '') + ', ' + escHtml(a.number || '') +
                 (a.complement ? ' - ' + escHtml(a.complement) : '') + '<br>' +
@@ -1334,7 +1334,7 @@
 
           closeAddressModal();
           loadAddresses(currentUser.id);
-          showToast('Endereco salvo com sucesso!', 'success');
+          showToast('Endereço salvo com sucesso!', 'success');
         } catch (e) {
           showToast('Erro ao salvar endereço', 'error');
         } finally {
@@ -1345,14 +1345,14 @@
       window.deleteAddress = function(addressId) {
         var modal = document.getElementById('confirmModal');
         document.getElementById('confirmModalTitle').textContent = 'Excluir endereço';
-        document.getElementById('confirmModalText').textContent = 'Tem certeza que deseja excluir este endereço?';
+        document.getElementById('confirmModalText').textContent = 'Tem certeza de que deseja excluir este endereço?';
         document.getElementById('confirmModalBtn').onclick = async function() {
           try {
             showLoading(true);
             await supabaseDelete('addresses', { id: addressId });
             closeModal('confirmModal');
             loadAddresses(currentUser.id);
-            showToast('Endereco excluido', 'success');
+            showToast('Endereço excluído.', 'success');
           } catch (e) {
             showToast('Erro ao excluir endereço', 'error');
           } finally {
@@ -1553,7 +1553,7 @@
       window.deleteFile = function(fileId) {
         var modal = document.getElementById('confirmModal');
         document.getElementById('confirmModalTitle').textContent = 'Excluir arquivo';
-        document.getElementById('confirmModalText').textContent = 'Tem certeza que deseja excluir este arquivo?';
+        document.getElementById('confirmModalText').textContent = 'Tem certeza de que deseja excluir este arquivo?';
         document.getElementById('confirmModalBtn').onclick = async function() {
           try {
             showLoading(true);
@@ -1573,7 +1573,7 @@
       window.handleLogout = function() {
         var modal = document.getElementById('confirmModal');
         document.getElementById('confirmModalTitle').textContent = 'Sair da conta';
-        document.getElementById('confirmModalText').textContent = 'Tem certeza que deseja sair?';
+        document.getElementById('confirmModalText').textContent = 'Tem certeza de que deseja sair?';
         document.getElementById('confirmModalBtn').onclick = async function() {
           try {
             showLoading(true);
@@ -1589,7 +1589,7 @@
       window.confirmDeleteAccount = function() {
         var modal = document.getElementById('confirmModal');
         document.getElementById('confirmModalTitle').textContent = 'Excluir conta';
-        document.getElementById('confirmModalText').innerHTML = 'Esta acao e irreversivel. Todos os seus dados serao permanentemente removidos.<br><br><strong>Tem certeza que deseja continuar?</strong>';
+        document.getElementById('confirmModalText').innerHTML = 'Esta ação é irreversível. Todos os seus dados serão permanentemente removidos.<br><br><strong>Tem certeza de que deseja continuar?</strong>';
         document.getElementById('confirmModalBtn').onclick = async function() {
           try {
             showLoading(true);

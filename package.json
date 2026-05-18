@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node scripts/dev-server.cjs",
     "dev": "node scripts/dev-server.cjs",
-    "dev:static": "echo [AVISO] dev:static NAO serve /api/* — pagamentos exigem npm run dev && npx serve . --listen 3000",
+    "dev:static": "echo [AVISO] dev:static NÃO serve /api/* — pagamentos exigem npm run dev && npx serve . --listen 3000",
     "dev:vercel": "npx vercel dev"
   }
 }

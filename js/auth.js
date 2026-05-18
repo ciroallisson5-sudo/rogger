@@ -78,7 +78,7 @@ async function updateProfile(userId, updates) {
       /column.*does not exist/i.test(msg);
     if (missingCol && patch.cpf_cnpj != null) {
       const err = new Error(
-        'Campo CPF/CNPJ ainda nao existe no banco. Execute o SQL database/profiles_cpf_cnpj.sql no Supabase.'
+        'Campo CPF/CNPJ ainda não existe no banco. Execute o SQL database/profiles_cpf_cnpj.sql no Supabase.'
       );
       err.code = 'CPF_COLUMN_MISSING';
       throw err;
@@ -128,7 +128,7 @@ function renderAuthModal() {
         <div class="modal-body" id="authModalBody">
           <div id="authLoginForm">
             <div class="form-group">
-              <label class="form-label">Email</label>
+              <label class="form-label">E-mail</label>
               <input class="form-input" type="email" id="authEmail" placeholder="seu@email.com">
             </div>
             <div class="form-group">
@@ -146,7 +146,7 @@ function renderAuthModal() {
               <input class="form-input" type="text" id="authName" placeholder="Seu nome">
             </div>
             <div class="form-group">
-              <label class="form-label">Email</label>
+              <label class="form-label">E-mail</label>
               <input class="form-input" type="email" id="authEmailSignUp" placeholder="seu@email.com">
             </div>
             <div class="form-group">
@@ -155,7 +155,7 @@ function renderAuthModal() {
             </div>
             <div class="form-group">
               <label class="form-label">Senha</label>
-              <input class="form-input" type="password" id="authPasswordSignUp" placeholder="Minimo 6 caracteres">
+              <input class="form-input" type="password" id="authPasswordSignUp" placeholder="Mínimo 6 caracteres">
             </div>
             <button class="btn btn-primary btn-block" onclick="handleSignUp()">Criar conta</button>
             <p style="text-align:center;margin-top:12px;font-size:0.85rem;color:var(--gray-500)">
@@ -184,7 +184,7 @@ function showSignIn() {
 async function handleSignIn() {
   const email = document.getElementById('authEmail').value;
   const password = document.getElementById('authPassword').value;
-  if (!email || !password) { showToast('Preencha email e senha', 'error'); return; }
+  if (!email || !password) { showToast('Preencha e-mail e senha.', 'error'); return; }
   try {
     showLoading(true);
     await signIn(email, password);
@@ -192,7 +192,7 @@ async function handleSignIn() {
     closeModal('authModal');
     setTimeout(() => window.location.reload(), 500);
   } catch (e) {
-    showToast('Email ou senha inválidos', 'error');
+    showToast('E-mail ou senha inválidos.', 'error');
   } finally { showLoading(false); }
 }
 
@@ -201,15 +201,15 @@ async function handleSignUp() {
   const email = document.getElementById('authEmailSignUp').value;
   const phone = document.getElementById('authPhone').value;
   const password = document.getElementById('authPasswordSignUp').value;
-  if (!name || !email || !password) { showToast('Preencha todos os campos', 'error'); return; }
-  if (password.length < 6) { showToast('Senha deve ter no mínimo 6 caracteres', 'error'); return; }
+  if (!name || !email || !password) { showToast('Preencha todos os campos.', 'error'); return; }
+  if (password.length < 6) { showToast('A senha deve ter no mínimo 6 caracteres.', 'error'); return; }
   try {
     showLoading(true);
     await signUp(email, password, name, phone);
-    showToast('Conta criada! Verifique seu email.', 'success');
+    showToast('Conta criada! Verifique seu e-mail.', 'success');
     closeModal('authModal');
   } catch (e) {
-    showToast(e.message || 'Erro ao criar conta', 'error');
+    showToast(e.message || 'Erro ao criar conta.', 'error');
   } finally { showLoading(false); }
 }
 

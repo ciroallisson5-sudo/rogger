@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
   const subtotal = parseFloat(body.subtotal) || 0;
 
   if (!cepNorm) {
-    res.status(400).json({ delivered: false, message: 'CEP invalido. Informe 8 digitos.' });
+    res.status(400).json({ delivered: false, message: 'CEP inválido. Informe 8 digitos.' });
     return;
   }
 

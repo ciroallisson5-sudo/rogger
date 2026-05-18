@@ -140,13 +140,13 @@ async function getOrCreateCart() {
 
   const { data: inserted, error } = await sb.from('carts').insert({ user_id: user.id }).select('id').single();
   if (error) throw error;
-  if (!inserted || !inserted.id) throw new Error('Nao foi possivel criar o carrinho');
+  if (!inserted || !inserted.id) throw new Error('Não foi possível criar o carrinho.');
   return inserted.id;
 }
 
 async function addProductToCart(productId, photoId, quantity, unitPrice) {
   try {
-    if (!productId) throw new Error('Produto invalido');
+    if (!productId) throw new Error('Produto inválido.');
 
     const sb = getSupabase();
     if (!sb) throw new Error('Serviço indisponível');
@@ -167,7 +167,7 @@ async function addProductToCart(productId, photoId, quantity, unitPrice) {
       return;
     }
 
-    // Busca preco se nao foi passado
+    // Busca preço se não foi passado
     if (unitPrice === undefined || unitPrice === null || isNaN(parseFloat(unitPrice))) {
       const { data: prod } = await sb.from('products')
         .select('discount_price, base_price')
@@ -222,7 +222,7 @@ async function addProductToCart(productId, photoId, quantity, unitPrice) {
       showToast('Produto adicionado ao carrinho', 'success');
       refreshCartViews();
     } catch (_) {
-      var msg = (e && (e.message || e.error_description)) || 'Erro ao adicionar ao carrinho';
+      var msg = (e && (e.message || e.error_description)) || 'Erro ao adicionar ao carrinho.';
       showToast(msg, 'error');
     }
   } finally {
@@ -350,7 +350,7 @@ async function updateCartItemQuantity(itemId, quantity) {
     updateCartCount();
     refreshCartViews();
   } catch (e) {
-    showToast('Erro ao atualizar quantidade', 'error');
+    showToast('Erro ao atualizar a quantidade.', 'error');
     throw e;
   } finally {
     showLoading(false);
@@ -366,10 +366,10 @@ async function removeCartItem(itemId) {
       await supabaseDelete('cart_items', { id: itemId });
     }
     updateCartCount();
-    showToast('Item removido do carrinho', 'success');
+    showToast('Item removido do carrinho.', 'success');
     refreshCartViews();
   } catch (e) {
-    showToast('Erro ao remover item', 'error');
+    showToast('Erro ao remover o item.', 'error');
     throw e;
   } finally {
     showLoading(false);
@@ -398,7 +398,7 @@ async function clearCart() {
       }
     }
     updateCartCount();
-    showToast('Carrinho limpo', 'success');
+    showToast('Carrinho limpo.', 'success');
     refreshCartViews();
   } catch (e) {
     showToast('Erro ao limpar carrinho', 'error');
@@ -607,7 +607,7 @@ function renderCartItem(item) {
         </div>
         <div class="cart-item-bottom">
           <div>
-            <span class="cart-item-label">Preco unitario</span>
+            <span class="cart-item-label">Preço unitário</span>
             <strong class="cart-item-price">${formatPrice(price)}</strong>
             <a class="cart-product-link" href="${productUrl}">Ver produto</a>
           </div>
@@ -652,7 +652,7 @@ async function renderCartSidebarItems() {
     list.innerHTML = `
       <div class="cart-state-card">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg>
-        <h4>Nao foi possivel carregar seu carrinho</h4>
+        <h4>Não foi possível carregar seu carrinho</h4>
         <p>Tente novamente ou fale com nossa equipe para finalizar sua compra pelo WhatsApp.</p>
         <button class="btn btn-primary btn-block" onclick="renderCartSidebarItems()">Tentar novamente</button>
         <a class="btn btn-outline btn-block js-cart-whatsapp" href="${cartWhatsappHref()}">Falar no WhatsApp</a>
@@ -883,7 +883,7 @@ async function initFullCartPage() {
       items = await getCartItems();
     } catch (e) {
       root.innerHTML =
-        '<div class="cc-full-cart-state"><h2>Nao foi possivel carregar</h2>' +
+        '<div class="cc-full-cart-state"><h2>Não foi possível carregar</h2>' +
         '<p>Tente novamente em instantes.</p>' +
         '<button type="button" class="btn btn-primary" onclick="location.reload()">Recarregar</button></div>';
       return;

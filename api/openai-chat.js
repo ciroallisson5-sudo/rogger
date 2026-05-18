@@ -213,14 +213,14 @@ module.exports = async function handler(req, res) {
 
   const key = rateLimitKey(req, 'openai');
   if (!allow(key, 24, 60000)) {
-    res.status(429).json({ error: 'Muitas requisicoes. Aguarde um minuto.', reply: null });
+    res.status(429).json({ error: 'Muitas requisições. Aguarde um minuto.', reply: null });
     return;
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     res.status(503).json({
-      error: 'OPENAI_API_KEY nao configurada no servidor.',
+      error: 'OPENAI_API_KEY não configurada no servidor.',
       reply: null
     });
     return;
@@ -230,7 +230,7 @@ module.exports = async function handler(req, res) {
     const body = normalizeRequestBody(req.body);
     if (body.__parseError) {
       res.status(400).json({
-        error: 'JSON invalido no corpo. No n8n use Body → JSON e expressao com = e JSON.stringify.',
+        error: 'JSON inválido no corpo. No n8n use Body → JSON e expressao com = e JSON.stringify.',
         n8n_exemplo:
           "={{ JSON.stringify({ user_message: 'Legenda do produto', product: $json, include_catalog: true }) }}"
       });
@@ -246,7 +246,7 @@ module.exports = async function handler(req, res) {
     if (isPlaceholderObjectString(rawProductField)) {
       res.status(400).json({
         error:
-          'Campo "product" invalido ([object Object]). No n8n use o corpo inteiro como expressao com JSON.stringify.',
+          'Campo "product" inválido ([object Object]). No n8n use o corpo inteiro como expressao com JSON.stringify.',
         n8n_exemplo:
           "={{ JSON.stringify({ user_message: 'Gere legenda', product: $json, include_catalog: true }) }}"
       });
@@ -356,7 +356,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (!messages || messages.length < 2) {
-      res.status(400).json({ error: 'Nao foi possivel montar a conversa.', reply: null });
+      res.status(400).json({ error: 'Não foi possível montar a conversa.', reply: null });
       return;
     }
 
@@ -381,7 +381,7 @@ module.exports = async function handler(req, res) {
 
     if (!openaiRes.ok) {
       res.status(openaiRes.status >= 400 && openaiRes.status < 600 ? openaiRes.status : 502).json({
-        error: 'Nao foi possivel gerar a resposta.',
+        error: 'Não foi possível gerar a resposta.',
         reply: null
       });
       return;

@@ -10,7 +10,7 @@ Cadastre no painel da Vercel (Project → Settings → Environment Variables).
 | `SUPABASE_URL` | URL do projeto Supabase |
 | `SUPABASE_ANON_KEY` | Chave **anon/publishable** (apenas no cliente público; RLS obrigatório) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Somente em `/api/*`** — nunca no frontend |
-| `MERCADO_PAGO_ACCESS_TOKEN` | **Somente em `/api/mercadopago-*.js`** — Pix direto (`POST /v1/payments`), preferência Checkout Pro, webhook e `GET /v1/payments/:id` |
+| `MERCADO_PAGO_ACCESS_TOKEN` | **Somente em `/api/mercadopago-*.js`** — preferência Checkout Pro, webhook e `GET /v1/payments/:id` |
 | `MERCADO_PAGO_WEBHOOK_SECRET` | Segredo para validar assinatura `x-signature` do webhook |
 | `APP_URL` | URL canônica do site **sem barra final**, **HTTPS**, domínio público (ex.: `https://www.confortacolchoes.site`). **Nunca `http://localhost` na Vercel** — o Checkout Pro e o MP exigem URLs públicas para `back_urls` e `notification_url`. Se `APP_URL` for localhost no deploy, a API tenta `VERCEL_URL` ou cabeçalhos. |
 | `ALLOWED_ORIGINS` | Origens permitidas em CORS para `/api/*` (pode repetir `APP_URL` ou lista separada por vírgula) |
@@ -19,10 +19,11 @@ Cadastre no painel da Vercel (Project → Settings → Environment Variables).
 
 | Valor | Quando usar |
 |-------|-------------|
+| `auto` | Recomendado: detecta `TEST-*` como sandbox e `APP_USR-*` como produção. |
 | `sandbox` | Access token de **teste** no painel Mercado Pago (cobranças simuladas). |
 | `production` | Access token de **produção** (cobranças reais). |
 
-Cada pagamento retorna `live_mode: true/false`. A API compara com `MERCADO_PAGO_ENV`: se não bater, o sync retorna `live_mode_mismatch` (evita marcar pedido pago com token errado).
+Use `MERCADO_PAGO_ENV=auto` se estiver alternando entre token de teste e token real. O checkout escolhe o link correto (`sandbox_init_point` ou `init_point`) de acordo com o token, evitando a tela “link de pagamento já não está disponível”.
 
 ### Aliases opcionais de URL do site
 
@@ -30,16 +31,13 @@ Se preferir outro nome no painel, a API também considera (nesta ordem):
 `APP_URL` → `SITE_URL` → `SITE_PUBLIC_URL` (mesmo formato, sem barra final).  
 Na Vercel, `VERCEL_URL` é usado como fallback **HTTPS** quando `APP_URL` não é utilizável (ex.: localhost).
 
-## Pix Mercado Pago
+## Pix no Mercado Pago
 
-A loja agora oferece duas rotas de pagamento:
+O checkout padrão da loja abre o **Checkout Pro do Mercado Pago**. Pix, cartão, boleto e parcelamento aparecem dentro do ambiente do Mercado Pago, conforme os meios habilitados na conta vendedora.
 
-- **Pix direto na loja**: gera QR Code e Pix Copia e Cola via Mercado Pago, sem depender da tela de meios de pagamento do Checkout Pro.
-- **Cartão/boleto/outros**: continua abrindo o Checkout Pro do Mercado Pago.
+Para Pix aparecer em produção, confirme no painel/conta Mercado Pago que existe uma **chave Pix cadastrada e habilitada** para a conta vendedora.
 
-Para Pix funcionar em produção, confirme no painel/conta Mercado Pago que existe uma **chave Pix cadastrada e habilitada** para a conta vendedora.
-
-Opcional: `MERCADO_PAGO_DEFAULT_PAYMENT_METHOD_ID=pix` tenta abrir/destacar Pix quando o cliente escolher Checkout Pro, se a opção estiver disponível para a conta.
+Opcional: `MERCADO_PAGO_DEFAULT_PAYMENT_METHOD_ID=pix` pode tentar destacar Pix no Checkout Pro, se a opção estiver disponível para a conta.
 
 ## Webhook Mercado Pago
 
@@ -59,6 +57,7 @@ No painel de desenvolvedor MP, configure a URL de notificação:
 | `MERCADO_PAGO_STATEMENT_DESCRIPTOR` | Texto no extrato |
 | `MERCADO_PAGO_MAX_INSTALLMENTS` | Limite de parcelas |
 | `MERCADO_PAGO_DEFAULT_PAYMENT_METHOD_ID` | Opcional; use `pix` para tentar destacar Pix no Checkout Pro |
+| `MERCADO_PAGO_SEND_SHIPMENTS` | Opcional; deixe `false` por padrão. O frete já vai como item no Checkout Pro. |
 | `MP_CHECKOUT_DEBUG` | `1` para logs extras no servidor (sem token) |
 
 ## APIs opcionais

@@ -8,6 +8,40 @@ function adminConfig() {
   return { base, service, ok: !!(base && service) };
 }
 
+function resolveMercadoPagoAccessToken() {
+  return String(
+    process.env.MERCADO_PAGO_ACCESS_TOKEN ||
+      process.env.MERCADOPAGO_ACCESS_TOKEN ||
+      process.env.MP_ACCESS_TOKEN ||
+      ''
+  ).trim();
+}
+
+function normalizeMercadoPagoEnv(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'sandbox' || raw === 'test' || raw === 'testing' || raw === 'homologacao' || raw === 'homologação') {
+    return 'sandbox';
+  }
+  if (raw === 'production' || raw === 'prod' || raw === 'live') {
+    return 'production';
+  }
+  return 'auto';
+}
+
+function detectMercadoPagoTokenEnv(accessToken) {
+  const t = String(accessToken || '').trim();
+  if (/^TEST-/i.test(t)) return 'sandbox';
+  if (/^APP_USR-/i.test(t)) return 'production';
+  return '';
+}
+
+function expectedMercadoPagoLiveMode() {
+  const configured = normalizeMercadoPagoEnv(process.env.MERCADO_PAGO_ENV || process.env.MERCADOPAGO_ENV || 'auto');
+  const tokenEnv = detectMercadoPagoTokenEnv(resolveMercadoPagoAccessToken());
+  const effective = configured === 'auto' ? (tokenEnv || 'production') : (tokenEnv && tokenEnv !== configured ? tokenEnv : configured);
+  return effective === 'production';
+}
+
 async function restGet(cfg, path) {
   const res = await fetch(cfg.base + path, {
     headers: {
@@ -97,12 +131,12 @@ async function applyMercadoPagoApproved(cfg, mpPayment, eventType) {
   const currency = String(mpPayment.currency_id || '').toUpperCase();
   const live = mpPayment.live_mode === true;
 
-  const envProd = String(process.env.MERCADO_PAGO_ENV || 'production').toLowerCase() === 'production';
+  const envProd = expectedMercadoPagoLiveMode();
   if (envProd !== live) {
     console.error(
-      '[mercadopago-sync] live_mode_mismatch: MERCADO_PAGO_ENV=' +
+      '[mercadopago-sync] live_mode_mismatch: ambiente esperado=' +
         (envProd ? 'production' : 'sandbox') +
-        ' espera pagamento live_mode=' +
+        ' espera payment.live_mode=' +
         String(envProd) +
         ', mas o MP retornou live_mode=' +
         String(live) +
@@ -345,5 +379,6 @@ module.exports = {
   restPatch,
   restPost,
   clearCartForOrderUser,
-  resolvePublicBaseUrl
+  resolvePublicBaseUrl,
+  expectedMercadoPagoLiveMode
 };

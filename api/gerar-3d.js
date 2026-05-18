@@ -118,7 +118,7 @@ function tripoUnwrap(json) {
 async function tripoCreateTask(imageUrl) {
   const key = process.env.TRIPO_API_KEY;
   const base = (process.env.TRIPO_BASE_URL || TRIPO_DEFAULT_BASE).replace(/\/$/, '');
-  if (!key) throw new Error('TRIPO_API_KEY nao configurada');
+  if (!key) throw new Error('TRIPO_API_KEY não configurada');
 
   const lower = String(imageUrl || '').toLowerCase();
   const fileType = lower.indexOf('.png') !== -1 || lower.indexOf('image/png') !== -1 ? 'png' : 'jpg';
@@ -146,7 +146,7 @@ async function tripoCreateTask(imageUrl) {
   }
   const data = tripoUnwrap(json) || json;
   const taskId = (data && (data.task_id || data.taskId)) || json.task_id || json.taskId || '';
-  if (!taskId) throw new Error('Tripo nao retornou task_id');
+  if (!taskId) throw new Error('Tripo não retornou task_id');
   return String(taskId);
 }
 
@@ -289,7 +289,7 @@ async function ensureImageOnServer(productId, imageUrl) {
   const objectPath = (prefix ? prefix + '/' : '') + productId + '.jpg';
 
   const res = await fetch(imageUrl);
-  if (!res.ok) throw new Error('Nao foi possivel baixar a imagem do produto');
+  if (!res.ok) throw new Error('Não foi possível baixar a imagem do produto');
   const buf = Buffer.from(await res.arrayBuffer());
   const ct = res.headers.get('content-type') || 'image/jpeg';
   await supabaseStorageUpload(imgBucket, objectPath, buf, ct);
@@ -454,7 +454,7 @@ module.exports = async function handler(req, res) {
           ok: false,
           done: true,
           tripoStatus: status,
-          error: (taskData && taskData.error) || 'Tarefa Tripo nao concluida com sucesso'
+          error: (taskData && taskData.error) || 'Tarefa Tripo não concluída com sucesso'
         });
         return;
       }
@@ -466,7 +466,7 @@ module.exports = async function handler(req, res) {
           ok: false,
           done: true,
           tripoStatus: status,
-          error: 'Tripo nao retornou URL do modelo (.glb) no JSON da tarefa.',
+          error: 'Tripo não retornou URL do modelo (.glb) no JSON da tarefa.',
           outputKeys: out && typeof out === 'object' ? Object.keys(out) : []
         });
         return;

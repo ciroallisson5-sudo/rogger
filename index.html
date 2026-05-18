@@ -631,8 +631,8 @@
           var grid = document.getElementById('productGrid');
           if (!track || !grid) return;
 
-          track.innerHTML = '<div class="loading-spinner">Carregando...</div>';
-          grid.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+          track.innerHTML = '<div class="loading-spinner">Carregando…</div>';
+          grid.innerHTML = '<div class="loading-spinner">Carregando…</div>';
 
           if (typeof getSupabase !== 'function') {
             renderFallbackContent(track, dots, grid);

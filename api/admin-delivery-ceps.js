@@ -143,7 +143,7 @@ module.exports = async function handler(req, res) {
       const data = r ? await r.json().catch(function () { return null; }) : null;
       if (!r || !r.ok) {
         res.status(r ? r.status : 503).json({
-          error: 'Falha ao atualizar. CEP pode estar duplicado ou id invalido.',
+          error: 'Falha ao atualizar. CEP pode estar duplicado ou id inválido.',
           detail: data
         });
         return;

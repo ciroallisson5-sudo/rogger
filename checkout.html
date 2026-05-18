@@ -350,6 +350,57 @@
       .mobile-submit-bar .btn { min-height: 50px; }
       .checkout-modal-panel { padding: 18px 16px 22px; }
     }
+
+
+    /* Acabamento final: mobile-first, Android/iOS, tablet e desktop */
+    .btn, .form-input, .form-select, .checkout-link-row { -webkit-tap-highlight-color: transparent; }
+    .btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: normal; line-height: 1.2; }
+    .btn[disabled] { opacity: 0.72; cursor: not-allowed; filter: grayscale(0.05); }
+    .form-input, .form-select {
+      min-height: 48px;
+      font-size: 16px;
+      border-radius: 14px;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(26,86,219,.12); }
+    .section-copy { line-height: 1.55; }
+    .payment-note { line-height: 1.55; }
+    .review-box { line-height: 1.75; word-break: break-word; }
+    .field-error { border-color: #dc2626 !important; box-shadow: 0 0 0 4px rgba(220,38,38,.12) !important; }
+    .error-message { color: #b91c1c; font-size: .82rem; font-weight: 800; margin-top: 6px; }
+    .checkout-processing-lock { pointer-events: none; }
+    .checkout-modal-panel { max-height: min(86vh, 720px); overflow: auto; overscroll-behavior: contain; }
+    .order-summary-item img { object-fit: cover; background: #f1f5f9; }
+    @media (max-width: 767px) {
+      .container { width: 100%; max-width: 100%; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+      .checkout-hero h1 { letter-spacing: -0.045em; }
+      .checkout-mp-hero-title { line-height: 1.25; }
+      .checkout-mp-hero-text, .section-copy, .payment-note { font-size: .92rem; }
+      .checkout-layout, .checkout-left { gap: 14px; }
+      .checkout-section, .order-summary-card { border-radius: 18px; }
+      .order-summary-card { overflow: hidden; }
+      .order-summary-item { align-items: flex-start; gap: 10px; }
+      .order-summary-item img { width: 56px; height: 56px; flex: 0 0 56px; border-radius: 12px; }
+      .osi-name { font-size: .88rem; line-height: 1.25; }
+      .osi-desc, .order-summary-header p { font-size: .78rem; }
+      .total-line { font-size: .9rem; }
+      .total-line.total { font-size: 1.02rem; }
+      .checkout-inline-actions { display: grid; grid-template-columns: 1fr; }
+      .checkout-inline-actions .btn { width: 100%; }
+      .checkout-modal { align-items: flex-end; }
+      .checkout-modal-panel { width: 100%; border-radius: 22px 22px 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+      .mobile-submit-bar { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+    }
+    @media (max-width: 390px) {
+      .container { padding-left: 12px; padding-right: 12px; }
+      .checkout-section { padding: 14px; }
+      .checkout-link-row { padding: 13px; }
+      .mobile-submit-bar .btn { font-size: .84rem; }
+    }
+    @supports (-webkit-touch-callout: none) {
+      body { -webkit-text-size-adjust: 100%; }
+      input, select, textarea { font-size: 16px !important; }
+    }
   </style>
 </head>
 <body>
@@ -914,13 +965,13 @@
         var btn = document.getElementById('checkoutInlineSigninBtn');
         if (!email || !password) { showToast('Preencha e-mail e senha.', 'error'); return false; }
         try {
-          if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
+          if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
           await checkoutSignOutAnonymousIfNeeded();
           await signIn(email, password);
           await finishCheckoutAuthFlow(snapshot);
         } catch (e) {
           restoreCheckoutSnapshotToLocalCart(snapshot);
-          showToast((e && e.message) || 'Não foi possível entrar.', 'error');
+          showToast((e && e.message) || 'Não foi possível entrar...', 'error');
           await loadCheckout().catch(function () {});
         } finally {
           if (btn) { btn.disabled = false; btn.textContent = 'Entrar e continuar no checkout'; }
@@ -939,7 +990,7 @@
         if (!name || !email || !password) { showToast('Preencha nome, e-mail e senha.', 'error'); return false; }
         if (password.length < 6) { showToast('A senha deve ter no mínimo 6 caracteres.', 'error'); return false; }
         try {
-          if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
+          if (btn) { btn.disabled = true; btn.textContent = 'Criando…'; }
           await checkoutSignOutAnonymousIfNeeded();
           var data = await signUp(email, password, name, phone);
           var hasSession = data && data.session;
@@ -986,7 +1037,7 @@
           '</p></div></div>' +
           '<div class="form-row">' +
           '<div class="form-group"><label for="checkoutGuestName">Nome completo</label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestName" autocomplete="name" placeholder="Seu nome" value="' + escHtml(name) + '"></div>' +
-          '<div class="form-group"><label for="checkoutGuestEmail">E-mail para pagamento</label><input type="email" class="form-input js-guest-checkout-field" id="checkoutGuestEmail" autocomplete="email" placeholder="seu@email.com" value="' + escHtml(email) + '"></div>' +
+          '<div class="form-group"><label for="checkoutGuestEmail">E-mail para contato</label><input type="email" class="form-input js-guest-checkout-field" id="checkoutGuestEmail" autocomplete="email" placeholder="seu@email.com" value="' + escHtml(email) + '"></div>' +
           '</div>' +
           '<div class="form-row">' +
           '<div class="form-group"><label for="checkoutGuestPhone">Telefone / WhatsApp</label><input type="tel" class="form-input js-guest-checkout-field" id="checkoutGuestPhone" inputmode="tel" autocomplete="tel" placeholder="(27) 99999-9999" value="' + escHtml(phone) + '"></div>' +
@@ -1759,14 +1810,14 @@
         }
         if (btn) {
           btn.disabled = true;
-          btn.textContent = 'Entrando...';
+          btn.textContent = 'Entrando…';
         }
         try {
           await signIn(email, password);
-          showToast('Pronto! Carregando o checkout...', 'success');
+          showToast('Pronto! Carregando o checkout…', 'success');
           await loadCheckout();
         } catch (e) {
-          var msg = (e && e.message) || 'Não foi possível entrar';
+          var msg = (e && e.message) || 'Não foi possível entrar..';
           if (/invalid login|invalid credentials/i.test(msg)) msg = 'E-mail ou senha incorretos.';
           showToast(msg, 'error');
           if (btn) {
@@ -1849,7 +1900,7 @@
         container.innerHTML =
           '<div class="checkout-link-rows">' +
           '<div class="checkout-link-row" style="cursor:default;">' +
-          '<span class="clr-stack"><span class="clr-main">Pagamento via Mercado Pago</span><span class="clr-sub">Você não precisa sair do checkout para entrar ou criar conta. Ao pagar, o Mercado Pago abre com Pix, cartão, boleto e parcelamento.</span></span>' +
+          '<span class="clr-stack"><span class="clr-main">Pagamento via Mercado Pago</span><span class="clr-sub">Entre, crie uma conta ou compre como visitante sem sair desta página. Ao pagar, o Mercado Pago abre com Pix, cartão, boleto e parcelamento.</span></span>' +
           '<span class="clr-arrow" aria-hidden="true">↗</span></div>' +
           '</div>' +
           '<div class="checkout-layout">' +
@@ -1860,10 +1911,10 @@
           guestDetailsSection +
 
           '<div class="checkout-section">' +
-          '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">O botão abaixo abre o Checkout Pro do Mercado Pago. Lá o cliente escolhe Pix, cartão, boleto ou parcelamento com segurança.</p></div></div>' +
+          '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">O botão abaixo abre o Checkout Pro do Mercado Pago. Lá você escolhe Pix, cartão, boleto ou parcelamento com segurança.</p></div></div>' +
           '<div class="payment-mode-grid" role="group" aria-label="Forma de pagamento">' +
           '<div class="payment-mode-option active" style="cursor:default;" aria-pressed="true">' +
-          '<span class="payment-mode-badge" aria-hidden="true">💳</span><span class="payment-mode-copy"><strong>Mercado Pago Checkout Pro</strong><small>Sem login obrigatório na loja. Você segue direto para o Mercado Pago.</small></span><span class="payment-mode-check">✓</span></div>' +
+          '<span class="payment-mode-badge" aria-hidden="true">💳</span><span class="payment-mode-copy"><strong>Mercado Pago Checkout Pro</strong><small>Sem login obrigatório na loja. Você segue para o ambiente seguro do Mercado Pago.</small></span><span class="payment-mode-check">✓</span></div>' +
           '</div>' +
           '<div class="payment-note" style="margin-bottom:14px;">O Pix aparece no Mercado Pago quando a chave Pix está habilitada na conta vendedora.</div>' +
           '<div class="trust-list checkout-trust-pills" style="margin-bottom:16px;"><span>Mercado Pago</span><span>Pix no Mercado Pago</span><span>Cartão seguro</span><span>Boleto/parcelamento</span></div>' +
@@ -1934,7 +1985,7 @@
       function renderSummary(items, total) {
         return '<div class="order-summary-card" id="orderSummaryCard">' +
           '<div class="summary-body">' +
-          '<div class="order-summary-header"><h3>Seu pedido</h3><p>Itens e valores desta compra.</p></div>' +
+          '<div class="order-summary-header"><h3>Seu pedido</h3><p>Itens, frete e total desta compra.</p></div>' +
           '<div class="order-summary-items" id="summaryItems">' +
           items.map(function(item) {
             var price = getItemPrice(item);
@@ -1953,7 +2004,7 @@
           '<div class="order-summary-totals">' +
           '<div class="total-line"><span>Subtotal</span><span>' + formatPrice(total) + '</span></div>' +
           '<div class="total-line"><span>Desconto</span><span>R$ 0,00</span></div>' +
-          '<div class="total-line"><span>Frete</span><span id="summaryFreightValue">Calculando...</span></div>' +
+          '<div class="total-line"><span>Frete</span><span id="summaryFreightValue">Calculando…</span></div>' +
           '<div class="total-line total"><span>Total</span><span id="summaryGrandValue">' + formatPrice(total) + '</span></div>' +
           '<div class="summary-installment" id="summaryInstallment">' + installmentText(total) + '</div>' +
           '<div class="trust-list"><span>Compra segura</span><span>Dados protegidos</span></div>' +
@@ -1969,6 +2020,50 @@
         if (c.email) parts.push(c.email);
         if (c.phone) parts.push(c.phone);
         el.textContent = parts.length ? ('Cliente: ' + parts.join(' | ')) : 'Cliente: visitante';
+      }
+
+
+      function setCheckoutProcessingState(isLoading, label) {
+        var btn = document.getElementById('placeOrderBtn');
+        var mbtn = document.getElementById('mobilePlaceOrderBtn');
+        var total = checkoutGrandTotal();
+        var app = document.getElementById('checkoutApp');
+        if (app) app.classList.toggle('checkout-processing-lock', !!isLoading);
+        if (btn) {
+          btn.disabled = !!isLoading;
+          btn.textContent = isLoading ? (label || 'Processando…') : checkoutPayButtonText(total);
+        }
+        if (mbtn) {
+          mbtn.disabled = !!isLoading;
+          mbtn.textContent = isLoading ? 'Aguarde…' : checkoutMobilePayButtonText();
+        }
+      }
+
+      async function fetchJsonWithTimeout(url, options, timeoutMs) {
+        var controller = null;
+        var timer = null;
+        var opts = Object.assign({}, options || {});
+        if (typeof AbortController !== 'undefined') {
+          controller = new AbortController();
+          opts.signal = controller.signal;
+          timer = setTimeout(function () {
+            try { controller.abort(); } catch (_) {}
+          }, timeoutMs || 25000);
+        }
+        try {
+          var response = await fetch(url, opts);
+          var data = await response.json().catch(function () { return {}; });
+          return { response: response, data: data };
+        } catch (err) {
+          if (err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')))) {
+            var timeoutErr = new Error('O servidor demorou para responder. Tente novamente em instantes.');
+            timeoutErr.code = 'REQUEST_TIMEOUT';
+            throw timeoutErr;
+          }
+          throw err;
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
       }
 
       window.placeOrder = async function() {
@@ -2045,14 +2140,7 @@
           }
 
           processingOrder = true;
-          if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Criando pedido...';
-          }
-          if (mbtn) {
-            mbtn.disabled = true;
-            mbtn.textContent = 'Aguarde...';
-          }
+          setCheckoutProcessingState(true, 'Criando pedido…');
 
           var payBody = {
             shipping_address_id: shipAddrId,
@@ -2074,14 +2162,13 @@
             payBody.contact_email = customerEmail;
           }
 
-          var r = await fetch('/api/mercadopago-create-preference', {
+          var paymentResp = await fetchJsonWithTimeout('/api/mercadopago-create-preference', {
             method: 'POST',
             headers: checkoutFetchHeaders(tok, idem),
             body: JSON.stringify(payBody)
-          });
-          var j = await r.json().catch(function () {
-            return {};
-          });
+          }, 30000);
+          var r = paymentResp.response;
+          var j = paymentResp.data || {};
           if (!r.ok) {
             var errMsg = j && (j.error || j.message) ? String(j.error || j.message) : 'Não foi possível iniciar o pagamento.';
             if (j && j.code) errMsg += ' [' + String(j.code) + ']';
@@ -2104,16 +2191,23 @@
             return;
           }
 
-          var payUrl = j.init_point || j.sandbox_init_point;
+          var payUrl = j.checkout_url || j.init_point || j.sandbox_init_point || j.production_init_point;
           if (!payUrl) {
-            console.error('[Checkout MP] sem init_point', j);
+            console.error('[Checkout MP] sem checkout_url/init_point', j);
             showToast('Resposta inválida do servidor de pagamento.', 'error');
-            throw new Error('init_point');
+            throw new Error('checkout_url');
+          }
+          if (j.env_warning) {
+            console.warn('[Checkout MP] ambiente Mercado Pago:', j.env_warning);
           }
 
+          try { new URL(payUrl); } catch (_) { throw new Error('Link de pagamento inválido. Tente novamente.'); }
           sessionStorage.removeItem(idemKey);
-          if (btn) btn.textContent = 'Redirecionando...';
-          if (mbtn) mbtn.textContent = 'Redirecionando...';
+          if (btn) btn.textContent = 'Redirecionando…';
+          if (mbtn) mbtn.textContent = 'Redirecionando…';
+          setTimeout(function () {
+            if (!document.hidden) setCheckoutProcessingState(false);
+          }, 8000);
           window.location.href = payUrl;
         } catch (e) {
           var errText = e && e.message ? String(e.message).trim() : '';
@@ -2122,17 +2216,17 @@
           }
           showCheckoutFailure(e, grandTotal);
           var restoreTot = checkoutGrandTotal();
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = payButtonLabel(restoreTot);
-          }
-          if (mbtn) {
-            mbtn.disabled = false;
-            mbtn.textContent = checkoutMobilePayButtonText();
-          }
+          void restoreTot;
+          setCheckoutProcessingState(false);
         } finally {
           processingOrder = false;
           updateCheckoutFreightDom();
+          if (window.location.href.indexOf('mercadopago.com') === -1) {
+            var payBtn = document.getElementById('placeOrderBtn');
+            var mobBtn = document.getElementById('mobilePlaceOrderBtn');
+            if (payBtn && payBtn.textContent.indexOf('Redirecionando') === 0) payBtn.textContent = checkoutPayButtonText(checkoutGrandTotal());
+            if (mobBtn && mobBtn.textContent.indexOf('Redirecionando') === 0) mobBtn.textContent = checkoutMobilePayButtonText();
+          }
         }
       };
 
@@ -2165,7 +2259,7 @@
           '<button type="button" class="btn btn-outline btn-block" onclick="window.verifyPixPaymentNow()">Já paguei, verificar</button>' +
           '<a class="btn btn-outline btn-block" href="carrinho.html">Voltar ao carrinho</a>' +
           '</div>' +
-          '<div class="checkout-pix-status" id="checkoutPixStatus">Aguardando pagamento Pix...</div>' +
+          '<div class="checkout-pix-status" id="checkoutPixStatus">Aguardando pagamento Pix…</div>' +
           '</div>';
         window.__checkoutPixOrderId = orderId;
         window.__checkoutPixPaymentId = paymentId;
@@ -2194,7 +2288,7 @@
           if (ps === 'paid') {
             try { localStorage.removeItem('conforta_local_cart_items_v1'); } catch (_) {}
             if (window.__checkoutPixIdemKey) sessionStorage.removeItem(window.__checkoutPixIdemKey);
-            if (statusEl) statusEl.textContent = 'Pagamento confirmado! Redirecionando...';
+            if (statusEl) statusEl.textContent = 'Pagamento confirmado! Redirecionando…';
             showToast('Pagamento Pix confirmado.', 'success');
             setTimeout(function() {
               window.location.href = 'checkout-retorno.html?order_id=' + encodeURIComponent(orderId) + '&payment_id=' + encodeURIComponent(paymentId) + '&status=success';

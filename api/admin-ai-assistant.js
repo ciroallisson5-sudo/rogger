@@ -562,7 +562,7 @@ async function executeOneReadAction(a) {
     if (t === 'fetch_orders_by_email') {
       const email = String(a.email || '').trim().toLowerCase();
       if (!basicEmailOk(email)) {
-        return { type: t, ok: false, text: '[Consulta] Email invalido.' };
+        return { type: t, ok: false, text: '[Consulta] Email inválido.' };
       }
       let r = await supabaseRest('GET', '/rest/v1/profiles?select=id,email,full_name&email=eq.' + encodeURIComponent(email), null);
       let rows = r.ok && Array.isArray(r.json) ? r.json : [];
@@ -611,7 +611,7 @@ async function executeOneReadAction(a) {
     }
     if (t === 'fetch_orders_by_profile_id') {
       const pid = String(a.profile_id || a.user_id || '').trim();
-      if (!isUuid(pid)) return { type: t, ok: false, text: '[Consulta] profile_id UUID invalido.' };
+      if (!isUuid(pid)) return { type: t, ok: false, text: '[Consulta] profile_id UUID inválido.' };
       const or = await supabaseRest(
         'GET',
         '/rest/v1/orders?select=id,order_number,status,total_amount,created_at,payment_status&user_id=eq.' +
@@ -675,7 +675,7 @@ async function executeOneReadAction(a) {
         null
       );
       const row = sr.ok && Array.isArray(sr.json) && sr.json[0] ? sr.json[0] : null;
-      if (!row) return { type: t, ok: true, text: '[Config] Chave "' + key + '" nao encontrada (vazia).' };
+      if (!row) return { type: t, ok: true, text: '[Config] Chave "' + key + '" não encontrada (vazia).' };
       const valStr =
         typeof row.value === 'object' ? JSON.stringify(row.value).slice(0, 800) : String(row.value || '').slice(0, 800);
       return { type: t, ok: true, text: '[Config] ' + key + ' = ' + valStr };
@@ -985,7 +985,7 @@ async function executeActions(actions) {
     } else if (a.type === 'insert_product_photo') {
       const pid = a.product_id || lastInsertedProductId;
       if (!pid || !isUuid(pid)) {
-        results.push({ ok: false, type: 'insert_product_photo', error: 'product_id invalido' });
+        results.push({ ok: false, type: 'insert_product_photo', error: 'product_id inválido' });
         continue;
       }
       const row = {
@@ -1091,7 +1091,7 @@ async function executeActions(actions) {
         }
       }
       if (!isUuid(String(delId || ''))) {
-        results.push({ ok: false, type: 'delete_delivery_cep', error: 'CEP ou id nao encontrado' });
+        results.push({ ok: false, type: 'delete_delivery_cep', error: 'CEP ou id não encontrado' });
       } else {
         const r = await supabaseRest(
           'DELETE',
@@ -1314,7 +1314,7 @@ async function attachUploadedImageToProduct(baseUrl, serviceKey, productId, b64,
   try {
     buffer = Buffer.from(b64, 'base64');
   } catch (_) {
-    return { ok: false, type: 'storage_photo', error: 'Base64 invalido' };
+    return { ok: false, type: 'storage_photo', error: 'Base64 inválido' };
   }
   if (!buffer || buffer.length < 32) {
     return { ok: false, type: 'storage_photo', error: 'Imagem vazia ou invalida' };
@@ -1386,14 +1386,14 @@ module.exports = async function handler(req, res) {
   const burst =
     mode === 'execute' ? 25 : mode === 'catalog_export' ? 35 : mode === 'catalog_enrich' ? 8 : 12;
   if (!allow(key, burst, 60000)) {
-    res.status(429).json({ error: 'Muitas requisicoes. Aguarde um minuto.' });
+    res.status(429).json({ error: 'Muitas requisições. Aguarde um minuto.' });
     return;
   }
 
   const svc = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   const base = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
   if (!svc || !base) {
-    res.status(503).json({ error: 'Supabase service role nao configurado no servidor.' });
+    res.status(503).json({ error: 'Supabase service role não configurado no servidor.' });
     return;
   }
 
