@@ -1,6 +1,6 @@
 'use strict';
 
-const { applyBrowserCors, handleOptions, readJsonBody } = require('./_http');
+const { applyBrowserCors, handleOptions, readJsonBody, parseBody } = require('./_http');
 const { verifySupabaseUserJwt } = require('./_supabase-user');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
 const { adminConfig, restGet, restPost, resolvePublicBaseUrl } = require('./mercadopago-sync');
@@ -30,6 +30,74 @@ function jsonError(res, status, code, message, extra) {
     });
   }
   res.status(status).json(o);
+}
+
+/** Log de diagnóstico: ativar com MP_CHECKOUT_DEBUG=1 (nunca loga Authorization nem token MP). */
+function logMpCheckoutDiag(label, payload) {
+  if (String(process.env.MP_CHECKOUT_DEBUG || '').trim() !== '1') return;
+  try {
+    console.log('[MP Preference] ' + label, JSON.stringify(payload));
+  } catch (e) {
+    void e;
+  }
+}
+
+function toNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value === 'string') {
+    const cleaned = value
+      .replace(/R\$\s?/gi, '')
+      .replace(/\./g, '')
+      .replace(',', '.')
+      .trim();
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+function onlyDigits(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function isValidPayerEmail(s) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+}
+
+function cleanObject(obj) {
+  if (obj == null) return obj;
+  if (Array.isArray(obj)) {
+    return obj
+      .map(cleanObject)
+      .filter(function (x) {
+        return x !== undefined && x !== null && x !== '';
+      });
+  }
+  if (typeof obj === 'object') {
+    const out = {};
+    Object.keys(obj).forEach(function (k) {
+      const v = cleanObject(obj[k]);
+      if (v === undefined || v === null || v === '') return;
+      if (typeof v === 'object' && !Array.isArray(v)) {
+        if (Object.keys(v).length === 0) return;
+      }
+      if (Array.isArray(v) && v.length === 0) return;
+      out[k] = v;
+    });
+    return out;
+  }
+  return obj;
+}
+
+/**
+ * Mescla corpo JSON: Vercel pode preencher req.body; readJsonBody cobre stream / string / objeto.
+ */
+async function readMergedJsonBody(req) {
+  const fromStream = await readJsonBody(req);
+  const fromReq = parseBody(req.body);
+  const a = fromStream && typeof fromStream === 'object' && !Array.isArray(fromStream) ? fromStream : {};
+  const b = fromReq && typeof fromReq === 'object' && !Array.isArray(fromReq) ? fromReq : {};
+  return Object.assign({}, b, a);
 }
 
 function sanitizeMpError(mpJson) {
@@ -76,10 +144,13 @@ async function fetchFreightAmount(cfg, cepDigits, subtotal) {
     cfg,
     '/rest/v1/delivery_cep_rates?cep=eq.' + encodeURIComponent(cepNorm) + '&select=freight_amount&limit=1'
   );
-  if (!rowRes.ok || !Array.isArray(rowRes.data) || !rowRes.data[0]) {
+  if (!rowRes.ok) {
+    return { delivered: false, amount: 0, freightQueryFailed: true, freightHttpStatus: rowRes.status };
+  }
+  if (!Array.isArray(rowRes.data) || !rowRes.data[0]) {
     return { delivered: false, amount: 0 };
   }
-  let freight = toMoney2(parseFloat(rowRes.data[0].freight_amount) || 0);
+  let freight = toMoney2(toNumber(rowRes.data[0].freight_amount));
   const freeRes = await restGet(
     cfg,
     '/rest/v1/site_settings?key=eq.delivery_info&select=value&limit=1'
@@ -89,7 +160,7 @@ async function fetchFreightAmount(cfg, cepDigits, subtotal) {
     try {
       const v = freeRes.data[0].value;
       const di = typeof v === 'string' ? JSON.parse(v) : v;
-      freeFrom = parseFloat(di.free_from) || 0;
+      freeFrom = toNumber(di.free_from);
     } catch (_) {
       /**/
     }
@@ -188,8 +259,68 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const body = await readJsonBody(req);
-  const shippingAddressId = String(body.shipping_address_id || '').trim();
+  const body = await readMergedJsonBody(req);
+
+  logMpCheckoutDiag('request', {
+    method: req.method,
+    contentType: req.headers['content-type'],
+    bodyKeys: Object.keys(body),
+    hasShippingAddressId: !!String(
+      body.shipping_address_id || body.shippingAddressId || body.address_id || ''
+    ).trim(),
+    hasContactEmailKey: !!String(
+      body.contact_email || body.contactEmail || body.customer_email || body.customerEmail || body.email || ''
+    ).trim(),
+    jwtUserIdLen: user.id ? String(user.id).length : 0,
+    jwtHasEmail: !!String(user.email || '').trim()
+  });
+
+  let profileRow = null;
+  let profResOnce = await restGet(
+    cfg,
+    '/rest/v1/profiles?id=eq.' +
+      encodeURIComponent(user.id) +
+      '&select=full_name,cpf_cnpj,email,phone&limit=1'
+  );
+  if (!profResOnce.ok) {
+    profResOnce = await restGet(
+      cfg,
+      '/rest/v1/profiles?id=eq.' +
+        encodeURIComponent(user.id) +
+        '&select=full_name,cpf_cnpj,phone&limit=1'
+    );
+  }
+  if (profResOnce.ok && Array.isArray(profResOnce.data) && profResOnce.data[0]) {
+    profileRow = profResOnce.data[0];
+  }
+
+  const contactEmail = String(
+    body.contact_email ||
+      body.contactEmail ||
+      body.customer_email ||
+      body.customerEmail ||
+      body.payer_email ||
+      ''
+  ).trim();
+  let payerEmailForMp = String(user.email || '').trim();
+  if (!payerEmailForMp && profileRow && profileRow.email != null) {
+    const pe = String(profileRow.email).trim();
+    if (isValidPayerEmail(pe)) payerEmailForMp = pe;
+  }
+  if (!payerEmailForMp && isValidPayerEmail(contactEmail)) {
+    payerEmailForMp = contactEmail;
+  }
+  if (!payerEmailForMp) {
+    jsonError(res, 400, 'EMAIL_REQUIRED', 'Informe um e-mail valido para o pagamento.', {
+      hint:
+        'Conta sem e-mail no JWT: envie contact_email no JSON, preencha o campo no checkout, ou cadastre e-mail em profiles.'
+    });
+    return;
+  }
+
+  const shippingAddressId = String(
+    body.shipping_address_id || body.shippingAddressId || body.address_id || body.addressId || ''
+  ).trim();
   const idempotencyKey = String(req.headers['x-idempotency-key'] || body.idempotency_key || '')
     .trim()
     .slice(0, 128);
@@ -348,6 +479,13 @@ module.exports = async function handler(req, res) {
     }, 0)
   );
   const fr = await fetchFreightAmount(cfg, cep, subtotal);
+  if (fr.freightQueryFailed) {
+    jsonError(res, 503, 'FREIGHT_DB_ERROR', 'Nao foi possivel consultar o frete no servidor. Tente novamente.', {
+      hint: 'Verifique Supabase (service role) e a tabela delivery_cep_rates.',
+      status: fr.freightHttpStatus
+    });
+    return;
+  }
   if (!fr.delivered) {
     jsonError(res, 400, 'CEP_OUT_OF_DELIVERY_AREA', 'CEP fora da area de entrega.', {
       hint: 'Cadastre o CEP em delivery_cep_rates no painel (CEP / Frete).'
@@ -408,27 +546,19 @@ module.exports = async function handler(req, res) {
     });
     if (!payIns.ok) throw new Error('payments');
 
-    let profileRow = null;
-    const profRes = await restGet(
-      cfg,
-      '/rest/v1/profiles?id=eq.' + encodeURIComponent(user.id) + '&select=full_name,cpf_cnpj&limit=1'
-    );
-    if (profRes.ok && Array.isArray(profRes.data) && profRes.data[0]) profileRow = profRes.data[0];
-
-    const fullName = String((profileRow && profileRow.full_name) || user.email || 'Cliente').trim();
+    const fullName = String(
+      (profileRow && profileRow.full_name) || user.email || payerEmailForMp || 'Cliente'
+    ).trim();
     const nameParts = fullName.split(/\s+/).filter(Boolean);
     const firstName = nameParts[0] || 'Cliente';
     const surname = nameParts.length > 1 ? nameParts.slice(1).join(' ').slice(0, 60) : firstName;
-    const docDigits = String((profileRow && profileRow.cpf_cnpj) || '')
-      .replace(/\D/g, '')
-      .slice(0, 14);
+    const docDigits = onlyDigits((profileRow && profileRow.cpf_cnpj) || '').slice(0, 14);
     const payer = {
       first_name: firstName.slice(0, 50),
       surname: surname.slice(0, 60)
     };
-    const emailTrim = String((user && user.email) || '').trim();
-    if (emailTrim) payer.email = emailTrim;
-    const phoneMp = brPhoneForMp(user.phone);
+    if (payerEmailForMp) payer.email = payerEmailForMp;
+    const phoneMp = brPhoneForMp(user.phone || (profileRow && profileRow.phone));
     if (phoneMp) payer.phone = { area_code: phoneMp.area_code, number: phoneMp.number };
     if (docDigits.length === 11) {
       payer.identification = { type: 'CPF', number: docDigits };
@@ -441,7 +571,7 @@ module.exports = async function handler(req, res) {
       return {
         id: String(l.product_id),
         title: title,
-        quantity: parseInt(l.quantity, 10) || 1,
+        quantity: Math.max(1, parseInt(l.quantity, 10) || 1),
         currency_id: 'BRL',
         unit_price: Number(toMoney2(l.unit_price))
       };
@@ -449,12 +579,30 @@ module.exports = async function handler(req, res) {
     const shipLine = toMoney2(shipping);
     if (shipLine > 0) {
       mpItems.push({
-        id: 'frete',
+        id: 'shipping',
         title: 'Frete',
         quantity: 1,
         currency_id: 'BRL',
         unit_price: Number(shipLine)
       });
+    }
+
+    const mpItemsSafe = mpItems.filter(function (it) {
+      const q = parseInt(it.quantity, 10) || 0;
+      const p = Number(it.unit_price);
+      return (
+        String(it.title || '').trim().length > 0 &&
+        String(it.currency_id || '') === 'BRL' &&
+        q > 0 &&
+        q <= 999999 &&
+        Number.isFinite(p) &&
+        p > 0
+      );
+    });
+    if (mpItemsSafe.length === 0) {
+      const ve = new Error('invalid_mp_items');
+      ve.clientValidation = true;
+      throw ve;
     }
 
     const idem = idempotencyKey || orderId;
@@ -463,8 +611,8 @@ module.exports = async function handler(req, res) {
     if (!isFinite(maxInst) || maxInst < 1) maxInst = 12;
     maxInst = Math.min(12, Math.max(1, maxInst));
 
-    const prefBody = {
-      items: mpItems,
+    const prefBody = cleanObject({
+      items: mpItemsSafe,
       payer: payer,
       back_urls: {
         success: appUrl + '/checkout-retorno.html?order_id=' + encodeURIComponent(orderId) + '&status=success',
@@ -477,7 +625,25 @@ module.exports = async function handler(req, res) {
       statement_descriptor: statement,
       payment_methods: { installments: maxInst },
       metadata: { order_id: orderId, order_number: orderNumber, user_id: user.id }
-    };
+    });
+
+    logMpCheckoutDiag('outgoing_preference', {
+      itemCount: mpItemsSafe.length,
+      subtotal: subtotal,
+      shipping: shipping,
+      total: total,
+      payerHasEmail: !!payer.email,
+      payerHasPhone: !!payer.phone,
+      payerHasId: !!payer.identification,
+      backUrlHost: (function () {
+        try {
+          return new URL(appUrl).host;
+        } catch (e) {
+          void e;
+          return '';
+        }
+      })()
+    });
 
     const mpRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
@@ -538,6 +704,12 @@ module.exports = async function handler(req, res) {
     });
   } catch (err) {
     await deleteOrderCascade(cfg, orderId);
+    if (err && err.clientValidation) {
+      jsonError(res, 400, 'INVALID_MP_ITEMS', 'Nao foi possivel montar itens validos para o Mercado Pago.', {
+        hint: 'Verifique precos e nomes dos produtos no painel.'
+      });
+      return;
+    }
     if (err && err.mpDetails) {
       res.status(502).json({
         ok: false,

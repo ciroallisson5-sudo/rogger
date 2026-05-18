@@ -1,6 +1,28 @@
 // Conforta Store - Cart
 // Nome da API: addProductToCart — evita conflito com window.addToCart em produto.html.
 
+/**
+ * Compra sem cadastro: cria sessão anônima no Supabase (Authentication → Providers → Anonymous).
+ * Não pede e-mail/senha; o carrinho fica ligado a esse usuário até limpar cookies ou converter conta.
+ */
+async function tryEnsureAnonymousSession() {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const { data: sessionData, error: sessionError } = await sb.auth.getSession();
+    void sessionError;
+    const u0 = sessionData && sessionData.session && sessionData.session.user;
+    if (u0) return u0;
+    const { data: anon, error: anonErr } = await sb.auth.signInAnonymously();
+    if (anonErr || !anon || !anon.user) return null;
+    return anon.user;
+  } catch (_) {
+    return null;
+  }
+}
+
+window.tryEnsureAnonymousSession = tryEnsureAnonymousSession;
+
 async function getOrCreateCart() {
   const sb = getSupabase();
   if (!sb) throw new Error('Supabase not initialized');
@@ -34,14 +56,12 @@ async function addProductToCart(productId, photoId, quantity, unitPrice) {
     photoId = photoId || null;
     quantity = quantity || 1;
 
-    // Verifica autenticacao
-    const { data: { user } } = await sb.auth.getUser();
+    let user = (await sb.auth.getUser()).data.user;
     if (!user) {
-      showToast('Faca login para adicionar ao carrinho', 'warning');
-      setTimeout(() => {
-        if (typeof siteNavigate === 'function') siteNavigate('perfil.html');
-        else window.location.href = 'perfil.html';
-      }, 1200);
+      user = await tryEnsureAnonymousSession();
+    }
+    if (!user) {
+      showToast('Nao foi possivel iniciar o carrinho. Tente de novo ou faça login em Meu perfil.', 'error');
       return;
     }
 
@@ -679,7 +699,7 @@ function renderCartSidebar() {
         <button class="btn btn-primary btn-block cart-checkout-btn" onclick="handleCheckout()">Finalizar compra</button>
         <a class="btn btn-secondary btn-block" href="produtos.html">Continuar comprando</a>
         <a class="btn btn-outline btn-block js-cart-whatsapp" href="${cartWhatsappHref()}">Tirar duvida no WhatsApp</a>
-        <p class="cart-secure-copy">Pagamento no <strong>Mercado Pago</strong> após login. Dúvidas? Use o WhatsApp antes de finalizar.</p>
+        <p class="cart-secure-copy">Pagamento no <strong>Mercado Pago</strong> no checkout. Você pode comprar sem criar conta (sessão de visitante). Dúvidas? WhatsApp.</p>
       </div>
       <div class="cart-mobile-bar" id="cartMobileBar" style="display:none">
         <div><span>Total</span><strong id="cartMobileTotal">R$ 0,00</strong></div>
@@ -724,17 +744,10 @@ async function initFullCartPage() {
 
   async function renderFull() {
     root.innerHTML = '<p class="cc-full-cart-loading">Carregando seu carrinho...</p>';
-    const user = typeof checkAuth === 'function' ? await checkAuth() : null;
-    if (!user) {
-      root.innerHTML =
-        '<div class="cc-full-cart-state">' +
-        '<h2>Faca login para ver o carrinho</h2>' +
-        '<p>Entre na sua conta para salvar itens e finalizar com seguranca.</p>' +
-        '<div class="cc-full-cart-actions">' +
-        '<a class="btn btn-primary" href="perfil.html">Fazer login</a>' +
-        '<a class="btn btn-outline" href="produtos.html">Ver colchões</a>' +
-        '</div></div>';
-      return;
+    const sb = getSupabase();
+    if (sb) {
+      const u0 = (await sb.auth.getUser()).data.user;
+      if (!u0) await tryEnsureAnonymousSession();
     }
 
     let items = [];
