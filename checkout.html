@@ -897,7 +897,15 @@
       }
 
       window.selectAddress = function(addressId) {
-        selectedAddressId = addressId;
+        var aid = addressId != null ? String(addressId).trim() : '';
+        if (!aid && userAddresses && userAddresses.length) {
+          var def0 = userAddresses.find(function(a) {
+            return a.is_default;
+          });
+          var pick0 = def0 || userAddresses[0];
+          aid = pick0 && pick0.id ? String(pick0.id) : '';
+        }
+        selectedAddressId = aid || null;
         var preview = document.getElementById('addressPreview');
         var addr = selectedAddress();
         if (preview && addr) {
@@ -1388,6 +1396,17 @@
             return;
           }
 
+          var addrSel = selectedAddress();
+          var shipAddrId = String(selectedAddressId || '').trim();
+          if (!shipAddrId && addrSel && addrSel.id) {
+            shipAddrId = String(addrSel.id);
+            selectedAddressId = shipAddrId;
+            var selEl = document.getElementById('addressSelect');
+            if (selEl && userAddresses.some(function (a) { return String(a.id) === shipAddrId; })) {
+              selEl.value = shipAddrId;
+            }
+          }
+
           var prof = window.__checkoutProfile || {};
           var meta = user.user_metadata || {};
           var customerName = String(prof.full_name || meta.full_name || '').trim();
@@ -1414,11 +1433,11 @@
             showToast('Cadastre um telefone em Meu perfil antes de finalizar.', 'error');
             hasValidationError = true;
           }
-          if (!selectedAddressId && userAddresses.length > 0) {
+          if (!shipAddrId && userAddresses.length > 0) {
             showToast('Selecione um endereço de entrega.', 'error');
             hasValidationError = true;
           }
-          if (!selectedAddressId && userAddresses.length === 0) {
+          if (!shipAddrId && userAddresses.length === 0) {
             showToast('Cadastre um endereço em Meu perfil para continuar.', 'error');
             hasValidationError = true;
           }
@@ -1459,7 +1478,7 @@
           }
 
           var payBody = {
-            shipping_address_id: String(selectedAddressId || '').trim()
+            shipping_address_id: shipAddrId
           };
           if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
             payBody.contact_email = customerEmail;

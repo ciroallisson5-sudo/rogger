@@ -460,13 +460,29 @@ module.exports = async function handler(req, res) {
       encodeURIComponent(shippingAddressId) +
       '&user_id=eq.' +
       encodeURIComponent(user.id) +
-      '&select=zip_code,cep&limit=1'
+      '&select=*&limit=1'
   );
   if (!addr.ok || !Array.isArray(addr.data) || !addr.data[0]) {
-    jsonError(res, 400, 'INVALID_SHIPPING_ADDRESS', 'Endereco de entrega invalido.');
+    const hint =
+      addr.data && typeof addr.data === 'object' && !Array.isArray(addr.data) && addr.data.message
+        ? String(addr.data.message).slice(0, 200)
+        : undefined;
+    jsonError(res, 400, 'INVALID_SHIPPING_ADDRESS', 'Endereco de entrega invalido.', {
+      hint:
+        hint ||
+        'Confirme se o id do endereco pertence ao usuario logado (UUID em shipping_address_id).'
+    });
     return;
   }
-  const z = addr.data[0].zip_code != null ? addr.data[0].zip_code : addr.data[0].cep;
+  const addrRow = addr.data[0];
+  const z =
+    addrRow.cep != null && String(addrRow.cep).trim() !== ''
+      ? addrRow.cep
+      : addrRow.zip_code != null && String(addrRow.zip_code).trim() !== ''
+        ? addrRow.zip_code
+        : addrRow.postal_code != null
+          ? addrRow.postal_code
+          : '';
   cep = normalizeBrazilCepDigits(z);
   if (!cep) {
     jsonError(res, 400, 'INVALID_ADDRESS_CEP', 'CEP inválido no endereço selecionado.');
