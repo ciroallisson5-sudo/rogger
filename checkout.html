@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="robots" content="noindex,nofollow">
@@ -252,6 +252,104 @@
     @media (max-width: 768px) {
       .checkout-profile-grid { grid-template-columns: 1fr; }
     }
+
+
+    /* Ajustes finais de responsividade e acabamento profissional do checkout */
+    html { font-size: 16px; }
+    body { min-width: 320px; overflow-x: hidden; background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%); }
+    .container { width: 100%; max-width: 1160px; padding-left: clamp(16px, 4vw, 32px); padding-right: clamp(16px, 4vw, 32px); }
+    .checkout-page { padding-top: clamp(18px, 3vw, 34px); padding-bottom: clamp(110px, 8vw, 72px); }
+    .checkout-hero { max-width: 880px; margin-bottom: clamp(16px, 3vw, 24px); }
+    .checkout-hero h1 { font-size: clamp(1.65rem, 5vw, 2.6rem); line-height: 1.08; }
+    .checkout-hero p { font-size: clamp(0.96rem, 2.2vw, 1.05rem); line-height: 1.55; }
+    .checkout-mp-hero { padding: clamp(16px, 3vw, 24px); border-radius: clamp(18px, 3vw, 24px); }
+    .checkout-mp-hero-title { font-size: clamp(1.08rem, 2vw, 1.32rem); }
+    .checkout-mp-hero-text { font-size: clamp(0.92rem, 1.6vw, 0.98rem); }
+    .checkout-link-row { min-height: 70px; padding: 16px 18px; }
+    .checkout-link-row .clr-main { font-size: clamp(0.98rem, 1.8vw, 1.05rem); }
+    .checkout-link-row .clr-sub { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.4; font-size: 0.86rem; }
+    .checkout-section, .order-summary-card { border-radius: 24px; box-shadow: 0 12px 30px rgba(15,23,42,0.06); }
+    .checkout-section { padding: clamp(18px, 3vw, 26px); }
+    .section-head { align-items: flex-start; }
+    .section-copy, .payment-mode-copy small, .order-summary-header p { line-height: 1.55; }
+    .form-input, .form-select, .form-textarea { min-height: 50px; font-size: 1rem; }
+    .form-group label { font-size: 0.88rem; }
+    .btn { min-height: 50px; font-size: 0.95rem; line-height: 1.2; text-align: center; }
+    .btn-lg { min-height: 56px; font-size: 1rem; }
+    .payment-mode-option { padding: 16px; align-items: flex-start; }
+    .payment-mode-badge { margin-top: 2px; }
+    .order-summary-header { padding: 22px 22px 8px; }
+    .order-summary-items { padding: 8px 22px; }
+    .order-summary-totals { padding: 16px 22px 22px; }
+    .osi-name { font-size: 0.92rem; }
+    .osi-desc { font-size: 0.82rem; }
+    .review-box { line-height: 1.65; }
+    .checkout-inline-actions .btn { flex: 1 1 160px; }
+
+    @media (min-width: 900px) {
+      .checkout-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 390px); gap: 24px; align-items: start; }
+      .checkout-layout > .order-summary-card { grid-column: 2; grid-row: 1; position: sticky; top: 24px; }
+      .checkout-layout > .checkout-left { grid-column: 1; grid-row: 1; }
+      .checkout-left { gap: 20px; }
+      .mobile-submit-bar { display: none !important; }
+    }
+
+    @media (max-width: 899px) {
+      .checkout-layout { gap: 16px; }
+      .checkout-layout > .order-summary-card { order: 1; }
+      .checkout-layout > .checkout-left { order: 2; }
+    }
+
+    @media (max-width: 768px) {
+      .container { padding-left: 14px; padding-right: 14px; }
+      .checkout-page { padding-top: 16px; padding-bottom: calc(118px + env(safe-area-inset-bottom)); }
+      .checkout-back { font-size: 0.92rem; margin-bottom: 10px; }
+      .checkout-hero { margin-bottom: 16px; }
+      .checkout-mp-hero { margin-bottom: 16px; }
+      .section-head { display: block; padding-bottom: 14px; margin-bottom: 16px; }
+      .checkout-section { padding: 18px; border-radius: 20px; }
+      .checkout-link-row { border-radius: 18px; padding: 15px; align-items: flex-start; }
+      .checkout-link-row .clr-arrow { padding-top: 2px; }
+      .order-summary-card { border-radius: 20px; }
+      .order-summary-item { grid-template-columns: 54px minmax(0, 1fr) auto; gap: 10px; }
+      .order-summary-item img { width: 54px; height: 54px; }
+      .osi-price { font-size: 0.84rem; }
+      .mobile-submit-bar {
+        display: grid;
+        grid-template-columns: minmax(96px, 0.86fr) minmax(0, 1.4fr);
+        gap: 10px;
+        align-items: center;
+        padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+        background: rgba(255,255,255,0.98);
+        backdrop-filter: blur(12px);
+      }
+      .mobile-submit-bar .btn { width: 100%; min-height: 52px; padding-left: 12px; padding-right: 12px; font-size: 0.88rem; white-space: normal; }
+      .toast-container { left: 12px; right: 12px; top: 12px; }
+      .toast { min-width: 0; width: 100%; }
+    }
+
+    @media (max-width: 420px) {
+      .container { padding-left: 12px; padding-right: 12px; }
+      .checkout-page { padding-bottom: calc(124px + env(safe-area-inset-bottom)); }
+      .checkout-hero h1 { font-size: 1.55rem; }
+      .checkout-hero p { font-size: 0.94rem; }
+      .checkout-mp-hero { padding: 14px; }
+      .checkout-section { padding: 16px; }
+      .form-row, .form-row-3 { gap: 10px; }
+      .form-group { margin-bottom: 13px; }
+      .payment-mode-option { gap: 10px; padding: 14px; }
+      .payment-mode-badge { width: 42px; height: 42px; border-radius: 14px; }
+      .order-summary-header, .order-summary-items, .order-summary-totals { padding-left: 16px; padding-right: 16px; }
+      .order-summary-item { grid-template-columns: 50px minmax(0, 1fr); align-items: start; }
+      .order-summary-item img { width: 50px; height: 50px; }
+      .osi-price { grid-column: 2; justify-self: start; }
+      .total-line.total span:last-child { font-size: 1.35rem; }
+      .trust-list, .checkout-trust-pills { grid-template-columns: 1fr; }
+      .mobile-submit-bar { grid-template-columns: 1fr; gap: 8px; }
+      .mobile-submit-bar > div { display: flex; justify-content: space-between; align-items: baseline; }
+      .mobile-submit-bar .btn { min-height: 50px; }
+      .checkout-modal-panel { padding: 18px 16px 22px; }
+    }
   </style>
 </head>
 <body>
@@ -343,6 +441,10 @@
         return 'Ir para o Mercado Pago — ' + formatPrice(g);
       }
 
+      function checkoutMobilePayButtonText() {
+        return 'Ir para o Mercado Pago';
+      }
+
       window.selectCheckoutPaymentMode = function(mode) {
         selectedPaymentMode = mode === 'checkout_pro' ? 'checkout_pro' : 'pix';
         document.querySelectorAll('[data-payment-mode]').forEach(function(btn) {
@@ -362,7 +464,7 @@
         checkoutFreightMsg = '';
         if (addr && !cep) {
           checkoutFreightDelivered = false;
-          checkoutFreightMsg = 'CEP invalido ou incompleto no endereco. Atualize no perfil.';
+          checkoutFreightMsg = 'CEP inválido ou incompleto. Confira o endereço no checkout.';
           updateCheckoutFreightDom();
           return;
         }
@@ -383,13 +485,13 @@
             checkoutFreightDelivered = false;
             checkoutFreightMsg =
               (j && (j.message || j.error) && String(j.message || j.error).trim()) ||
-              'Nao foi possivel calcular o frete. Tente de novo.';
+              'Não foi possível calcular o frete. Tente de novo.';
             updateCheckoutFreightDom();
             return;
           }
           if (j && j.delivered === false) {
             checkoutFreightDelivered = false;
-            checkoutFreightMsg = j.message || 'CEP fora da area de entrega.';
+            checkoutFreightMsg = j.message || 'CEP fora da área de entrega.';
           } else if (j && j.delivered) {
             checkoutFreightAmount = parseFloat(j.freight_amount) || 0;
           }
@@ -425,7 +527,7 @@
             elF.textContent = '—';
             elT.textContent = formatPrice(sub);
           } else {
-            elF.textContent = checkoutFreightAmount <= 0 ? 'Gratis' : formatPrice(checkoutFreightAmount);
+            elF.textContent = checkoutFreightAmount <= 0 ? 'Grátis' : formatPrice(checkoutFreightAmount);
             elT.textContent = formatPrice(grand);
           }
         }
@@ -435,7 +537,7 @@
         var addrSel = selectedAddress();
         var freightBlocked = !checkoutFreightDelivered && !!addrSel;
         if (mbtn) {
-          mbtn.textContent = checkoutPayButtonText(checkoutFreightDelivered ? grand : sub);
+          mbtn.textContent = checkoutMobilePayButtonText();
           mbtn.disabled = freightBlocked;
         }
         if (btn) {
@@ -754,7 +856,7 @@
           '<div class="form-group"><label for="checkoutInlineSignupPassword">Senha</label><input class="form-input" type="password" id="checkoutInlineSignupPassword" autocomplete="new-password" placeholder="Mínimo 6 caracteres"></div>' +
           '<button type="submit" class="btn btn-primary btn-block" id="checkoutInlineSignupBtn">Criar conta e continuar</button>' +
           '</form>' +
-          '<p class="section-copy" style="margin-top:12px">Esta janela não tira você do checkout e não apaga os produtos do carrinho.</p>' +
+          '<p class="section-copy" style="margin-top:12px">Esta janela mantém você no checkout e não apaga os produtos do carrinho.</p>' +
           '</div></div>'
         );
       }
@@ -799,7 +901,7 @@
           await mergeCheckoutItemsIntoAccount(snapshot || checkoutCartSnapshot());
           await saveCheckoutGuestDataToAccount(user);
           window.closeCheckoutModals();
-          showToast('Conta pronta. Seu carrinho foi mantido.', 'success');
+          showToast('Conta pronta. Seu carrinho foi mantido no checkout.', 'success');
           await loadCheckout();
         }
       }
@@ -835,7 +937,7 @@
         var password = String(document.getElementById('checkoutInlineSignupPassword') && document.getElementById('checkoutInlineSignupPassword').value || '');
         var btn = document.getElementById('checkoutInlineSignupBtn');
         if (!name || !email || !password) { showToast('Preencha nome, e-mail e senha.', 'error'); return false; }
-        if (password.length < 6) { showToast('Senha deve ter no mínimo 6 caracteres.', 'error'); return false; }
+        if (password.length < 6) { showToast('A senha deve ter no mínimo 6 caracteres.', 'error'); return false; }
         try {
           if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
           await checkoutSignOutAnonymousIfNeeded();
@@ -849,7 +951,7 @@
             saved.customer = Object.assign({}, saved.customer || {}, { full_name: name, email: email, phone: phone });
             writeGuestCheckoutData(saved);
             window.closeCheckoutModals();
-            showToast('Conta criada. Se pedir confirmação por e-mail, você ainda pode pagar como visitante agora.', 'success');
+            showToast('Conta criada. Se o e-mail precisar de confirmação, você ainda pode concluir a compra como visitante.', 'success');
             await loadCheckout();
           }
         } catch (e) {
@@ -879,8 +981,8 @@
           '<div class="checkout-section" id="checkoutGuestDetailsWrap">' +
           '<div class="section-head"><div><h2>Dados para esta compra</h2><p class="section-copy">' +
           (guestMode
-            ? 'Compre como visitante. Nao precisa criar conta: usamos uma sessao anonima deste aparelho para manter o carrinho e o pedido.'
-            : 'Revise os dados que vao no pedido. Voce tambem pode comprar sem alterar seu cadastro.') +
+            ? 'Compre como visitante. Você pode informar os dados desta compra sem sair do checkout, e o carrinho permanece salvo neste aparelho.'
+            : 'Revise os dados que vão no pedido. Você também pode comprar sem alterar seu cadastro.') +
           '</p></div></div>' +
           '<div class="form-row">' +
           '<div class="form-group"><label for="checkoutGuestName">Nome completo</label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestName" autocomplete="name" placeholder="Seu nome" value="' + escHtml(name) + '"></div>' +
@@ -892,15 +994,15 @@
           '</div>' +
           (showAddress ?
             '<div style="height:1px;background:var(--line);margin:12px 0 16px"></div>' +
-            '<h3 style="font-size:0.98rem;margin:0 0 10px;color:var(--ink)">Endereco de entrega</h3>' +
+            '<h3 style="font-size:0.98rem;margin:0 0 10px;color:var(--ink)">Endereço de entrega</h3>' +
             '<div class="form-row"><div class="form-group"><label for="checkoutGuestCep">CEP</label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestCep" maxlength="12" placeholder="00000-000" value="' + escHtml(a.cep || '') + '"></div>' +
-            '<div class="form-group"><label for="checkoutGuestNumber">Numero</label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestNumber" placeholder="123" value="' + escHtml(a.number || '') + '"></div></div>' +
+            '<div class="form-group"><label for="checkoutGuestNumber">Número</label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestNumber" placeholder="123" value="' + escHtml(a.number || '') + '"></div></div>' +
             '<div class="form-group"><label for="checkoutGuestStreet">Rua</label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestStreet" placeholder="Nome da rua" value="' + escHtml(a.street || '') + '"></div>' +
-            '<div class="form-group"><label for="checkoutGuestComplement">Complemento <small style="color:var(--muted);font-weight:700">opcional</small></label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestComplement" placeholder="Apto, bloco, referencia" value="' + escHtml(a.complement || '') + '"></div>' +
+            '<div class="form-group"><label for="checkoutGuestComplement">Complemento <small style="color:var(--muted);font-weight:700">opcional</small></label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestComplement" placeholder="Apto, bloco, referência" value="' + escHtml(a.complement || '') + '"></div>' +
             '<div class="form-row-3"><div class="form-group"><label for="checkoutGuestNeighborhood">Bairro</label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestNeighborhood" value="' + escHtml(a.neighborhood || '') + '"></div>' +
             '<div class="form-group"><label for="checkoutGuestCity">Cidade</label><input type="text" class="form-input js-guest-checkout-field" id="checkoutGuestCity" value="' + escHtml(a.city || '') + '"></div>' +
             '<div class="form-group"><label for="checkoutGuestState">UF</label><select class="form-select js-guest-checkout-field" id="checkoutGuestState">' + checkoutBrStateOptionsHtml(a.state || 'ES') + '</select></div></div>'
-            : '<p class="section-copy" style="margin:4px 0 0">Voce ja tem endereco salvo. Para usar outro endereço nesta compra, abra “Endereco de entrega” e cadastre ou selecione.</p>') +
+            : '<p class="section-copy" style="margin:4px 0 0">Você já tem endereço salvo. Para usar outro endereço nesta compra, abra “Endereço de entrega” e cadastre ou selecione.</p>') +
           '</div>'
         );
       }
@@ -946,7 +1048,7 @@
         if (!name || name.split(/\s+/).filter(Boolean).length < 2) missing.push('nome completo');
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) missing.push('e-mail no checkout');
         if (phone && phone.replace(/\D/g, '').length < 10) missing.push('telefone com DDD');
-        if (docDigits && !isValidBrazilTaxId(docDigits)) missing.push('CPF ou CNPJ valido');
+        if (docDigits && !isValidBrazilTaxId(docDigits)) missing.push('CPF ou CNPJ válido');
         return missing;
       }
 
@@ -954,9 +1056,9 @@
         var missing = checkoutProfileMissingList(user);
         if (!missing.length) return '';
         return (
-          '<div class="checkout-profile-warn" role="alert">Falta: ' +
+          '<div class="checkout-profile-warn" role="alert">Complete: ' +
           escHtml(missing.join(', ')) +
-          '. Preencha os campos abaixo.</div>'
+          '. Preencha os campos destacados abaixo.</div>'
         );
       }
 
@@ -970,7 +1072,7 @@
         var docDisplay = docDigits ? maskTaxIdDigits(docDigits) : '';
         return (
           checkoutProfileWarnHtml(user) +
-          '<p class="section-copy" style="margin-top:0;margin-bottom:14px">Informe os dados usados somente nesta compra. Não precisa criar conta para continuar.</p>' +
+          '<p class="section-copy" style="margin-top:0;margin-bottom:14px">Informe ou revise os dados usados nesta compra. Você continua no checkout.</p>' +
           '<div class="form-group"><label for="checkoutProfileFullName">Nome completo</label>' +
           '<input type="text" class="form-input" id="checkoutProfileFullName" autocomplete="name" value="' +
           escHtml(name) +
@@ -1037,14 +1139,14 @@
       function buildCheckoutAddressFormHtml() {
         return (
           '<div id="checkoutAddressFormWrap" style="display:none;margin-top:4px">' +
-          '<div class="checkout-address-form-title" id="checkoutAddressFormTitle">Novo endereco</div>' +
+          '<div class="checkout-address-form-title" id="checkoutAddressFormTitle">Novo endereço</div>' +
           '<input type="hidden" id="checkoutAddrFormId" value="">' +
-          '<div class="form-group"><label for="checkoutAddrLabel">Identificacao</label>' +
+          '<div class="form-group"><label for="checkoutAddrLabel">Identificação</label>' +
           '<input type="text" class="form-input" id="checkoutAddrLabel" placeholder="Ex: Casa, Trabalho"></div>' +
           '<div class="form-row">' +
           '<div class="form-group"><label for="checkoutAddrCep">CEP</label>' +
           '<input type="text" class="form-input" id="checkoutAddrCep" placeholder="00000-000" maxlength="12"></div>' +
-          '<div class="form-group"><label for="checkoutAddrNumber">Numero</label>' +
+          '<div class="form-group"><label for="checkoutAddrNumber">Número</label>' +
           '<input type="text" class="form-input" id="checkoutAddrNumber" placeholder="123"></div></div>' +
           '<div class="form-group"><label for="checkoutAddrStreet">Rua</label>' +
           '<input type="text" class="form-input" id="checkoutAddrStreet" placeholder="Nome da rua"></div>' +
@@ -1059,9 +1161,9 @@
           '<select class="form-select" id="checkoutAddrState">' +
           checkoutBrStateOptionsHtml('') +
           '</select></div></div>' +
-          '<label class="checkout-save-card"><input type="checkbox" id="checkoutAddrDefault"> <span>Definir como endereco padrao <small>Os outros deixam de ser padrao.</small></span></label>' +
+          '<label class="checkout-save-card"><input type="checkbox" id="checkoutAddrDefault"> <span>Definir como endereço padrão <small>Os outros deixam de ser padrão.</small></span></label>' +
           '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">' +
-          '<button type="button" class="btn btn-primary" style="flex:1;min-width:120px" id="btnCheckoutSaveAddress" onclick="window.saveCheckoutAddress()">Salvar endereco</button>' +
+          '<button type="button" class="btn btn-primary" style="flex:1;min-width:120px" id="btnCheckoutSaveAddress" onclick="window.saveCheckoutAddress()">Salvar endereço</button>' +
           '<button type="button" class="btn btn-outline" id="btnCheckoutCancelAddressForm" onclick="window.hideCheckoutAddressForm()">Cancelar</button>' +
           '</div></div>'
         );
@@ -1070,7 +1172,7 @@
       window.saveCheckoutProfile = async function() {
         var user = window.__checkoutUser;
         if (!user || !sb) {
-          showToast('Sessao invalida.', 'error');
+          showToast('Sessão inválida.', 'error');
           return;
         }
         var nameEl = document.getElementById('checkoutProfileFullName');
@@ -1088,11 +1190,11 @@
           return;
         }
         if (documentRaw && documentRaw.length !== 11 && documentRaw.length !== 14) {
-          showToast('CPF (11) ou CNPJ (14) digitos.', 'error');
+          showToast('Informe CPF com 11 dígitos ou CNPJ com 14 dígitos.', 'error');
           return;
         }
         if (documentRaw && !isValidBrazilTaxId(documentRaw)) {
-          showToast('CPF ou CNPJ invalido.', 'error');
+          showToast('CPF ou CNPJ inválido.', 'error');
           return;
         }
         try {
@@ -1117,9 +1219,9 @@
           wireCheckoutProfileDocMask();
           refreshCheckoutAccountRowSubtitle();
           updateReviewCustomer();
-          showToast('Dados salvos.', 'success');
+          showToast('Dados salvos com sucesso.', 'success');
         } catch (e) {
-          var msg = (e && e.message) ? String(e.message) : 'Erro ao salvar';
+          var msg = (e && e.message) ? String(e.message) : 'Não foi possível salvar os dados';
           if (e && e.code === 'CPF_COLUMN_MISSING') {
             msg = 'CPF/CNPJ: rode database/profiles_cpf_cnpj.sql no Supabase.';
           }
@@ -1153,11 +1255,11 @@
         if (mode === 'edit') {
           var addr = selectedAddress();
           if (!addr) {
-            showToast('Selecione um endereco na lista.', 'error');
+            showToast('Selecione um endereço na lista.', 'error');
             wrap.style.display = 'none';
             return;
           }
-          if (title) title.textContent = 'Editar endereco';
+          if (title) title.textContent = 'Editar endereço';
           hid.value = String(addr.id);
           if (document.getElementById('checkoutAddrLabel')) document.getElementById('checkoutAddrLabel').value = addr.label || '';
           if (document.getElementById('checkoutAddrCep')) document.getElementById('checkoutAddrCep').value = addr.cep || addr.zip_code || '';
@@ -1171,7 +1273,7 @@
           var def = document.getElementById('checkoutAddrDefault');
           if (def) def.checked = !!addr.is_default;
         } else {
-          if (title) title.textContent = 'Novo endereco';
+          if (title) title.textContent = 'Novo endereço';
           hid.value = '';
           ['checkoutAddrLabel', 'checkoutAddrCep', 'checkoutAddrStreet', 'checkoutAddrNumber', 'checkoutAddrComplement', 'checkoutAddrNeighborhood', 'checkoutAddrCity'].forEach(function (id) {
             var el = document.getElementById(id);
@@ -1187,7 +1289,7 @@
       window.saveCheckoutAddress = async function() {
         var user = window.__checkoutUser;
         if (!user || !sb) {
-          showToast('Sessao invalida.', 'error');
+          showToast('Sessão inválida.', 'error');
           return;
         }
         var label = String(document.getElementById('checkoutAddrLabel') && document.getElementById('checkoutAddrLabel').value || '').trim();
@@ -1236,9 +1338,9 @@
           }
           await reloadCheckoutAddressesUi(newId);
           window.hideCheckoutAddressForm();
-          showToast('Endereco salvo.', 'success');
+          showToast('Endereço salvo.', 'success');
         } catch (e) {
-          showToast((e && e.message) || 'Erro ao salvar endereco', 'error');
+          showToast((e && e.message) || 'Não foi possível salvar o endereço', 'error');
         } finally {
           if (typeof showLoading === 'function') showLoading(false);
         }
@@ -1253,11 +1355,11 @@
         if (sel) {
           sel.disabled = userAddresses.length === 0;
           if (!userAddresses.length) {
-            sel.innerHTML = '<option value="">Cadastre um endereco abaixo</option>';
+            sel.innerHTML = '<option value="">Cadastre um endereço abaixo</option>';
           } else {
             sel.innerHTML = userAddresses
               .map(function (a) {
-                var lab = a.label || 'Endereco';
+                var lab = a.label || 'Endereço';
                 return '<option value="' + escHtml(String(a.id)) + '">' + escHtml(lab + ': ' + addressLine(a)) + '</option>';
               })
               .join('');
@@ -1317,7 +1419,7 @@
       }
 
       function checkoutAddressSubtitlePlain(addr) {
-        if (!addr) return 'Cadastre ou selecione um endereco';
+        if (!addr) return 'Cadastre ou selecione um endereço';
         var line = addressLine(addr);
         return line.length > 72 ? line.slice(0, 70) + '\u2026' : line;
       }
@@ -1328,25 +1430,25 @@
 
       function renderCheckoutModals(user, addresses, addrOptions, addr) {
         var addrHead =
-          '<div class="form-group"><label for="addressSelect">Endereco para esta compra</label>' +
+          '<div class="form-group"><label for="addressSelect">Endereço para esta compra</label>' +
           '<select class="form-select" id="addressSelect" onchange="window.selectAddress(this.value)"' +
           (addresses.length === 0 ? ' disabled' : '') +
           '>' +
           (addresses.length > 0
             ? addrOptions
-            : '<option value="">Cadastre um endereco no formulario abaixo</option>') +
+            : '<option value="">Cadastre um endereço no formulário abaixo</option>') +
           '</select></div>' +
           '<div class="checkout-inline-actions">' +
           '<button type="button" class="btn btn-outline btn-sm" id="btnCheckoutEditAddress"' +
           (addresses.length === 0 ? ' disabled' : '') +
           ' onclick="window.openCheckoutAddressEditor(\'edit\')">Editar selecionado</button>' +
-          '<button type="button" class="btn btn-outline btn-sm" id="btnCheckoutNewAddress" onclick="window.openCheckoutAddressEditor(\'new\')">Novo endereco</button>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="btnCheckoutNewAddress" onclick="window.openCheckoutAddressEditor(\'new\')">Novo endereço</button>' +
           '</div>' +
           (addresses.length > 0
             ? '<div class="address-preview" id="addressPreview"><strong>Entrega selecionada</strong><br>' +
               escHtml(addressLine(addr)) +
-              '<br><span>O frete e recalculado ao salvar ou trocar o CEP.</span></div>'
-            : '<p class="section-copy" style="margin-bottom:8px">Nenhum endereco ainda. Toque em <strong>Novo endereco</strong> e preencha os campos.</p>' +
+              '<br><span>O frete é recalculado ao salvar ou trocar o CEP.</span></div>'
+            : '<p class="section-copy" style="margin-bottom:8px">Nenhum endereço cadastrado. Toque em <strong>Novo endereço</strong> e preencha os campos.</p>' +
               '<div class="address-preview" id="addressPreview" style="display:none"></div>');
 
         return (
@@ -1363,7 +1465,7 @@
           '<div class="checkout-modal-backdrop" tabindex="-1" data-checkout-modal-close="1"></div>' +
           '<div class="checkout-modal-panel">' +
           '<button type="button" class="checkout-modal-close" data-checkout-modal-close="1" aria-label="Fechar">&times;</button>' +
-          '<h2 id="checkoutModalAddressTitle">Endereco de entrega</h2>' +
+          '<h2 id="checkoutModalAddressTitle">Endereço de entrega</h2>' +
           addrHead +
           buildCheckoutAddressFormHtml() +
           '<p class="section-copy" style="margin-top:12px">Tudo pode ser ajustado aqui sem sair do checkout.</p>' +
@@ -1435,7 +1537,7 @@
           preview.innerHTML =
             '<strong>Entrega selecionada</strong><br>' +
             escHtml(addressLine(addr)) +
-            '<br><span>O frete e recalculado ao salvar ou trocar o CEP.</span>';
+            '<br><span>O frete é recalculado ao salvar ou trocar o CEP.</span>';
         }
         refreshCheckoutAddressRowSubtitle();
         var rb = document.getElementById('reviewBox');
@@ -1579,7 +1681,7 @@
               e.preventDefault();
               if (typeof window.openChatWidget === 'function') window.openChatWidget();
               else if (typeof window.toggleChat === 'function') window.toggleChat();
-              else showToast('Atendimento indisponível no momento', 'info');
+              else showToast('Atendimento indisponível no momento.', 'info');
             };
           }
         });
@@ -1652,7 +1754,7 @@
           return;
         }
         if (typeof signIn !== 'function') {
-          showToast('Login indisponivel nesta pagina. Use Meu perfil.', 'error');
+          showToast('Login indisponível no momento. Tente novamente em instantes.', 'error');
           return;
         }
         if (btn) {
@@ -1661,11 +1763,11 @@
         }
         try {
           await signIn(email, password);
-          showToast('Pronto! Carregando checkout...', 'success');
+          showToast('Pronto! Carregando o checkout...', 'success');
           await loadCheckout();
         } catch (e) {
-          var msg = (e && e.message) || 'Falha no login';
-          if (/invalid login|invalid credentials/i.test(msg)) msg = 'E-mail ou senha incorretos';
+          var msg = (e && e.message) || 'Não foi possível entrar';
+          if (/invalid login|invalid credentials/i.test(msg)) msg = 'E-mail ou senha incorretos.';
           showToast(msg, 'error');
           if (btn) {
             btn.disabled = false;
@@ -1687,8 +1789,8 @@
             container.innerHTML =
               '<div class="checkout-state">' +
               '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>' +
-              '<h2>Seu carrinho esta vazio</h2>' +
-              '<p>Adicione um produto antes de finalizar a compra.</p>' +
+              '<h2>Seu carrinho está vazio</h2>' +
+              '<p>Adicione um produto ao carrinho antes de finalizar a compra.</p>' +
               '<div class="state-actions"><a href="produtos.html" class="btn btn-primary">Ver colchões</a><a href="carrinho.html" class="btn btn-outline">Ir ao carrinho</a></div>' +
               '</div>';
             return;
@@ -1727,7 +1829,7 @@
 
           renderCheckout(items, addresses, defaultAddr, user);
         } catch(e) {
-          container.innerHTML = '<div class="checkout-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg><h2>Nao foi possivel carregar o checkout</h2><p>Tente novamente em instantes.</p><div class="state-actions"><button class="btn btn-primary" onclick="location.reload()">Tentar novamente</button><a href="carrinho.html" class="btn btn-outline">Voltar ao carrinho</a></div></div>';
+          container.innerHTML = '<div class="checkout-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg><h2>Não foi possível carregar o checkout</h2><p>Tente novamente em instantes.</p><div class="state-actions"><button class="btn btn-primary" onclick="location.reload()">Tentar novamente</button><a href="carrinho.html" class="btn btn-outline">Voltar ao carrinho</a></div></div>';
         }
       }
 
@@ -1740,14 +1842,14 @@
 
         var addrOptions = addresses.map(function(a) {
           var selected = String(a.id) === String(selectedAddressId) ? 'selected' : '';
-          var label = a.label || 'Endereco';
+          var label = a.label || 'Endereço';
           return '<option value="' + escHtml(String(a.id)) + '" ' + selected + '>' + escHtml(label + ': ' + addressLine(a)) + '</option>';
         }).join('');
 
         container.innerHTML =
           '<div class="checkout-link-rows">' +
           '<div class="checkout-link-row" style="cursor:default;">' +
-          '<span class="clr-stack"><span class="clr-main">Pagamento pelo Mercado Pago</span><span class="clr-sub">Sem login obrigatório na loja. O Mercado Pago abre em seguida com Pix, cartão, boleto e os dados necessários por lá.</span></span>' +
+          '<span class="clr-stack"><span class="clr-main">Pagamento via Mercado Pago</span><span class="clr-sub">Você não precisa sair do checkout para entrar ou criar conta. Ao pagar, o Mercado Pago abre com Pix, cartão, boleto e parcelamento.</span></span>' +
           '<span class="clr-arrow" aria-hidden="true">↗</span></div>' +
           '</div>' +
           '<div class="checkout-layout">' +
@@ -1758,17 +1860,17 @@
           guestDetailsSection +
 
           '<div class="checkout-section">' +
-          '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">O botão abaixo abre o Checkout Pro do Mercado Pago. As opções de Pix, cartão, boleto, parcelas e dados do comprador aparecem no próprio Mercado Pago.</p></div></div>' +
+          '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">O botão abaixo abre o Checkout Pro do Mercado Pago. Lá o cliente escolhe Pix, cartão, boleto ou parcelamento com segurança.</p></div></div>' +
           '<div class="payment-mode-grid" role="group" aria-label="Forma de pagamento">' +
           '<div class="payment-mode-option active" style="cursor:default;" aria-pressed="true">' +
-          '<span class="payment-mode-badge" aria-hidden="true">💳</span><span class="payment-mode-copy"><strong>Mercado Pago Checkout Pro</strong><small>Sem login obrigatório nesta loja. Você continua direto no Mercado Pago.</small></span><span class="payment-mode-check">✓</span></div>' +
+          '<span class="payment-mode-badge" aria-hidden="true">💳</span><span class="payment-mode-copy"><strong>Mercado Pago Checkout Pro</strong><small>Sem login obrigatório na loja. Você segue direto para o Mercado Pago.</small></span><span class="payment-mode-check">✓</span></div>' +
           '</div>' +
-          '<div class="payment-note" style="margin-bottom:14px;">Pix só aparece no Mercado Pago se a conta vendedora tiver chave Pix habilitada no painel do Mercado Pago.</div>' +
+          '<div class="payment-note" style="margin-bottom:14px;">O Pix aparece no Mercado Pago quando a chave Pix está habilitada na conta vendedora.</div>' +
           '<div class="trust-list checkout-trust-pills" style="margin-bottom:16px;"><span>Mercado Pago</span><span>Pix no Mercado Pago</span><span>Cartão seguro</span><span>Boleto/parcelamento</span></div>' +
           '</div>' +
 
           '<div class="checkout-section">' +
-          '<div class="section-head"><div><h2>Revisao</h2><p class="section-copy">Confira tudo antes de confirmar o pedido.</p></div></div>' +
+          '<div class="section-head"><div><h2>Revisão</h2><p class="section-copy">Confira os dados antes de seguir para o pagamento.</p></div></div>' +
           '<div class="review-box" id="reviewBox">' + renderReview(addr, total) + '</div>' +
           '</div>' +
 
@@ -1778,7 +1880,7 @@
           '<a class="btn btn-whatsapp btn-block btn-lg js-checkout-whatsapp" href="#" style="margin-top:10px;">Dúvida antes de pagar? WhatsApp</a>' +
           '</div>' +
           '</div>' +
-          '<div class="mobile-submit-bar"><div><span>Total</span><strong id="mobileSubmitTotal">' + formatPrice(total) + '</strong></div><button type="button" class="btn btn-primary" id="mobilePlaceOrderBtn" onclick="window.placeOrder()">' + checkoutPayButtonText(total) + '</button></div>' +
+          '<div class="mobile-submit-bar"><div><span>Total</span><strong id="mobileSubmitTotal">' + formatPrice(total) + '</strong></div><button type="button" class="btn btn-primary" id="mobilePlaceOrderBtn" onclick="window.placeOrder()">' + checkoutMobilePayButtonText() + '</button></div>' +
           renderCheckoutModals(user, addresses, addrOptions, addr);
 
         var syncId = selectedAddressId ? String(selectedAddressId) : addresses[0] && addresses[0].id ? String(addresses[0].id) : '';
@@ -1799,14 +1901,14 @@
       function buildReviewHtml(addr) {
         var sub = checkoutTotal();
         var fr = checkoutFreightDelivered
-          ? (checkoutFreightAmount <= 0 ? 'Frete: Gratis' : 'Frete: ' + formatPrice(checkoutFreightAmount))
+          ? (checkoutFreightAmount <= 0 ? 'Frete: Grátis' : 'Frete: ' + formatPrice(checkoutFreightAmount))
           : 'Frete: não disponível para este CEP';
         var tot = checkoutFreightDelivered ? checkoutGrandTotal() : sub;
         return (
-          '<strong>Dados finais</strong><br>' +
-          '<span id="reviewCustomer">Cliente: dados do perfil</span><br>' +
+          '<strong>Resumo final</strong><br>' +
+          '<span id="reviewCustomer">Cliente: dados informados no checkout</span><br>' +
           '<span>Entrega: ' +
-          escHtml(addr ? addressLine(addr) : 'preencha o endereco de entrega no checkout') +
+          escHtml(addr ? addressLine(addr) : 'preencha o endereço de entrega no checkout') +
           '</span><br>' +
           '<span>Pagamento: ' + escHtml(checkoutPaymentModeName()) + '</span><br>' +
           '<span>' +
@@ -1887,7 +1989,7 @@
           }
 
           if (!checkoutFreightDelivered && getAddressCep(selectedAddress())) {
-            showToast(checkoutFreightMsg || 'CEP fora da area de entrega.', 'error');
+            showToast(checkoutFreightMsg || 'CEP fora da área de entrega.', 'error');
             return;
           }
 
@@ -1911,7 +2013,7 @@
           var taxIdDigits = getCheckoutDocumentDigits();
           var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           if (shipAddrId && !uuidRe.test(shipAddrId)) {
-            showToast('Endereco invalido. Atualize a pagina e tente novamente.', 'error');
+            showToast('Endereço inválido. Atualize a página e tente novamente.', 'error');
             return;
           }
           if (customerPhone && customerPhone.replace(/\D/g, '').length < 10) {
@@ -1937,7 +2039,7 @@
             var sess = await sb.auth.getSession();
             tok = sess && sess.data && sess.data.session && sess.data.session.access_token;
             if (!tok) {
-              showToast('Sessao expirada. Entre novamente.', 'error');
+              showToast('Sessão expirada. Entre novamente.', 'error');
               return;
             }
           }
@@ -1981,7 +2083,7 @@
             return {};
           });
           if (!r.ok) {
-            var errMsg = j && (j.error || j.message) ? String(j.error || j.message) : 'Nao foi possivel iniciar o pagamento.';
+            var errMsg = j && (j.error || j.message) ? String(j.error || j.message) : 'Não foi possível iniciar o pagamento.';
             if (j && j.code) errMsg += ' [' + String(j.code) + ']';
             if (j && j.pg && j.pg.message) errMsg += ' — ' + String(j.pg.message).slice(0, 280);
             if (j && j.details && j.details.message) errMsg += ' — ' + String(j.details.message);
@@ -2005,7 +2107,7 @@
           var payUrl = j.init_point || j.sandbox_init_point;
           if (!payUrl) {
             console.error('[Checkout MP] sem init_point', j);
-            showToast('Resposta invalida do servidor de pagamento.', 'error');
+            showToast('Resposta inválida do servidor de pagamento.', 'error');
             throw new Error('init_point');
           }
 
@@ -2016,7 +2118,7 @@
         } catch (e) {
           var errText = e && e.message ? String(e.message).trim() : '';
           if (!errText || errText === 'Failed to fetch' || errText === 'NetworkError when attempting to fetch resource.') {
-            showToast('Nao foi possivel finalizar seu pedido agora.', 'error');
+            showToast('Não foi possível finalizar seu pedido agora.', 'error');
           }
           showCheckoutFailure(e, grandTotal);
           var restoreTot = checkoutGrandTotal();
@@ -2026,7 +2128,7 @@
           }
           if (mbtn) {
             mbtn.disabled = false;
-            mbtn.textContent = payButtonLabel(restoreTot);
+            mbtn.textContent = checkoutMobilePayButtonText();
           }
         } finally {
           processingOrder = false;
@@ -2043,7 +2145,7 @@
         var ticketUrl = String(data && data.ticket_url || '');
         var qrHtml = qrBase64
           ? '<img class="checkout-pix-qr" src="data:image/png;base64,' + escHtml(qrBase64) + '" alt="QR Code Pix">'
-          : '<div class="checkout-pix-qr" style="color:#64748b;font-weight:800">QR Code indisponivel. Use o botao abaixo.</div>';
+          : '<div class="checkout-pix-qr" style="color:#64748b;font-weight:800">QR Code indisponível. Use o botão abaixo.</div>';
         var codeHtml = code
           ? '<textarea class="checkout-pix-code" id="checkoutPixCode" readonly>' + escHtml(code) + '</textarea>'
           : '';
@@ -2053,12 +2155,12 @@
         container.innerHTML =
           '<div class="checkout-pix-card" id="checkoutPixCard">' +
           '<h2>Pix gerado com sucesso</h2>' +
-          '<p>Escaneie o QR Code ou copie o codigo Pix no app do seu banco. Assim que o Mercado Pago confirmar, o pedido muda automaticamente para pago.</p>' +
+          '<p>Escaneie o QR Code ou copie o código Pix no app do seu banco. Assim que o Mercado Pago confirmar, o pedido será atualizado automaticamente.</p>' +
           '<p style="font-weight:900;color:var(--brand-dark);margin-bottom:0">Total: ' + formatPrice(total) + '</p>' +
           qrHtml +
           codeHtml +
           '<div class="checkout-pix-actions">' +
-          (code ? '<button type="button" class="btn btn-primary btn-block" onclick="window.copyToClipboard(document.getElementById(&quot;checkoutPixCode&quot;).value, &quot;Codigo Pix copiado&quot;)">Copiar codigo Pix</button>' : '') +
+          (code ? '<button type="button" class="btn btn-primary btn-block" onclick="window.copyToClipboard(document.getElementById(&quot;checkoutPixCode&quot;).value, &quot;Código Pix copiado&quot;)">Copiar código Pix</button>' : '') +
           ticketHtml +
           '<button type="button" class="btn btn-outline btn-block" onclick="window.verifyPixPaymentNow()">Já paguei, verificar</button>' +
           '<a class="btn btn-outline btn-block" href="carrinho.html">Voltar ao carrinho</a>' +
@@ -2100,10 +2202,10 @@
             return true;
           }
           if (statusEl) statusEl.textContent = 'Aguardando pagamento Pix' + (mpStatus ? ' (' + mpStatus + ')' : '') + '...';
-          if (!silent) showToast('Pagamento ainda nao confirmado.', 'info');
+          if (!silent) showToast('Pagamento ainda não confirmado.', 'info');
           return false;
         } catch (e) {
-          if (statusEl) statusEl.textContent = (e && e.message) ? e.message : 'Nao foi possivel consultar o pagamento agora.';
+          if (statusEl) statusEl.textContent = (e && e.message) ? e.message : 'Não foi possível consultar o pagamento agora.';
           if (!silent) showToast((e && e.message) || 'Erro ao verificar Pix.', 'error');
           return false;
         }
@@ -2135,7 +2237,7 @@
         container.insertAdjacentHTML('afterbegin',
           '<div class="failure-card" id="checkoutFailure">' +
           '<svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg>' +
-          '<h2>Nao foi possivel finalizar seu pedido</h2>' +
+          '<h2>Não foi possível finalizar seu pedido</h2>' +
           '<p>Tente novamente em instantes ou volte ao carrinho para revisar os itens.</p>' +
           '<div class="state-actions"><button class="btn btn-primary" onclick="document.getElementById(&quot;checkoutFailure&quot;)?.remove()">Tentar novamente</button><a href="carrinho.html" class="btn btn-outline">Voltar ao carrinho</a></div>' +
           '</div>'
