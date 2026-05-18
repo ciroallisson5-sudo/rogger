@@ -56,40 +56,9 @@ function parseBody(raw) {
   return {};
 }
 
-/**
- * Corpo JSON em POST (Vercel costuma preencher req.body; em alguns runtimes vem vazio até ler o stream).
- */
-function readJsonBody(req) {
-  return new Promise(function (resolve) {
-    if (req.body !== undefined && req.body !== null) {
-      resolve(parseBody(req.body));
-      return;
-    }
-    if (!req || typeof req.on !== 'function') {
-      resolve({});
-      return;
-    }
-    const chunks = [];
-    req.on('data', function (c) {
-      chunks.push(c);
-    });
-    req.on('end', function () {
-      try {
-        resolve(parseBody(Buffer.concat(chunks).toString('utf8')));
-      } catch (_) {
-        resolve({});
-      }
-    });
-    req.on('error', function () {
-      resolve({});
-    });
-  });
-}
-
 module.exports = {
   parseAllowedOrigins,
   applyBrowserCors,
   handleOptions,
-  parseBody,
-  readJsonBody
+  parseBody
 };

@@ -2,7 +2,6 @@
 
 const { verifySupabaseAdmin } = require('./_supabase-admin');
 const { applyBrowserCors, handleOptions } = require('./_http');
-const { normalizeBrazilCepDigits } = require('./_cep');
 
 function parseBody(raw) {
   if (raw == null) return {};
@@ -15,6 +14,12 @@ function parseBody(raw) {
     }
   }
   return typeof raw === 'object' ? raw : {};
+}
+
+function normalizeCep(s) {
+  const d = String(s || '').replace(/\D/g, '');
+  if (d.length === 8) return d;
+  return '';
 }
 
 module.exports = async function handler(req, res) {
@@ -75,7 +80,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = parseBody(req.body);
-      const cep = normalizeBrazilCepDigits(body.cep);
+      const cep = normalizeCep(body.cep);
       const amt = parseFloat(body.freight_amount);
       if (!cep || isNaN(amt) || amt < 0) {
         res.status(400).json({ error: 'cep (8 digitos) e freight_amount validos obrigatorios' });
@@ -124,7 +129,7 @@ module.exports = async function handler(req, res) {
         freight_amount: amt,
         label: typeof body.label === 'string' ? body.label.trim().slice(0, 120) || null : null
       };
-      const newCep = normalizeBrazilCepDigits(body.cep);
+      const newCep = normalizeCep(body.cep);
       if (newCep) {
         patch.cep = newCep;
       }

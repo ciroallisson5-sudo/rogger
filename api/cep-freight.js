@@ -2,7 +2,13 @@
 
 const { applyBrowserCors, handleOptions, parseBody } = require('./_http');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
-const { normalizeBrazilCepDigits } = require('./_cep');
+
+function normalizeCep(s) {
+  const d = String(s || '').replace(/\D/g, '');
+  if (d.length !== 8) return '';
+  if (d[0] === '0') return '';
+  return d;
+}
 
 async function fetchSettingSingle(key, base, service) {
   const res = await fetch(
@@ -42,11 +48,11 @@ module.exports = async function handler(req, res) {
   }
 
   const body = parseBody(req.body);
-  const cepNorm = normalizeBrazilCepDigits(body.cep);
+  const cepNorm = normalizeCep(body.cep);
   const subtotal = parseFloat(body.subtotal) || 0;
 
   if (!cepNorm) {
-    res.status(400).json({ delivered: false, message: 'CEP invalido. Informe 8 digitos.' });
+    res.status(400).json({ delivered: false, message: 'CEP invalido. Informe 8 digitos (sem comecar com 0).' });
     return;
   }
 

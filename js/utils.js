@@ -261,7 +261,7 @@ function startCountdown(element, endDateStr) {
     const now = new Date().getTime();
     const diff = end - now;
     if (diff <= 0) {
-      element.textContent = 'Promoção encerrada';
+      element.textContent = 'Oferta encerrada';
       const id = element.getAttribute('data-cc-countdown-interval');
       if (id) {
         clearInterval(parseInt(id, 10));
@@ -434,7 +434,7 @@ function injectMobileWhatsappFab() {
   if (document.querySelector('.cc-wa-fab')) return;
   const fab = document.createElement('a');
   fab.className = 'cc-wa-fab js-global-whatsapp';
-  fab.setAttribute('data-message', 'Olá! Preciso de ajuda para escolher o colchão ideal (tamanho ou densidade).');
+  fab.setAttribute('data-message', 'Olá! Preciso de ajuda para escolher o colchão ideal (tamanho, densidade ou entrega).');
   fab.setAttribute('aria-label', 'Falar no WhatsApp com a Conforta Colchões');
   fab.href = '#';
   fab.innerHTML =

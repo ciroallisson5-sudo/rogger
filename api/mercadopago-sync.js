@@ -281,33 +281,6 @@ async function clearCartForOrderUser(cfg, orderId) {
   }).catch(function () {});
 }
 
-/**
- * URL pública do site (sem barra final). Usada em back_urls e notification_url do MP.
- * Ordem: APP_URL / SITE_* → VERCEL_URL → cabeçalhos Host (domínio custom na Vercel).
- */
-function resolvePublicBaseUrl(req) {
-  var fromEnv = (process.env.APP_URL || process.env.SITE_URL || process.env.SITE_PUBLIC_URL || '')
-    .trim()
-    .replace(/\/$/, '');
-  if (fromEnv) return fromEnv;
-  var vu = (process.env.VERCEL_URL || '').trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-  if (vu) return 'https://' + vu;
-  if (req && req.headers) {
-    var host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
-      .split(',')[0]
-      .trim()
-      .replace(/\/$/, '');
-    if (host && !/^localhost(:\d+)?$/i.test(host)) {
-      var proto = String(req.headers['x-forwarded-proto'] || 'https')
-        .split(',')[0]
-        .trim();
-      if (proto !== 'http' && proto !== 'https') proto = 'https';
-      return proto + '://' + host;
-    }
-  }
-  return '';
-}
-
 module.exports = {
   adminConfig,
   applyMercadoPagoApproved,
@@ -316,6 +289,5 @@ module.exports = {
   restGet,
   restPatch,
   restPost,
-  clearCartForOrderUser,
-  resolvePublicBaseUrl
+  clearCartForOrderUser
 };

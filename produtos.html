@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="Catálogo de colchões em Vitória e Serra, cama box, cabeceiras e kits. Filtre por tamanho (casal, queen, king), conforto e densidade. Checkout Mercado Pago.">
+  <meta name="description" content="Catálogo de colchões em Vitória e Serra, cama box, cabeceiras e kits. Filtre por tamanho (casal, queen, king), conforto e densidade. Entrega rápida na região e checkout Mercado Pago.">
   <meta name="keywords" content="colchões em Vitória, colchões em Serra, cama box, colchão casal, colchão queen, entrega rápida, Conforta Colchões, Mercado Pago">
   <title>Colchões e cama box em Serra e Vitória | Catálogo Conforta Colchões</title>
   <link rel="canonical" href="https://www.confortacolchoes.site/produtos.html">
@@ -287,7 +287,7 @@
             </form>
           </div>
           <div class="quick-badges" aria-label="Destaques da compra">
-            <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>Agilidade no pedido</div>
+            <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>Frete rápido</div>
             <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>Até 12x sem juros</div>
             <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Atendimento no WhatsApp</div>
             <div class="quick-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Mercado Pago</div>
@@ -374,11 +374,11 @@
             </div>
           </div>
           <div class="filter-section">
-            <h3>Destaques</h3>
+            <h3>Promoções</h3>
             <div id="promoFilters">
-              <label class="filter-option"><input type="checkbox" value="offer" id="onlyOffers"><span>Com desconto</span></label>
+              <label class="filter-option"><input type="checkbox" value="offer" id="onlyOffers"><span>Em oferta</span></label>
               <label class="filter-option"><input type="checkbox" value="best_seller"><span>Mais vendidos</span></label>
-              <label class="filter-option"><input type="checkbox" value="fast_delivery"><span>Prioridade de envio</span></label>
+              <label class="filter-option"><input type="checkbox" value="fast_delivery"><span>Entrega rápida</span></label>
             </div>
           </div>
         </div>
@@ -875,7 +875,7 @@
           chips.push({ label: 'Busca: "' + state.filters.search + '"', action: 'search' });
         }
         if (state.filters.onlyOffers) {
-          chips.push({ label: 'Com desconto', action: 'offers' });
+          chips.push({ label: 'So ofertas', action: 'offers' });
         }
         if (state.filters.minPrice || state.filters.maxPrice) {
           chips.push({ label: 'R$ ' + (state.filters.minPrice || '0') + ' - R$ ' + (state.filters.maxPrice || '...'), action: 'price' });
@@ -1452,6 +1452,7 @@
             '<span class="product-old-price">' + (discount ? formatPrice(base) : '&nbsp;') + '</span>' +
             '<strong class="product-price">' + formatPrice(current) + '</strong>' +
             (best ? '<span class="product-installment">ou ' + best.qtd + 'x de ' + formatPrice(best.valor) + ' sem juros</span>' : '<span class="product-installment">Parcele em até 12x</span>') +
+            '<span class="product-delivery">Entrega rápida na região</span>' +
             '<div class="product-actions">' +
               '<a class="btn btn-primary" href="' + href + '" aria-label="Comprar: ' + escHtml(product.name || 'produto') + '">Comprar</a>' +
               '<a class="btn btn-secondary js-whatsapp" href="' + whatsappHref(product.name) + '" data-product="' + escHtml(product.name || '') + '" aria-label="Tirar dúvida sobre o colchão ideal no WhatsApp">WhatsApp</a>' +
@@ -1481,9 +1482,10 @@
 
       function buildBadges(product) {
         var badges = [];
-        if (hasDiscount(product)) badges.push('<span class="product-badge offer">Desconto</span>');
+        if (hasDiscount(product)) badges.push('<span class="product-badge offer">Oferta</span>');
         if (product.best_seller || product.featured) badges.push('<span class="product-badge best">Mais vendido</span>');
         if (isNew(product)) badges.push('<span class="product-badge new">Novo</span>');
+        badges.push('<span class="product-badge delivery">Entrega rápida</span>');
         return badges.slice(0, 3).join('');
       }
 
@@ -1566,9 +1568,9 @@
       }
 
       function promoLabel(value) {
-        if (value === 'offer') return 'Com desconto';
+        if (value === 'offer') return 'Em oferta';
         if (value === 'best_seller') return 'Mais vendidos';
-        if (value === 'fast_delivery') return 'Prioridade de envio';
+        if (value === 'fast_delivery') return 'Entrega rápida';
         return labelize(value);
       }
 

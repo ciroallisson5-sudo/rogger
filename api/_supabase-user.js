@@ -19,13 +19,7 @@ async function verifySupabaseUserJwt(jwt) {
     const id = u && u.id ? String(u.id) : '';
     const email = u && u.email ? String(u.email) : '';
     if (!id) return null;
-    const meta = u.user_metadata && typeof u.user_metadata === 'object' ? u.user_metadata : {};
-    const phoneRaw =
-      (u.phone != null && String(u.phone).trim()) ||
-      (meta.phone != null && String(meta.phone).trim()) ||
-      (meta.whatsapp != null && String(meta.whatsapp).trim()) ||
-      '';
-    return { id: id, email: email, phone: phoneRaw, user_metadata: meta };
+    return { id: id, email: email };
   } catch (_) {
     return null;
   }

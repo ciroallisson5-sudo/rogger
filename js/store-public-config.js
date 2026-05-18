@@ -31,7 +31,7 @@
 
     /** Texto sobre regiões de entrega (evite prometer cidade que não atende). */
     deliverySummary:
-      'Atendimento com agilidade em Serra, Vitória e região da Grande Vitória. Para outros CEPs, confirmamos disponibilidade e prazo pelo WhatsApp.',
+      'Entrega com agilidade em Serra, Vitória e região da Grande Vitória. Para outros CEPs, confirmamos disponibilidade e prazo pelo WhatsApp.',
 
     /** Área de cobertura SEO (cidade/estado), sem inventar filiais. */
     serviceAreaDescription: 'Serra e Vitória, Espírito Santo, Brasil',

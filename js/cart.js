@@ -1,28 +1,6 @@
 // Conforta Store - Cart
 // Nome da API: addProductToCart — evita conflito com window.addToCart em produto.html.
 
-/**
- * Compra sem cadastro: cria sessão anônima no Supabase (Authentication → Providers → Anonymous).
- * Não pede e-mail/senha; o carrinho fica ligado a esse usuário até limpar cookies ou converter conta.
- */
-async function tryEnsureAnonymousSession() {
-  const sb = getSupabase();
-  if (!sb) return null;
-  try {
-    const { data: sessionData, error: sessionError } = await sb.auth.getSession();
-    void sessionError;
-    const u0 = sessionData && sessionData.session && sessionData.session.user;
-    if (u0) return u0;
-    const { data: anon, error: anonErr } = await sb.auth.signInAnonymously();
-    if (anonErr || !anon || !anon.user) return null;
-    return anon.user;
-  } catch (_) {
-    return null;
-  }
-}
-
-window.tryEnsureAnonymousSession = tryEnsureAnonymousSession;
-
 async function getOrCreateCart() {
   const sb = getSupabase();
   if (!sb) throw new Error('Supabase not initialized');
@@ -56,12 +34,14 @@ async function addProductToCart(productId, photoId, quantity, unitPrice) {
     photoId = photoId || null;
     quantity = quantity || 1;
 
-    let user = (await sb.auth.getUser()).data.user;
+    // Verifica autenticacao
+    const { data: { user } } = await sb.auth.getUser();
     if (!user) {
-      user = await tryEnsureAnonymousSession();
-    }
-    if (!user) {
-      showToast('Nao foi possivel iniciar o carrinho. Tente de novo ou faça login em Meu perfil.', 'error');
+      showToast('Faca login para adicionar ao carrinho', 'warning');
+      setTimeout(() => {
+        if (typeof siteNavigate === 'function') siteNavigate('perfil.html');
+        else window.location.href = 'perfil.html';
+      }, 1200);
       return;
     }
 
@@ -477,6 +457,7 @@ function renderCartItem(item) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
+        <p class="cart-delivery-note">Entrega rápida na região</p>
         <div class="cart-item-bottom">
           <div>
             <span class="cart-item-label">Preco unitario</span>
@@ -647,7 +628,7 @@ function renderCartSidebar() {
           <div class="cart-benefits">
             <span>Compra segura</span>
             <span>WhatsApp</span>
-            <span>Atendimento na região</span>
+            <span>Entrega rápida</span>
             <span>Até 12x sem juros</span>
           </div>
         </div>
@@ -662,7 +643,7 @@ function renderCartSidebar() {
             <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
           </svg>
           <h4>Seu carrinho esta vazio</h4>
-          <p>Veja o catálogo e encontre o colchão ideal para dormir melhor.</p>
+          <p>Veja nossas ofertas e encontre o colchão ideal para dormir melhor.</p>
           <div class="cart-empty-actions">
             <a class="btn btn-primary" href="produtos.html">Ver produtos</a>
             <a class="btn btn-outline js-cart-whatsapp" href="${cartWhatsappHref()}">Falar no WhatsApp</a>
@@ -693,13 +674,13 @@ function renderCartSidebar() {
         </div>
         <div class="cart-installments" id="cartSidebarInstallments">Pagamento facilitado</div>
         <div class="cart-delivery-box">
-          <strong>Atendimento em Serra, Vitória e região.</strong>
+          <strong>Entrega rápida em Serra, Vitória e região.</strong>
           <span>Frete e prazo podem ser confirmados no checkout ou pelo WhatsApp.</span>
         </div>
         <button class="btn btn-primary btn-block cart-checkout-btn" onclick="handleCheckout()">Finalizar compra</button>
         <a class="btn btn-secondary btn-block" href="produtos.html">Continuar comprando</a>
         <a class="btn btn-outline btn-block js-cart-whatsapp" href="${cartWhatsappHref()}">Tirar duvida no WhatsApp</a>
-        <p class="cart-secure-copy">Pagamento no <strong>Mercado Pago</strong> no checkout. Você pode comprar sem criar conta (sessão de visitante). Dúvidas? WhatsApp.</p>
+        <p class="cart-secure-copy">Pagamento no <strong>Mercado Pago</strong> após login. Dúvidas? Use o WhatsApp antes de finalizar.</p>
       </div>
       <div class="cart-mobile-bar" id="cartMobileBar" style="display:none">
         <div><span>Total</span><strong id="cartMobileTotal">R$ 0,00</strong></div>
@@ -744,10 +725,17 @@ async function initFullCartPage() {
 
   async function renderFull() {
     root.innerHTML = '<p class="cc-full-cart-loading">Carregando seu carrinho...</p>';
-    const sb = getSupabase();
-    if (sb) {
-      const u0 = (await sb.auth.getUser()).data.user;
-      if (!u0) await tryEnsureAnonymousSession();
+    const user = typeof checkAuth === 'function' ? await checkAuth() : null;
+    if (!user) {
+      root.innerHTML =
+        '<div class="cc-full-cart-state">' +
+        '<h2>Faca login para ver o carrinho</h2>' +
+        '<p>Entre na sua conta para salvar itens e finalizar com seguranca.</p>' +
+        '<div class="cc-full-cart-actions">' +
+        '<a class="btn btn-primary" href="perfil.html">Fazer login</a>' +
+        '<a class="btn btn-outline" href="produtos.html">Ver colchões</a>' +
+        '</div></div>';
+      return;
     }
 
     let items = [];
@@ -795,12 +783,12 @@ async function initFullCartPage() {
       '<div class="cc-full-cart-total"><span>Total</span><strong>' + formatPrice(total) + '</strong></div>' +
       '<p class="cc-full-cart-install">' + escCart(cartInstallmentText(total)) + '</p>' +
       '<div class="cc-full-cart-delivery">' +
-      '<strong>Atendimento em Serra, Vitória e região.</strong>' +
+      '<strong>Entrega rápida em Serra, Vitória e região.</strong>' +
       '<span>Frete e prazo sao confirmados no checkout.</span>' +
       '</div>' +
       '<button type="button" class="btn btn-primary btn-block btn-lg" onclick="handleCheckout()">Finalizar compra</button>' +
       '<p class="cc-mp-cart-note" style="margin:12px 0 0;font-size:0.82rem;color:#475569;line-height:1.45;">Pagamento no <strong>Mercado Pago</strong> (cartão, Pix e parcelamento). A loja não acessa seus dados bancários.</p>' +
-      '<a class="btn btn-secondary btn-block js-cart-whatsapp" data-message="Olá! Estou no carrinho e tenho dúvida sobre garantia ou colchão antes de pagar." href="#">Tirar dúvida no WhatsApp</a>' +
+      '<a class="btn btn-secondary btn-block js-cart-whatsapp" data-message="Olá! Estou no carrinho e tenho dúvida sobre entrega, garantia ou colchão antes de pagar." href="#">Tirar dúvida no WhatsApp</a>' +
       '<a class="btn btn-outline btn-block" href="produtos.html">Continuar comprando</a>' +
       '</aside></div>';
 

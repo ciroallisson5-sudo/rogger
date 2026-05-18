@@ -27,12 +27,7 @@ module.exports = async function handler(req, res) {
   }
 
   const cfg = adminConfig();
-  const accessToken = String(
-    process.env.MERCADO_PAGO_ACCESS_TOKEN ||
-      process.env.MERCADOPAGO_ACCESS_TOKEN ||
-      process.env.MP_ACCESS_TOKEN ||
-      ''
-  ).trim();
+  const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || '').trim();
   if (!cfg.ok || !accessToken) {
     res.status(503).json({ error: 'Serviço indisponível' });
     return;

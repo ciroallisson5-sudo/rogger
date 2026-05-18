@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Colchões em Serra e Vitória, cama box e cabeceiras. Colchão casal, queen e king: orientação humana e checkout seguro pelo Mercado Pago em até 12x.">
-  <meta name="keywords" content="colchões em Serra, colchões em Vitória, cama box, colchão casal, colchão queen, Conforta Colchões, Mercado Pago, Grande Vitória">
-  <title>Colchões em Serra e Vitória | Conforta Colchões — até 12x</title>
+  <meta name="description" content="Colchões em Serra e Vitória, cama box e cabeceiras com entrega rápida na região. Colchão casal, queen e king: orientação humana e checkout seguro pelo Mercado Pago em até 12x.">
+  <meta name="keywords" content="colchões em Serra, colchões em Vitória, cama box, colchão casal, colchão queen, entrega rápida, Conforta Colchões, Mercado Pago, Grande Vitória">
+  <title>Colchões em Serra e Vitória | Conforta Colchões — entrega rápida e até 12x</title>
   <link rel="canonical" href="https://www.confortacolchoes.site/">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
@@ -13,10 +13,11 @@
     {"@type":"WebSite","name":"Conforta Colchões","url":"https://www.confortacolchoes.site/","potentialAction":{"@type":"SearchAction","target":"https://www.confortacolchoes.site/produtos.html?search={search_term_string}","query-input":"required name=search_term_string"}},
     {"@type":"FAQPage","mainEntity":[
       {"@type":"Question","name":"Qual colchão escolher?","acceptedAnswer":{"@type":"Answer","text":"Depende de tamanho da cama, peso, sensação desejada (mais macio ou firme) e densidade. Enviamos sugestões pelo WhatsApp com base no que você precisa."}},
+      {"@type":"Question","name":"Entrega em quais regiões?","acceptedAnswer":{"@type":"Answer","text":"Prioridade para Serra, Vitória e região metropolitana. Para outros CEPs, confirmamos viabilidade e prazo antes de fechar."}},
       {"@type":"Question","name":"Tem garantia?","acceptedAnswer":{"@type":"Answer","text":"Sim, conforme regras do fabricante e a nota fiscal. O prazo e cobertura variam por modelo — consulte a página do produto."}},
       {"@type":"Question","name":"Posso pagar parcelado?","acceptedAnswer":{"@type":"Answer","text":"Sim, em até 12x sem juros quando indicado no site. Condições finais aparecem no Mercado Pago no momento do pagamento."}},
       {"@type":"Question","name":"A compra é segura?","acceptedAnswer":{"@type":"Answer","text":"O pagamento é processado pelo Mercado Pago. Você conclui cartão ou Pix lá; não pedimos dados bancários por mensagem."}},
-      {"@type":"Question","name":"Posso tirar dúvidas pelo WhatsApp?","acceptedAnswer":{"@type":"Answer","text":"Sim. Use para medo de comprar errado ou conferência de medidas antes do pedido."}}
+      {"@type":"Question","name":"Posso tirar dúvidas pelo WhatsApp?","acceptedAnswer":{"@type":"Answer","text":"Sim. Use para medo de comprar errado, prazo de entrega ou conferência de medidas antes do pedido."}}
     ]}
   ]}
   </script>
@@ -152,7 +153,7 @@
     .carousel-dots button.active { background: #1a56db; width: 28px; }
 
     /* Benefits */
-    .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .benefits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .benefit-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 20px 16px; text-align: center; transition: transform 0.2s, box-shadow 0.2s; }
     .benefit-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
     .benefit-card .icon { width: 40px; height: 40px; border-radius: 6px; background: #eff6ff; color: #1a56db; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
@@ -215,6 +216,7 @@
     .cc-final-cta h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 10px; }
     .cc-final-cta p { opacity: 0.92; font-size: 0.9rem; margin-bottom: 16px; max-width: 560px; margin-left: auto; margin-right: auto; }
     .cc-final-cta .hero-actions { justify-content: center; }
+    .cc-reviews-placeholder { border: 1px dashed #cbd5e1; border-radius: 10px; padding: 20px; text-align: center; color: #64748b; font-size: 0.88rem; background: #fafafa; }
     .product-card .product-image img { width: 100%; height: 100%; object-fit: cover; }
     .product-card .product-body { padding: 12px; flex: 1; display: flex; flex-direction: column; }
     .product-card .product-category { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #1a56db; margin-bottom: 4px; }
@@ -329,6 +331,8 @@
     <div class="mobile-menu" id="mobileMenu">
       <a href="index.html">Início</a>
       <a href="produtos.html">Produtos</a>
+      <a href="produtos.html?promo=offer">Ofertas</a>
+      <a href="index.html#entrega">Entrega</a>
       <a href="index.html#garantia">Garantia</a>
       <a href="#" class="js-global-whatsapp" data-message="Olá! Preciso de ajuda para escolher colchão ou cama box.">WhatsApp</a>
       <a href="carrinho.html">Carrinho</a>
@@ -339,22 +343,27 @@
   <main class="main">
     <section class="hero" id="homeHero">
       <div class="hero-lcp-wrap" aria-hidden="true">
-        <img id="heroLcpImage" class="hero-lcp-img" src="https://i.postimg.cc/k713y98f/Whats-App-Image-2026-02-10-at-13-04-33-(1).jpg" width="1920" height="1080" fetchpriority="high" decoding="async" alt="Ambiente com colchões Conforta em Serra, Vitória e Espírito Santo">
+        <img id="heroLcpImage" class="hero-lcp-img" src="https://i.postimg.cc/k713y98f/Whats-App-Image-2026-02-10-at-13-04-33-(1).jpg" width="1920" height="1080" fetchpriority="high" decoding="async" alt="Ambiente com colchões Conforta — entrega em Serra, Vitória e Espírito Santo">
       </div>
       <div class="container">
         <div class="hero-content">
-          <h1>Colchões e cama box em Serra e Vitória com até 12x</h1>
+          <h1>Colchões e cama box em Serra e Vitória com entrega rápida e até 12x</h1>
           <p class="hero-lead">Loja focada em sono: colchão casal, queen e king, densidade e apoio para costas — com orientação humana antes de fechar. Pagamento seguro pelo <strong>Mercado Pago</strong> (cartão e Pix).</p>
           <div class="hero-actions">
-            <a href="produtos.html" class="btn-primary" aria-label="Ver colchões e produtos no catálogo">Ver catálogo</a>
-            <a href="#" class="btn-outline js-global-whatsapp" data-message="Olá! Preciso de ajuda para escolher o colchão ideal (tamanho ou densidade)." aria-label="Falar no WhatsApp sobre colchão ideal">Falar no WhatsApp</a>
+            <a href="produtos.html?promo=offer" class="btn-primary" aria-label="Ver ofertas e colchões em destaque">Ver ofertas</a>
+            <a href="#" class="btn-outline js-global-whatsapp" data-message="Olá! Preciso de ajuda para escolher o colchão ideal (tamanho, densidade ou entrega)." aria-label="Falar no WhatsApp sobre colchão ideal">Falar no WhatsApp</a>
           </div>
           <ul class="hero-trust-pills" aria-label="Benefícios da compra">
             <li><strong>Mercado Pago</strong><span>Pagamento protegido</span></li>
             <li><strong>Até 12x</strong><span>Sem juros nas condições do site</span></li>
+            <li><strong>Entrega</strong><span>Rápida em Serra, Vitória e região</span></li>
             <li><strong>Garantia</strong><span>Conforme fabricante e NF</span></li>
           </ul>
           <div class="hero-info-bar">
+            <span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              Entrega na Grande Vitória
+            </span>
             <span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
               Até 12x sem juros
@@ -374,10 +383,10 @@
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
           <div>
             <h3>Frete rápido e checkout no Mercado Pago</h3>
-            <p>Até 12x sem juros nas condições do site. Atendimento em Serra, Vitória e região — dúvidas pelo WhatsApp.</p>
+            <p>Até 12x sem juros nas condições do site. Entrega com foco em Serra, Vitória e região — outros CEPs: confirmamos pelo WhatsApp.</p>
           </div>
         </div>
-        <a href="produtos.html" class="btn-promo" aria-label="Ver colchões no catálogo">Ver colchões</a>
+        <a href="produtos.html" class="btn-promo" aria-label="Ver colchões e ofertas no catálogo">Ver colchões</a>
       </div>
     </section>
 
@@ -406,7 +415,7 @@
         <div class="flash-banner">
           <div class="flash-info">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            <span id="flashBannerLabel">Em destaque</span>
+            <span id="flashBannerLabel">Ofertas em destaque</span>
           </div>
           <div class="flash-timer" id="flashTimer" style="display:none;" aria-live="polite"></div>
         </div>
@@ -418,7 +427,7 @@
       <div class="container">
         <div class="weekly-banner">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          Destaque da semana
+          Oferta da Semana
         </div>
         <div class="product-grid" id="weeklyGrid"></div>
       </div>
@@ -442,6 +451,13 @@
             <h3>Orientação antes de fechar</h3>
             <p>Dúvida sobre densidade, colchão para dor nas costas ou medo de errar o tamanho? Falamos pelo WhatsApp com clareza.</p>
           </div>
+          <div class="benefit-card">
+            <div class="icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <h3>Entrega na Grande Vitória</h3>
+            <p>Operação focada em Serra, Vitória e região com agilidade. Outras áreas: confirmamos pelo WhatsApp.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -459,10 +475,10 @@
       </div>
     </section>
 
-    <section class="section" id="catalogo-destaque" style="background: #f8fafc;">
+    <section class="section" id="ofertas" style="background: #f8fafc;">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">Colchões e bases em destaque</h2>
+          <h2 class="section-title">Colchões e bases em oferta</h2>
           <a href="produtos.html" class="section-link">
             Ver catálogo completo
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -475,7 +491,7 @@
     <section class="section" id="orientacao">
       <div class="container cc-home-panel">
         <h2>Não sabe qual colchão escolher?</h2>
-        <p>Medo de errar o tamanho, a densidade ou comprar sem apoio para as costas? Chame no WhatsApp: explicamos diferenças entre colchão casal, queen e king e indicamos opções conforme seu peso e rotina.</p>
+        <p>Medo de errar o tamanho, a densidade ou comprar sem apoio para as costas? Chame no WhatsApp: explicamos diferenças entre colchão casal, queen e king e indicamos opções conforme seu peso, rotina e entrega na região.</p>
         <div class="hero-actions" style="flex-wrap:wrap;">
           <a href="#" class="btn-panel-primary js-global-whatsapp" data-message="Olá! Não sei qual colchão escolher e gostaria de orientação (tamanho, densidade ou conforto).">Tirar dúvida sobre o colchão ideal</a>
           <a href="produtos.html" class="btn-panel-secondary">Ver produtos</a>
@@ -486,7 +502,7 @@
     <section class="section" id="confianca" style="background:#f8fafc;">
       <div class="container">
         <h2 class="section-title">Compre com confiança</h2>
-        <p class="section-subtitle">Transparência antes do carrinho: pagamento e atendimento humano.</p>
+        <p class="section-subtitle">Transparência antes do carrinho: pagamento, entrega e atendimento humano.</p>
         <div class="cc-trust-grid">
           <div class="cc-trust-item">
             <h3>Compra segura — Mercado Pago</h3>
@@ -496,6 +512,10 @@
             <h3>Parcelamento</h3>
             <p>Até 12x sem juros nas condições divulgadas no produto e confirmadas no pagamento.</p>
           </div>
+          <div class="cc-trust-item" id="entrega">
+            <h3>Entrega na região</h3>
+            <p>Foco em Serra, Vitória e Grande Vitória com entrega rápida. Demais localidades: confirmamos prazo e viabilidade pelo WhatsApp.</p>
+          </div>
           <div class="cc-trust-item" id="garantia">
             <h3>Garantia</h3>
             <p>Segue fabricante e documento da compra. Detalhes por modelo na página do produto e na nota fiscal.</p>
@@ -504,7 +524,19 @@
             <h3>Atendimento humano</h3>
             <p>WhatsApp para dúvidas reais: medo de golpe, prazo, troca ou colchão ideal antes de pagar.</p>
           </div>
+          <div class="cc-trust-item" id="cc-store-legal-slot">
+            <h3>Loja e documentos</h3>
+            <p id="cc-store-address">Endereço e CNPJ: configure em <code>js/store-public-config.js</code> (campos <code>storeAddressLine</code> e <code>storeCnpj</code>) ou no painel, quando disponíveis.</p>
+          </div>
         </div>
+      </div>
+    </section>
+
+    <section class="section" id="avaliacoes">
+      <div class="container">
+        <h2 class="section-title">Avaliações de clientes</h2>
+        <p class="section-subtitle">Publicamos apenas avaliações reais. Enquanto coletamos depoimentos verificados, este espaço fica reservado.</p>
+        <div class="cc-reviews-placeholder" role="status">Em breve: depoimentos de compradores reais (nome e cidade quando autorizado).</div>
       </div>
     </section>
 
@@ -513,20 +545,21 @@
         <h2 class="section-title" id="faq-heading">Perguntas frequentes</h2>
         <p class="section-subtitle">Respostas diretas para quem compra colchão online com segurança.</p>
         <details><summary>Qual colchão escolher?</summary><p>Depende de tamanho da cama, peso, sensação desejada (mais macio ou firme) e densidade. Enviamos sugestões pelo WhatsApp com base no que você precisa.</p></details>
+        <details><summary>Entrega em quais regiões?</summary><p>Prioridade para Serra, Vitória e região metropolitana. Para outros CEPs, confirmamos viabilidade e prazo antes de fechar.</p></details>
         <details><summary>Tem garantia?</summary><p>Sim, conforme regras do fabricante e a nota fiscal. O prazo e cobertura variam por modelo — consulte a página do produto.</p></details>
         <details><summary>Posso pagar parcelado?</summary><p>Sim, em até 12x sem juros quando indicado no site. Condições finais aparecem no Mercado Pago no momento do pagamento.</p></details>
         <details><summary>A compra é segura?</summary><p>O pagamento é processado pelo Mercado Pago. Você conclui cartão ou Pix lá; não pedimos dados bancários por mensagem.</p></details>
-        <details><summary>Posso tirar dúvidas pelo WhatsApp?</summary><p>Sim. Use para medo de comprar errado ou conferência de medidas antes do pedido.</p></details>
+        <details><summary>Posso tirar dúvidas pelo WhatsApp?</summary><p>Sim. Use para medo de comprar errado, prazo de entrega ou conferência de medidas antes do pedido.</p></details>
       </div>
     </section>
 
     <section class="section">
       <div class="container cc-final-cta">
         <h2>Escolha seu colchão com ajuda de um especialista</h2>
-        <p>Menos incerteza, mais conforto: falamos sobre colchão em Vitória e Serra e cama box sem enrolação.</p>
+        <p>Menos incerteza, mais conforto: falamos sobre colchão em Vitória e Serra, cama box e entrega sem enrolação.</p>
         <div class="hero-actions">
           <a href="#" class="btn-primary js-global-whatsapp" data-message="Olá! Quero ajuda de um especialista para escolher meu colchão ou cama box.">Falar no WhatsApp</a>
-          <a href="produtos.html" class="btn-outline">Ver catálogo</a>
+          <a href="produtos.html?promo=offer" class="btn-outline">Ver ofertas</a>
         </div>
       </div>
     </section>
@@ -623,6 +656,7 @@
         }
 
         if (typeof updateCartCount === 'function') updateCartCount();
+        applyEditableStoreCopy();
         wireHomeProductWhatsapp();
 
         async function loadFeaturedProducts() {
@@ -690,6 +724,16 @@
           } catch (_) {
             renderFallbackContent(track, dots, grid);
           }
+        }
+
+        function applyEditableStoreCopy() {
+          var ed = typeof CONFORTA_STORE_EDITABLE !== 'undefined' ? CONFORTA_STORE_EDITABLE : null;
+          var el = document.getElementById('cc-store-address');
+          if (!el || !ed) return;
+          var parts = [];
+          if (ed.storeAddressLine) parts.push('Endereço: ' + ed.storeAddressLine);
+          if (ed.storeCnpj) parts.push('CNPJ: ' + ed.storeCnpj);
+          if (parts.length) el.textContent = parts.join(' · ');
         }
 
         function wireHomeProductWhatsapp() {
@@ -821,7 +865,7 @@
             '<span class="product-category">' + escapeHtml(catName) + '</span>' +
             '<a href="' + href + '" style="color:inherit;text-decoration:none;flex:1;" onclick="event.stopPropagation()"><h3 class="product-name">' + escapeHtml(p.name) + '</h3></a>' +
             countdownHtml +
-            (hasDiscount ? '<span class="product-flash"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Desconto</span>' : '') +
+            (hasDiscount ? '<span class="product-flash"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Oferta</span>' : '') +
             (hasDiscount ? '<span class="product-old-price">R$ ' + basePrice.toFixed(2).replace('.', ',') + '</span>' : '') +
             '<span class="product-price">R$ ' + displayPrice.toFixed(2).replace('.', ',') + '</span>' +
             installmentHtml +
@@ -917,7 +961,7 @@
 
             if (flashIds.length > 0) {
               var labelEl = document.getElementById('flashBannerLabel');
-              if (labelEl) labelEl.textContent = flashEndValid ? 'Promoção com encerramento programado' : 'Seleção em destaque';
+              if (labelEl) labelEl.textContent = flashEndValid ? 'Oferta com encerramento programado' : 'Seleção em destaque';
               await loadIntoGrid(flashIds, 'flashGrid', 'flashSection', { withCountdown: flashEndValid });
               var timer = document.getElementById('flashTimer');
               if (timer) {

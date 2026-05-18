@@ -161,9 +161,6 @@
     .checkout-mp-hero-text strong { color: #0c4a6e; }
     .mobile-submit-bar { display: none; }
     .checkout-state, .success-card, .failure-card { max-width: 760px; margin: 0 auto; text-align: center; padding: 56px 24px; background: #fff; border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--shadow); }
-    .checkout-state--login .checkout-login-panel { text-align: left; max-width: 420px; margin: 8px auto 0; }
-    .checkout-state--login .checkout-login-foot { text-align: center; }
-    .checkout-state--login .checkout-login-foot a { color: var(--brand-dark); font-weight: 800; text-decoration: underline; }
     .checkout-state svg, .success-card svg, .failure-card svg { margin: 0 auto 16px; display: block; color: var(--brand); }
     .checkout-state h2, .success-card h2, .failure-card h2 { color: var(--ink); font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -0.055em; line-height: 1.05; margin-bottom: 8px; }
     .checkout-state p, .success-card p, .failure-card p { color: var(--muted); max-width: 580px; margin: 0 auto 20px; }
@@ -213,9 +210,6 @@
       display: block; font-size: 0.72rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px;
     }
     .checkout-profile-grid > div strong { font-size: 0.95rem; color: var(--ink); font-weight: 800; word-break: break-word; }
-    .checkout-inline-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
-    .checkout-address-form-title { font-size: 0.88rem; font-weight: 800; color: var(--ink); margin: 16px 0 8px; letter-spacing: -0.02em; }
-    .btn-sm { min-height: 38px; padding: 8px 14px; font-size: 0.82rem; border-radius: 12px; }
     @media (max-width: 768px) {
       .checkout-profile-grid { grid-template-columns: 1fr; }
     }
@@ -280,17 +274,11 @@
       var checkoutFreightAmount = 0;
       var checkoutFreightMsg = '';
 
-      function normalizeBrazilCepDigits(raw) {
-        var d = String(raw || '').replace(/\D/g, '');
-        if (d.length > 8) d = d.slice(0, 8);
-        if (d.length >= 1 && d.length < 8) d = d.padStart(8, '0');
-        return d.length === 8 && /^[0-9]{8}$/.test(d) ? d : '';
-      }
-
       function getAddressCep(addr) {
         if (!addr) return '';
         var z = addr.zip_code != null ? addr.zip_code : addr.cep;
-        return normalizeBrazilCepDigits(z);
+        var d = String(z || '').replace(/\D/g, '');
+        return d.length === 8 ? d : '';
       }
 
       function checkoutGrandTotal() {
@@ -305,12 +293,6 @@
         checkoutFreightDelivered = true;
         checkoutFreightAmount = 0;
         checkoutFreightMsg = '';
-        if (addr && !cep) {
-          checkoutFreightDelivered = false;
-          checkoutFreightMsg = 'CEP invalido ou incompleto no endereco. Atualize no perfil.';
-          updateCheckoutFreightDom();
-          return;
-        }
         if (!cep) {
           updateCheckoutFreightDom();
           return;
@@ -324,14 +306,6 @@
           var j = await r.json().catch(function () {
             return {};
           });
-          if (!r.ok) {
-            checkoutFreightDelivered = false;
-            checkoutFreightMsg =
-              (j && (j.message || j.error) && String(j.message || j.error).trim()) ||
-              'Nao foi possivel calcular o frete. Tente de novo.';
-            updateCheckoutFreightDom();
-            return;
-          }
           if (j && j.delivered === false) {
             checkoutFreightDelivered = false;
             checkoutFreightMsg = j.message || 'CEP fora da area de entrega.';
@@ -340,9 +314,8 @@
           }
         } catch (e1) {
           void e1;
-          checkoutFreightDelivered = false;
+          checkoutFreightDelivered = true;
           checkoutFreightAmount = 0;
-          checkoutFreightMsg = 'Erro de rede ao calcular o frete. Tente de novo.';
         }
         updateCheckoutFreightDom();
       }
@@ -377,14 +350,12 @@
         var mTot = document.getElementById('mobileSubmitTotal');
         if (mTot) mTot.textContent = formatPrice(checkoutFreightDelivered ? grand : sub);
         var mbtn = document.getElementById('mobilePlaceOrderBtn');
-        var addrSel = selectedAddress();
-        var freightBlocked = !checkoutFreightDelivered && !!addrSel;
         if (mbtn) {
           mbtn.textContent = 'Pagar com Mercado Pago — ' + formatPrice(checkoutFreightDelivered ? grand : sub);
-          mbtn.disabled = freightBlocked;
+          mbtn.disabled = !checkoutFreightDelivered && !!getAddressCep(selectedAddress());
         }
         if (btn) {
-          var block = freightBlocked;
+          var block = !checkoutFreightDelivered && !!getAddressCep(selectedAddress());
           btn.disabled = block;
           var btot = checkoutFreightDelivered ? grand : sub;
           btn.textContent = 'Pagar com Mercado Pago — ' + formatPrice(btot);
@@ -409,36 +380,6 @@
         return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
       }
 
-      function checkoutProfileMissingList(user) {
-        var prof = window.__checkoutProfile || {};
-        var meta = (user && user.user_metadata) || {};
-        var name = String(prof.full_name || meta.full_name || '').trim();
-        var email = (user && user.email) ? String(user.email) : '';
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          var gelM = document.getElementById('checkoutGuestEmail');
-          var gEm = gelM ? String(gelM.value || '').trim() : '';
-          if (gEm && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gEm)) email = gEm;
-        }
-        var phone = String(prof.phone || meta.phone || meta.whatsapp || '').trim();
-        var docDigits = getCheckoutDocumentDigits();
-        var missing = [];
-        if (!name || name.split(/\s+/).filter(Boolean).length < 2) missing.push('nome completo');
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) missing.push('e-mail (conta ou campo no checkout)');
-        if (phone.replace(/\D/g, '').length < 10) missing.push('telefone');
-        if (!isValidBrazilTaxId(docDigits)) missing.push('CPF ou CNPJ valido');
-        return missing;
-      }
-
-      function checkoutProfileWarnHtml(user) {
-        var missing = checkoutProfileMissingList(user);
-        if (!missing.length) return '';
-        return (
-          '<div class="checkout-profile-warn" role="alert">Falta: ' +
-          escHtml(missing.join(', ')) +
-          '. Preencha os campos abaixo.</div>'
-        );
-      }
-
       function buildCheckoutAccountSummary(user) {
         var prof = window.__checkoutProfile || {};
         var meta = (user && user.user_metadata) || {};
@@ -446,408 +387,62 @@
         var email = (user && user.email) ? String(user.email) : '';
         var phone = String(prof.phone || meta.phone || meta.whatsapp || '').trim();
         var docDigits = getCheckoutDocumentDigits();
-        var docDisplay = docDigits ? maskTaxIdDigits(docDigits) : '';
-        return (
-          checkoutProfileWarnHtml(user) +
-          '<p class="section-copy" style="margin-top:0;margin-bottom:14px">Edite nome, telefone e documento antes de pagar. O e-mail de login só pode ser alterado em <a href="perfil.html#section-dados">Meu perfil</a>.</p>' +
-          '<div class="form-group"><label for="checkoutProfileFullName">Nome completo</label>' +
-          '<input type="text" class="form-input" id="checkoutProfileFullName" autocomplete="name" value="' +
-          escHtml(name) +
-          '"></div>' +
-          '<div class="form-group"><label for="checkoutProfilePhone">Telefone / WhatsApp</label>' +
-          '<input type="tel" class="form-input" id="checkoutProfilePhone" inputmode="tel" autocomplete="tel" value="' +
-          escHtml(phone) +
-          '"></div>' +
-          '<div class="form-group"><label for="checkoutProfileDoc">CPF ou CNPJ</label>' +
-          '<input type="text" class="form-input" id="checkoutProfileDoc" inputmode="numeric" maxlength="18" placeholder="000.000.000-00" value="' +
-          escHtml(docDisplay) +
-          '"></div>' +
-          '<div class="form-group"><span class="section-copy" style="margin:0">E-mail da conta (somente leitura)</span>' +
-          '<div style="font-weight:800;color:var(--ink);margin-top:6px;font-size:0.92rem">' +
-          escHtml(email || '—') +
-          '</div></div>' +
-          '<button type="button" class="btn btn-primary btn-block" id="btnCheckoutSaveProfile" onclick="window.saveCheckoutProfile()">Salvar dados</button>' +
-          '<a class="btn btn-outline btn-block" style="margin-top:10px" href="perfil.html#section-dados">Abrir perfil completo</a>'
-        );
+        var docLabel = docDigits ? maskTaxIdDigits(docDigits) : 'Nao informado';
+        var missing = [];
+        if (!name || name.split(/\s+/).filter(Boolean).length < 2) missing.push('nome completo');
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) missing.push('e-mail da conta');
+        if (phone.replace(/\D/g, '').length < 10) missing.push('telefone');
+        if (!isValidBrazilTaxId(docDigits)) missing.push('CPF ou CNPJ valido');
+        var warn = missing.length
+          ? '<div class="checkout-profile-warn" role="alert">Complete em <strong>Meu perfil</strong>: ' + escHtml(missing.join(', ')) + '.</div>'
+          : '';
+        return warn +
+          '<p class="section-copy" style="margin-top:0;margin-bottom:14px">Nome, telefone e documento vêm do seu perfil. O e-mail é o da sua conta de login.</p>' +
+          '<div class="checkout-profile-grid">' +
+          '<div><span>Nome</span><strong>' + escHtml(name || '—') + '</strong></div>' +
+          '<div><span>E-mail</span><strong>' + escHtml(email || '—') + '</strong></div>' +
+          '<div><span>Telefone</span><strong>' + escHtml(phone || '—') + '</strong></div>' +
+          '<div><span>CPF / CNPJ</span><strong>' + escHtml(docLabel) + '</strong></div>' +
+          '</div>' +
+          '<a class="btn btn-outline btn-block" style="margin-top:16px" href="perfil.html#section-dados">Editar dados no perfil</a>';
       }
 
-      function checkoutBrStateOptionsHtml(selected) {
-        var opts = [
-          ['', 'UF'],
-          ['AC', 'AC'],
-          ['AL', 'AL'],
-          ['AP', 'AP'],
-          ['AM', 'AM'],
-          ['BA', 'BA'],
-          ['CE', 'CE'],
-          ['DF', 'DF'],
-          ['ES', 'ES'],
-          ['GO', 'GO'],
-          ['MA', 'MA'],
-          ['MT', 'MT'],
-          ['MS', 'MS'],
-          ['MG', 'MG'],
-          ['PA', 'PA'],
-          ['PB', 'PB'],
-          ['PR', 'PR'],
-          ['PE', 'PE'],
-          ['PI', 'PI'],
-          ['RJ', 'RJ'],
-          ['RN', 'RN'],
-          ['RS', 'RS'],
-          ['RO', 'RO'],
-          ['RR', 'RR'],
-          ['SC', 'SC'],
-          ['SP', 'SP'],
-          ['SE', 'SE'],
-          ['TO', 'TO']
-        ];
-        var sel = String(selected || '').toUpperCase();
-        return opts
-          .map(function (o) {
-            var v = o[0];
-            var lab = o[1];
-            var isSel = v && sel === v ? ' selected' : '';
-            return '<option value="' + escHtml(v) + '"' + isSel + '>' + escHtml(lab) + '</option>';
-          })
-          .join('');
-      }
-
-      function buildCheckoutAddressFormHtml() {
-        return (
-          '<div id="checkoutAddressFormWrap" style="display:none;margin-top:4px">' +
-          '<div class="checkout-address-form-title" id="checkoutAddressFormTitle">Novo endereco</div>' +
-          '<input type="hidden" id="checkoutAddrFormId" value="">' +
-          '<div class="form-group"><label for="checkoutAddrLabel">Identificacao</label>' +
-          '<input type="text" class="form-input" id="checkoutAddrLabel" placeholder="Ex: Casa, Trabalho"></div>' +
-          '<div class="form-row">' +
-          '<div class="form-group"><label for="checkoutAddrCep">CEP</label>' +
-          '<input type="text" class="form-input" id="checkoutAddrCep" placeholder="00000-000" maxlength="12"></div>' +
-          '<div class="form-group"><label for="checkoutAddrNumber">Numero</label>' +
-          '<input type="text" class="form-input" id="checkoutAddrNumber" placeholder="123"></div></div>' +
-          '<div class="form-group"><label for="checkoutAddrStreet">Rua</label>' +
-          '<input type="text" class="form-input" id="checkoutAddrStreet" placeholder="Nome da rua"></div>' +
-          '<div class="form-group"><label for="checkoutAddrComplement">Complemento</label>' +
-          '<input type="text" class="form-input" id="checkoutAddrComplement" placeholder="Opcional"></div>' +
-          '<div class="form-row-3">' +
-          '<div class="form-group"><label for="checkoutAddrNeighborhood">Bairro</label>' +
-          '<input type="text" class="form-input" id="checkoutAddrNeighborhood"></div>' +
-          '<div class="form-group"><label for="checkoutAddrCity">Cidade</label>' +
-          '<input type="text" class="form-input" id="checkoutAddrCity"></div>' +
-          '<div class="form-group"><label for="checkoutAddrState">Estado</label>' +
-          '<select class="form-select" id="checkoutAddrState">' +
-          checkoutBrStateOptionsHtml('') +
-          '</select></div></div>' +
-          '<label class="checkout-save-card"><input type="checkbox" id="checkoutAddrDefault"> <span>Definir como endereco padrao <small>Os outros deixam de ser padrao.</small></span></label>' +
-          '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">' +
-          '<button type="button" class="btn btn-primary" style="flex:1;min-width:120px" id="btnCheckoutSaveAddress" onclick="window.saveCheckoutAddress()">Salvar endereco</button>' +
-          '<button type="button" class="btn btn-outline" id="btnCheckoutCancelAddressForm" onclick="window.hideCheckoutAddressForm()">Cancelar</button>' +
-          '</div></div>'
-        );
-      }
-
-      window.saveCheckoutProfile = async function() {
-        var user = window.__checkoutUser;
-        if (!user || !sb) {
-          showToast('Sessao invalida.', 'error');
-          return;
-        }
-        var nameEl = document.getElementById('checkoutProfileFullName');
-        var phoneEl = document.getElementById('checkoutProfilePhone');
-        var docEl = document.getElementById('checkoutProfileDoc');
-        var name = nameEl ? String(nameEl.value || '').trim() : '';
-        var phone = phoneEl ? String(phoneEl.value || '').trim() : '';
-        var documentRaw = docEl ? String(docEl.value || '').replace(/\D/g, '') : '';
-        if (!name || name.split(/\s+/).filter(Boolean).length < 2) {
-          showToast('Informe seu nome completo.', 'error');
-          return;
-        }
-        if (phone.replace(/\D/g, '').length < 10) {
-          showToast('Informe um telefone com DDD.', 'error');
-          return;
-        }
-        if (documentRaw && documentRaw.length !== 11 && documentRaw.length !== 14) {
-          showToast('CPF (11) ou CNPJ (14) digitos.', 'error');
-          return;
-        }
-        if (documentRaw && !isValidBrazilTaxId(documentRaw)) {
-          showToast('CPF ou CNPJ invalido.', 'error');
-          return;
-        }
-        try {
-          if (typeof showLoading === 'function') showLoading(true);
-          var updates = { full_name: name, phone: phone, cpf_cnpj: documentRaw || null };
-          if (typeof updateProfile !== 'function') throw new Error('updateProfile');
-          await updateProfile(user.id, updates);
-          window.__checkoutProfile = Object.assign({}, window.__checkoutProfile || {}, updates);
-          try {
-            if (typeof getProfile === 'function') {
-              var fresh = await getProfile(user.id);
-              if (fresh && typeof fresh === 'object') window.__checkoutProfile = fresh;
-            } else {
-              var pr = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-              if (pr.data) window.__checkoutProfile = pr.data;
-            }
-          } catch (e2) {
-            void e2;
-          }
-          var inner = document.getElementById('checkoutModalAccountInner');
-          if (inner) inner.innerHTML = buildCheckoutAccountSummary(window.__checkoutUser);
-          wireCheckoutProfileDocMask();
-          refreshCheckoutAccountRowSubtitle();
-          updateReviewCustomer();
-          showToast('Dados salvos.', 'success');
-        } catch (e) {
-          var msg = (e && e.message) ? String(e.message) : 'Erro ao salvar';
-          if (e && e.code === 'CPF_COLUMN_MISSING') {
-            msg = 'CPF/CNPJ: rode database/profiles_cpf_cnpj.sql no Supabase.';
-          }
-          showToast(msg, 'error');
-        } finally {
-          if (typeof showLoading === 'function') showLoading(false);
-        }
-      };
-
-      function wireCheckoutProfileDocMask() {
-        var docEl = document.getElementById('checkoutProfileDoc');
-        if (!docEl || docEl.dataset.maskBound) return;
-        docEl.dataset.maskBound = '1';
-        docEl.addEventListener('input', function() {
-          var d = String(docEl.value || '').replace(/\D/g, '').slice(0, 14);
-          docEl.value = d ? maskTaxIdDigits(d) : '';
-        });
-      }
-
-      window.hideCheckoutAddressForm = function() {
-        var wrap = document.getElementById('checkoutAddressFormWrap');
-        if (wrap) wrap.style.display = 'none';
-      };
-
-      window.openCheckoutAddressEditor = function(mode) {
-        var wrap = document.getElementById('checkoutAddressFormWrap');
-        var title = document.getElementById('checkoutAddressFormTitle');
-        var hid = document.getElementById('checkoutAddrFormId');
-        if (!wrap || !hid) return;
-        wrap.style.display = 'block';
-        if (mode === 'edit') {
-          var addr = selectedAddress();
-          if (!addr) {
-            showToast('Selecione um endereco na lista.', 'error');
-            wrap.style.display = 'none';
-            return;
-          }
-          if (title) title.textContent = 'Editar endereco';
-          hid.value = String(addr.id);
-          if (document.getElementById('checkoutAddrLabel')) document.getElementById('checkoutAddrLabel').value = addr.label || '';
-          if (document.getElementById('checkoutAddrCep')) document.getElementById('checkoutAddrCep').value = addr.cep || addr.zip_code || '';
-          if (document.getElementById('checkoutAddrStreet')) document.getElementById('checkoutAddrStreet').value = addr.street || '';
-          if (document.getElementById('checkoutAddrNumber')) document.getElementById('checkoutAddrNumber').value = addr.number || '';
-          if (document.getElementById('checkoutAddrComplement')) document.getElementById('checkoutAddrComplement').value = addr.complement || '';
-          if (document.getElementById('checkoutAddrNeighborhood')) document.getElementById('checkoutAddrNeighborhood').value = addr.neighborhood || '';
-          if (document.getElementById('checkoutAddrCity')) document.getElementById('checkoutAddrCity').value = addr.city || '';
-          var st = document.getElementById('checkoutAddrState');
-          if (st) st.value = String(addr.state || '').toUpperCase().slice(0, 2);
-          var def = document.getElementById('checkoutAddrDefault');
-          if (def) def.checked = !!addr.is_default;
-        } else {
-          if (title) title.textContent = 'Novo endereco';
-          hid.value = '';
-          ['checkoutAddrLabel', 'checkoutAddrCep', 'checkoutAddrStreet', 'checkoutAddrNumber', 'checkoutAddrComplement', 'checkoutAddrNeighborhood', 'checkoutAddrCity'].forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) el.value = '';
-          });
-          var st2 = document.getElementById('checkoutAddrState');
-          if (st2) st2.value = '';
-          var def2 = document.getElementById('checkoutAddrDefault');
-          if (def2) def2.checked = userAddresses.length === 0;
-        }
-      };
-
-      window.saveCheckoutAddress = async function() {
-        var user = window.__checkoutUser;
-        if (!user || !sb) {
-          showToast('Sessao invalida.', 'error');
-          return;
-        }
-        var label = String(document.getElementById('checkoutAddrLabel') && document.getElementById('checkoutAddrLabel').value || '').trim();
-        var cep = String(document.getElementById('checkoutAddrCep') && document.getElementById('checkoutAddrCep').value || '').trim();
-        var street = String(document.getElementById('checkoutAddrStreet') && document.getElementById('checkoutAddrStreet').value || '').trim();
-        var number = String(document.getElementById('checkoutAddrNumber') && document.getElementById('checkoutAddrNumber').value || '').trim();
-        var complement = String(document.getElementById('checkoutAddrComplement') && document.getElementById('checkoutAddrComplement').value || '').trim();
-        var neighborhood = String(document.getElementById('checkoutAddrNeighborhood') && document.getElementById('checkoutAddrNeighborhood').value || '').trim();
-        var city = String(document.getElementById('checkoutAddrCity') && document.getElementById('checkoutAddrCity').value || '').trim();
-        var state = String(document.getElementById('checkoutAddrState') && document.getElementById('checkoutAddrState').value || '').trim();
-        var isDefault = !!(document.getElementById('checkoutAddrDefault') && document.getElementById('checkoutAddrDefault').checked);
-        var editingId = String(document.getElementById('checkoutAddrFormId') && document.getElementById('checkoutAddrFormId').value || '').trim();
-
-        if (!street || !city || !state) {
-          showToast('Preencha rua, cidade e estado.', 'error');
-          return;
-        }
-
-        var row = {
-          user_id: user.id,
-          label: label || 'Principal',
-          cep: cep,
-          street: street,
-          number: number,
-          complement: complement,
-          neighborhood: neighborhood,
-          city: city,
-          state: state,
-          is_default: isDefault
-        };
-
-        try {
-          if (typeof showLoading === 'function') showLoading(true);
-          if (isDefault) {
-            await sb.from('addresses').update({ is_default: false }).eq('user_id', user.id);
-          }
-          var newId = null;
-          if (editingId) {
-            var up = await sb.from('addresses').update(row).eq('id', editingId).eq('user_id', user.id).select('id').maybeSingle();
-            if (up.error) throw up.error;
-            newId = editingId;
-          } else {
-            var ins = await sb.from('addresses').insert(row).select('id').maybeSingle();
-            if (ins.error) throw ins.error;
-            if (ins.data && ins.data.id) newId = String(ins.data.id);
-          }
-          await reloadCheckoutAddressesUi(newId);
-          window.hideCheckoutAddressForm();
-          showToast('Endereco salvo.', 'success');
-        } catch (e) {
-          showToast((e && e.message) || 'Erro ao salvar endereco', 'error');
-        } finally {
-          if (typeof showLoading === 'function') showLoading(false);
-        }
-      };
-
-      async function reloadCheckoutAddressesUi(preferSelectId) {
-        var user = window.__checkoutUser;
-        if (!user || !sb) return;
-        var addrResp = await sb.from('addresses').select('*').eq('user_id', user.id).order('is_default', { ascending: false });
-        userAddresses = addrResp.data || [];
-        var sel = document.getElementById('addressSelect');
-        if (sel) {
-          sel.disabled = userAddresses.length === 0;
-          if (!userAddresses.length) {
-            sel.innerHTML = '<option value="">Cadastre um endereco abaixo</option>';
-          } else {
-            sel.innerHTML = userAddresses
-              .map(function (a) {
-                var lab = a.label || 'Endereco';
-                return '<option value="' + escHtml(String(a.id)) + '">' + escHtml(lab + ': ' + addressLine(a)) + '</option>';
-              })
-              .join('');
-          }
-          var pick = preferSelectId && userAddresses.some(function (a) { return String(a.id) === String(preferSelectId); })
-            ? String(preferSelectId)
-            : null;
-          if (!pick) {
-            var defA = userAddresses.find(function (a) {
-              return a.is_default;
-            });
-            pick = defA ? String(defA.id) : userAddresses[0] ? String(userAddresses[0].id) : null;
-          }
-          selectedAddressId = pick;
-          if (pick) sel.value = pick;
-        } else if (preferSelectId) {
-          selectedAddressId = preferSelectId;
-        } else {
-          var defB = userAddresses.find(function (a) {
-            return a.is_default;
-          });
-          selectedAddressId = defB ? defB.id : userAddresses[0] ? userAddresses[0].id : null;
-        }
-        window.selectAddress(selectedAddressId);
-        var btnEd = document.getElementById('btnCheckoutEditAddress');
-        if (btnEd) btnEd.disabled = userAddresses.length === 0;
-        refreshCheckoutAddressRowSubtitle();
-        var rb = document.getElementById('reviewBox');
-        if (rb) rb.innerHTML = buildReviewHtml(selectedAddress());
-        void refreshCheckoutFreight();
-      }
-
-      function refreshCheckoutAccountRowSubtitle() {
-        var el = document.getElementById('checkoutAccountSubtitle');
-        var u = window.__checkoutUser;
-        if (!el || !u) return;
-        el.textContent = checkoutAccountSubtitlePlain(u);
-      }
-
-      function refreshCheckoutAddressRowSubtitle() {
-        var el = document.getElementById('checkoutAddressSubtitle');
-        if (!el) return;
-        el.textContent = checkoutAddressSubtitlePlain(selectedAddress());
-      }
-
-      function checkoutAccountSubtitlePlain(user) {
+      function checkoutAccountSubtitle(user) {
         var p = window.__checkoutProfile || {};
         var meta = (user && user.user_metadata) || {};
         var name = String(p.full_name || meta.full_name || '').trim();
         var email = (user && user.email) ? String(user.email) : '';
-        if (name && email) return (name.length > 28 ? name.slice(0, 26) + '\u2026' : name) + ' · ' + email;
-        return email || name || 'Toque para editar nome, telefone e documento';
-      }
-
-      function checkoutAccountSubtitle(user) {
-        return escHtml(checkoutAccountSubtitlePlain(user));
-      }
-
-      function checkoutAddressSubtitlePlain(addr) {
-        if (!addr) return 'Cadastre ou selecione um endereco';
-        var line = addressLine(addr);
-        return line.length > 72 ? line.slice(0, 70) + '\u2026' : line;
+        if (name && email) return escHtml((name.length > 28 ? name.slice(0, 26) + '…' : name) + ' · ' + email);
+        return escHtml(email || name || 'Ver nome, e-mail, telefone e documento');
       }
 
       function checkoutAddressSubtitle(addr) {
-        return escHtml(checkoutAddressSubtitlePlain(addr));
+        if (!addr) return 'Cadastre um endereço no perfil';
+        var line = addressLine(addr);
+        return escHtml(line.length > 72 ? line.slice(0, 70) + '…' : line);
       }
 
       function renderCheckoutModals(user, addresses, addrOptions, addr) {
-        var addrHead =
-          '<div class="form-group"><label for="addressSelect">Endereco para esta compra</label>' +
-          '<select class="form-select" id="addressSelect" onchange="window.selectAddress(this.value)"' +
-          (addresses.length === 0 ? ' disabled' : '') +
-          '>' +
-          (addresses.length > 0
-            ? addrOptions
-            : '<option value="">Cadastre um endereco no formulario abaixo</option>') +
-          '</select></div>' +
-          '<div class="checkout-inline-actions">' +
-          '<button type="button" class="btn btn-outline btn-sm" id="btnCheckoutEditAddress"' +
-          (addresses.length === 0 ? ' disabled' : '') +
-          ' onclick="window.openCheckoutAddressEditor(\'edit\')">Editar selecionado</button>' +
-          '<button type="button" class="btn btn-outline btn-sm" id="btnCheckoutNewAddress" onclick="window.openCheckoutAddressEditor(\'new\')">Novo endereco</button>' +
-          '</div>' +
-          (addresses.length > 0
-            ? '<div class="address-preview" id="addressPreview"><strong>Entrega selecionada</strong><br>' +
-              escHtml(addressLine(addr)) +
-              '<br><span>O frete e recalculado ao salvar ou trocar o CEP.</span></div>'
-            : '<p class="section-copy" style="margin-bottom:8px">Nenhum endereco ainda. Toque em <strong>Novo endereco</strong> e preencha os campos.</p>' +
-              '<div class="address-preview" id="addressPreview" style="display:none"></div>');
-
-        return (
-          '<div class="checkout-modal" id="checkoutModalAccount" role="dialog" aria-modal="true" aria-labelledby="checkoutModalAccountTitle">' +
+        return '<div class="checkout-modal" id="checkoutModalAccount" role="dialog" aria-modal="true" aria-labelledby="checkoutModalAccountTitle">' +
           '<div class="checkout-modal-backdrop" tabindex="-1" data-checkout-modal-close="1"></div>' +
           '<div class="checkout-modal-panel">' +
           '<button type="button" class="checkout-modal-close" data-checkout-modal-close="1" aria-label="Fechar">&times;</button>' +
           '<h2 id="checkoutModalAccountTitle">Dados da conta</h2>' +
-          '<div id="checkoutModalAccountInner">' +
-          buildCheckoutAccountSummary(user) +
-          '</div>' +
+          '<div id="checkoutModalAccountInner">' + buildCheckoutAccountSummary(user) + '</div>' +
           '</div></div>' +
           '<div class="checkout-modal" id="checkoutModalAddress" role="dialog" aria-modal="true" aria-labelledby="checkoutModalAddressTitle">' +
           '<div class="checkout-modal-backdrop" tabindex="-1" data-checkout-modal-close="1"></div>' +
           '<div class="checkout-modal-panel">' +
           '<button type="button" class="checkout-modal-close" data-checkout-modal-close="1" aria-label="Fechar">&times;</button>' +
           '<h2 id="checkoutModalAddressTitle">Endereco de entrega</h2>' +
-          addrHead +
-          buildCheckoutAddressFormHtml() +
-          '<a class="btn btn-outline btn-block" style="margin-top:14px" href="perfil.html#section-enderecos">Gerenciar todos no perfil</a>' +
-          '</div></div>'
-        );
+          (addresses.length > 0
+            ? '<div class="form-group"><label for="addressSelect">Endereco cadastrado</label><select class="form-select" id="addressSelect" onchange="window.selectAddress(this.value)">' + addrOptions + '</select></div>' +
+              '<div class="address-preview" id="addressPreview"><strong>Entrega selecionada</strong><br>' + escHtml(addressLine(addr)) + '<br><span>O frete e calculado automaticamente pelo CEP (areas cadastradas).</span></div>' +
+              '<a class="btn btn-outline btn-block" style="margin-top:14px" href="perfil.html#section-enderecos">Gerenciar endereços no perfil</a>'
+            : '<div class="address-preview"><strong>Nenhum endereço cadastrado.</strong><br>Cadastre um endereço no perfil para continuar.</div>' +
+              '<a class="btn btn-primary btn-block" style="margin-top:14px" href="perfil.html#section-enderecos">Cadastrar endereço no perfil</a>'
+          ) +
+          '</div></div>';
       }
 
       var checkoutModalListenersBound = false;
@@ -861,21 +456,11 @@
 
       window.openCheckoutModal = function(which) {
         window.closeCheckoutModals();
-        var modalId = which === 'address' ? 'checkoutModalAddress' : 'checkoutModalAccount';
-        var m = document.getElementById(modalId);
+        var id = which === 'address' ? 'checkoutModalAddress' : 'checkoutModalAccount';
+        var m = document.getElementById(id);
         if (m) {
           m.classList.add('open');
           document.body.style.overflow = 'hidden';
-          if (which === 'account') {
-            wireCheckoutProfileDocMask();
-          } else {
-            var addrs = userAddresses || [];
-            if (addrs.length === 0) {
-              window.openCheckoutAddressEditor('new');
-            } else {
-              window.hideCheckoutAddressForm();
-            }
-          }
         }
       };
 
@@ -897,27 +482,15 @@
       }
 
       window.selectAddress = function(addressId) {
-        var aid = addressId != null ? String(addressId).trim() : '';
-        if (!aid && userAddresses && userAddresses.length) {
-          var def0 = userAddresses.find(function(a) {
-            return a.is_default;
-          });
-          var pick0 = def0 || userAddresses[0];
-          aid = pick0 && pick0.id ? String(pick0.id) : '';
-        }
-        selectedAddressId = aid || null;
+        selectedAddressId = addressId;
         var preview = document.getElementById('addressPreview');
         var addr = selectedAddress();
         if (preview && addr) {
-          preview.style.display = '';
           preview.innerHTML =
             '<strong>Entrega selecionada</strong><br>' +
             escHtml(addressLine(addr)) +
-            '<br><span>O frete e recalculado ao salvar ou trocar o CEP.</span>';
+            '<br><span>O frete sera calculado pelo CEP ao confirmar.</span>';
         }
-        refreshCheckoutAddressRowSubtitle();
-        var rb = document.getElementById('reviewBox');
-        if (rb) rb.innerHTML = buildReviewHtml(selectedAddress());
         void refreshCheckoutFreight();
         updateWhatsappLinks();
       };
@@ -1092,82 +665,18 @@
         await loadCheckout();
       });
 
-      function renderCheckoutLoginGate(container) {
-        container.innerHTML =
-          '<div class="checkout-state checkout-state--login">' +
-          '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
-          '<h2>Entre para continuar</h2>' +
-          '<p>Finalize a compra com sua conta. Use o mesmo e-mail e senha do cadastro.</p>' +
-          '<div class="checkout-login-panel">' +
-          '<form id="checkoutLoginForm" novalidate>' +
-          '<div class="form-group"><label for="checkoutLoginEmail">E-mail</label>' +
-          '<input type="email" class="form-input" id="checkoutLoginEmail" name="email" autocomplete="username" required placeholder="seu@email.com" /></div>' +
-          '<div class="form-group"><label for="checkoutLoginPassword">Senha</label>' +
-          '<input type="password" class="form-input" id="checkoutLoginPassword" name="password" autocomplete="current-password" required /></div>' +
-          '<button type="submit" class="btn btn-primary btn-block" id="checkoutLoginSubmit">Entrar e continuar</button>' +
-          '</form>' +
-          '<p class="checkout-login-foot" style="margin-top:16px;font-size:0.86rem;color:var(--muted);">' +
-          '<a href="perfil.html?next=checkout.html">Criar conta ou esqueci a senha</a> · ' +
-          '<a href="carrinho.html">Voltar ao carrinho</a></p>' +
-          '</div></div>';
-        var form = document.getElementById('checkoutLoginForm');
-        if (form) form.addEventListener('submit', onCheckoutLoginSubmit);
-      }
-
-      async function onCheckoutLoginSubmit(ev) {
-        ev.preventDefault();
-        var emailEl = document.getElementById('checkoutLoginEmail');
-        var passEl = document.getElementById('checkoutLoginPassword');
-        var btn = document.getElementById('checkoutLoginSubmit');
-        var email = emailEl ? String(emailEl.value || '').trim() : '';
-        var password = passEl ? String(passEl.value || '') : '';
-        if (!email || !password) {
-          showToast('Preencha e-mail e senha.', 'error');
-          return;
-        }
-        if (typeof signIn !== 'function') {
-          showToast('Login indisponivel nesta pagina. Use Meu perfil.', 'error');
-          return;
-        }
-        if (btn) {
-          btn.disabled = true;
-          btn.textContent = 'Entrando...';
-        }
-        try {
-          await signIn(email, password);
-          showToast('Pronto! Carregando checkout...', 'success');
-          await loadCheckout();
-        } catch (e) {
-          var msg = (e && e.message) || 'Falha no login';
-          if (/invalid login|invalid credentials/i.test(msg)) msg = 'E-mail ou senha incorretos';
-          showToast(msg, 'error');
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Entrar e continuar';
-          }
-        }
-      }
-
       async function loadCheckout() {
         var container = document.getElementById('checkoutContent');
         try {
           var user = await checkAuth();
-          if (!user && sb && typeof window.tryEnsureAnonymousSession === 'function') {
-            await window.tryEnsureAnonymousSession();
-            user = await checkAuth();
-          }
           if (!user) {
-            if (sb) {
-              renderCheckoutLoginGate(container);
-            } else {
-              container.innerHTML =
-                '<div class="checkout-state">' +
-                '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
-                '<h2>Checkout indisponivel</h2>' +
-                '<p>Nao foi possivel conectar ao servidor. Tente de novo em instantes ou volte ao carrinho.</p>' +
-                '<div class="state-actions"><a href="carrinho.html" class="btn btn-primary">Ir ao carrinho</a></div>' +
-                '</div>';
-            }
+            container.innerHTML =
+              '<div class="checkout-state">' +
+              '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+              '<h2>Faca login para continuar</h2>' +
+              '<p>Entre na sua conta para confirmar seus dados e finalizar a compra com seguranca.</p>' +
+              '<div class="state-actions"><a href="perfil.html" class="btn btn-primary">Fazer login</a><a href="carrinho.html" class="btn btn-outline">Ir ao carrinho</a></div>' +
+              '</div>';
             return;
           }
 
@@ -1220,15 +729,6 @@
         var container = document.getElementById('checkoutContent');
         var total = items.reduce(function(acc, item) { return acc + getItemPrice(item) * lineQty(item); }, 0);
         var addr = selectedAddress() || defaultAddr || null;
-        var guestEmailSection = '';
-        if (!String(user.email || '').trim()) {
-          guestEmailSection =
-            '<div class="checkout-section" id="checkoutGuestEmailWrap">' +
-            '<div class="section-head"><div><h2>E-mail para o pagamento</h2><p class="section-copy">Sua sessao nao tem e-mail na conta. Informe um e-mail valido para o Mercado Pago e o comprovante.</p></div></div>' +
-            '<div class="form-group"><label for="checkoutGuestEmail">E-mail</label>' +
-            '<input type="email" class="form-input" id="checkoutGuestEmail" name="email" autocomplete="email" placeholder="seu@email.com" /></div>' +
-            '</div>';
-        }
 
         var addrOptions = addresses.map(function(a) {
           var selected = a.id === selectedAddressId ? 'selected' : '';
@@ -1239,14 +739,10 @@
         container.innerHTML =
           '<div class="checkout-link-rows">' +
           '<button type="button" class="checkout-link-row" id="btnCheckoutOpenAccount">' +
-          '<span class="clr-stack"><span class="clr-main">Dados da conta</span><span class="clr-sub" id="checkoutAccountSubtitle">' +
-          checkoutAccountSubtitle(user) +
-          '</span></span>' +
+          '<span class="clr-stack"><span class="clr-main">Dados da conta</span><span class="clr-sub">' + checkoutAccountSubtitle(user) + '</span></span>' +
           '<span class="clr-arrow" aria-hidden="true">›</span></button>' +
           '<button type="button" class="checkout-link-row" id="btnCheckoutOpenAddress">' +
-          '<span class="clr-stack"><span class="clr-main">Endereco de entrega</span><span class="clr-sub" id="checkoutAddressSubtitle">' +
-          checkoutAddressSubtitle(addr) +
-          '</span></span>' +
+          '<span class="clr-stack"><span class="clr-main">Endereco de entrega</span><span class="clr-sub">' + checkoutAddressSubtitle(addr) + '</span></span>' +
           '<span class="clr-arrow" aria-hidden="true">›</span></button>' +
           '</div>' +
           '<div class="checkout-layout">' +
@@ -1254,7 +750,6 @@
           '<div class="checkout-left">' +
 
           '<div id="checkoutCepWarn" style="display:none;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;padding:10px 12px;border-radius:8px;font-size:0.82rem;margin-bottom:14px;"></div>' +
-          guestEmailSection +
 
           '<div class="checkout-section">' +
           '<div class="section-head"><div><h2>Pagamento</h2><p class="section-copy">Redirecionamento para o Mercado Pago (Checkout Pro). Este site não coleta dados de cartão ou conta.</p></div></div>' +
@@ -1278,7 +773,6 @@
 
         hydrateCustomerFields();
         wireCheckoutModals();
-        wireCheckoutProfileDocMask();
         void refreshCheckoutFreight();
         updateWhatsappLinks();
       }
@@ -1307,8 +801,6 @@
 
       function hydrateCustomerFields() {
         updateReviewCustomer();
-        var gel = document.getElementById('checkoutGuestEmail');
-        if (gel) gel.addEventListener('input', updateReviewCustomer);
       }
 
       function renderReview(addr, total) {
@@ -1357,10 +849,6 @@
         var meta = u.user_metadata || {};
         var name = String(p.full_name || meta.full_name || '').trim();
         var email = String(u.email || '').trim();
-        if (!email) {
-          var gel = document.getElementById('checkoutGuestEmail');
-          if (gel) email = String(gel.value || '').trim();
-        }
         var phone = String(p.phone || meta.phone || meta.whatsapp || '').trim();
         var parts = [];
         if (name) parts.push(name);
@@ -1382,12 +870,8 @@
 
         try {
           var user = await checkAuth();
-          if (!user && sb && typeof window.tryEnsureAnonymousSession === 'function') {
-            await window.tryEnsureAnonymousSession();
-            user = await checkAuth();
-          }
           if (!user) {
-            showToast('Sessao expirada. Atualize a pagina e entre de novo.', 'error');
+            showToast('Faca login para finalizar a compra.', 'error');
             return;
           }
 
@@ -1396,24 +880,10 @@
             return;
           }
 
-          var addrSel = selectedAddress();
-          var shipAddrId = String(selectedAddressId || '').trim();
-          if (!shipAddrId && addrSel && addrSel.id) {
-            shipAddrId = String(addrSel.id);
-            selectedAddressId = shipAddrId;
-            var selEl = document.getElementById('addressSelect');
-            if (selEl && userAddresses.some(function (a) { return String(a.id) === shipAddrId; })) {
-              selEl.value = shipAddrId;
-            }
-          }
-
           var prof = window.__checkoutProfile || {};
           var meta = user.user_metadata || {};
           var customerName = String(prof.full_name || meta.full_name || '').trim();
-          var guestEl = document.getElementById('checkoutGuestEmail');
-          var guestEmailVal = guestEl ? String(guestEl.value || '').trim() : '';
           var customerEmail = String(user.email || '').trim();
-          if (!customerEmail) customerEmail = guestEmailVal;
           var customerPhone = String(prof.phone || meta.phone || meta.whatsapp || '').trim();
           var hasValidationError = false;
           if (!customerName || customerName.split(/\s+/).filter(Boolean).length < 2) {
@@ -1421,23 +891,18 @@
             hasValidationError = true;
           }
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
-            showToast(
-              String(user.email || '').trim()
-                ? 'Sua conta precisa de um e-mail valido.'
-                : 'Informe um e-mail valido no campo acima (necessario para o Mercado Pago).',
-              'error'
-            );
+            showToast('Sua conta precisa de um e-mail valido.', 'error');
             hasValidationError = true;
           }
           if (customerPhone.replace(/\D/g, '').length < 10) {
             showToast('Cadastre um telefone em Meu perfil antes de finalizar.', 'error');
             hasValidationError = true;
           }
-          if (!shipAddrId && userAddresses.length > 0) {
+          if (!selectedAddressId && userAddresses.length > 0) {
             showToast('Selecione um endereço de entrega.', 'error');
             hasValidationError = true;
           }
-          if (!shipAddrId && userAddresses.length === 0) {
+          if (!selectedAddressId && userAddresses.length === 0) {
             showToast('Cadastre um endereço em Meu perfil para continuar.', 'error');
             hasValidationError = true;
           }
@@ -1477,13 +942,6 @@
             mbtn.textContent = 'Aguarde...';
           }
 
-          var payBody = {
-            shipping_address_id: shipAddrId
-          };
-          if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
-            payBody.contact_email = customerEmail;
-          }
-
           var r = await fetch('/api/mercadopago-create-preference', {
             method: 'POST',
             headers: {
@@ -1491,30 +949,17 @@
               Authorization: 'Bearer ' + tok,
               'X-Idempotency-Key': idem
             },
-            body: JSON.stringify(payBody)
+            body: JSON.stringify({ shipping_address_id: selectedAddressId })
           });
           var j = await r.json().catch(function () {
             return {};
           });
           if (!r.ok) {
-            var errMsg = j && (j.error || j.message) ? String(j.error || j.message) : 'Nao foi possivel iniciar o pagamento.';
-            if (j && j.code) errMsg += ' [' + String(j.code) + ']';
-            if (j && j.details && j.details.message) errMsg += ' — ' + String(j.details.message);
-            if (j && Array.isArray(j.missing) && j.missing.length) {
-              errMsg += ' Configure na Vercel: ' + j.missing.join(', ') + '.';
-            }
-            console.error('[Checkout MP] HTTP erro', r.status, j);
+            var errMsg = j && j.error ? String(j.error) : 'Nao foi possivel iniciar o pagamento.';
             showToast(errMsg, 'error');
             throw new Error(errMsg);
           }
-          if (!j || j.ok !== true) {
-            console.error('[Checkout MP] resposta sem ok:true', j);
-            showToast((j && (j.error || j.message)) || 'Erro ao iniciar pagamento. Tente novamente.', 'error');
-            throw new Error('mp_ok_false');
-          }
-          var payUrl = j.init_point || j.sandbox_init_point;
-          if (!payUrl) {
-            console.error('[Checkout MP] sem init_point', j);
+          if (!j.init_point) {
             showToast('Resposta invalida do servidor de pagamento.', 'error');
             throw new Error('init_point');
           }
@@ -1522,12 +967,8 @@
           sessionStorage.removeItem('conforta_mp_idem');
           if (btn) btn.textContent = 'Redirecionando...';
           if (mbtn) mbtn.textContent = 'Redirecionando...';
-          window.location.href = payUrl;
+          window.location.href = j.init_point;
         } catch (e) {
-          var errText = e && e.message ? String(e.message).trim() : '';
-          if (!errText || errText === 'Failed to fetch' || errText === 'NetworkError when attempting to fetch resource.') {
-            showToast('Nao foi possivel finalizar seu pedido agora.', 'error');
-          }
           showCheckoutFailure(e, grandTotal);
           var restoreTot = checkoutGrandTotal();
           if (btn) {
@@ -1548,6 +989,7 @@
         var container = document.getElementById('checkoutContent');
         void error;
         void total;
+        showToast('Nao foi possivel finalizar seu pedido agora.', 'error');
         var previous = document.getElementById('checkoutFailure');
         if (previous) previous.remove();
         container.insertAdjacentHTML('afterbegin',

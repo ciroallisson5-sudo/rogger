@@ -401,7 +401,7 @@
             <strong>Frete por CEP:</strong> ex. &quot;adicione o CEP 29100100 por 45 reais&quot; ou &quot;CEP 05656000 frete 300&quot; — isso grava na tabela do painel <strong>CEP / Frete</strong>, nao no catalogo de produtos. CEP com menos de 8 digitos e completado com zeros a esquerda.
             <strong>JSON catálogo (WhatsApp / n8n):</strong> use a aba <strong>Estúdio IA</strong> — briefing, foto de referência e geração de JSON em um só lugar.
             Ao clicar em <strong>Aplicar no Supabase</strong>, as alterações são gravadas; se você enviou <strong>foto</strong> no plano, ela pode ir ao Storage (<code>public/imagens/ai-assistant/</code>) como primeira foto do produto (criação ou um único update no lote).
-            Requer <code>OPENAI_API_KEY</code> na Vercel. Para <strong>Aplicar</strong> gravar no banco, a API usa <code>SUPABASE_URL</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> (mesmas variáveis das outras rotas admin). Uso apenas com sessão de administrador.
+            Requer <code>OPENAI_API_KEY</code> na Vercel. Uso apenas com sessão de administrador.
           </p>
           <div class="ai-assist-log" id="assistantChatLog" aria-live="polite"></div>
           <img id="assistantImagePreview" class="ai-assist-preview" alt="" style="display:none;">
@@ -2719,23 +2719,7 @@
           var results = data.results || [];
           var okn = results.filter(function(r) { return r.ok; }).length;
           var bad = results.filter(function(r) { return !r.ok; });
-          var msg = 'Aplicado: ' + okn + ' ok' + (bad.length ? ', ' + bad.length + ' erro(s)' : '');
-          if (bad.length) {
-            msg +=
-              ' — ' +
-              bad
-                .slice(0, 4)
-                .map(function(x) {
-                  return String(x.type || '?') + ': ' + String(x.error || x.status || '').slice(0, 120);
-                })
-                .join(' | ');
-            try {
-              console.error('[Admin IA aplicar]', bad);
-            } catch (eL) {
-              void eL;
-            }
-          }
-          showToast(msg, bad.length ? 'warning' : 'success');
+          showToast('Aplicado: ' + okn + ' ok' + (bad.length ? ', ' + bad.length + ' erro(s)' : ''), bad.length ? 'warning' : 'success');
           window.__adminAssistantPendingActions = null;
           window.__adminAssistantPendingImage = null;
           var pan = document.getElementById('assistantActionsPanel');

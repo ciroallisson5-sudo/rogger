@@ -907,19 +907,7 @@
         try {
           await signIn(email, password);
           showToast('Login realizado!', 'success');
-          var params = new URLSearchParams(window.location.search);
-          var nextRaw = params.get('next');
-          var next = '';
-          if (nextRaw && typeof nextRaw === 'string') {
-            var n = nextRaw.trim();
-            if (/^[a-z0-9_.-]+\.html$/i.test(n) && n.indexOf('..') < 0 && n.indexOf('/') < 0 && n.indexOf('\\') < 0) {
-              next = n;
-            }
-          }
-          setTimeout(function() {
-            if (next) window.location.href = next;
-            else window.location.reload();
-          }, 400);
+          setTimeout(function(){ window.location.reload(); }, 400);
         } catch (e) {
           var msg = (e && e.message) || 'Falha no login';
           if (/invalid login|invalid credentials/i.test(msg)) msg = 'Email ou senha incorretos';
