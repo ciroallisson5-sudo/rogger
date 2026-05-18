@@ -1,10 +1,62 @@
 'use strict';
 
-const { applyBrowserCors, handleOptions, parseBody } = require('./_http');
+const { applyBrowserCors, handleOptions, readJsonBody } = require('./_http');
 const { verifySupabaseUserJwt } = require('./_supabase-user');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
 const { adminConfig, restGet, restPost, resolvePublicBaseUrl } = require('./mercadopago-sync');
 const { normalizeBrazilCepDigits } = require('./_cep');
+
+function resolveMercadoPagoAccessToken() {
+  return String(
+    process.env.MERCADO_PAGO_ACCESS_TOKEN ||
+      process.env.MERCADOPAGO_ACCESS_TOKEN ||
+      process.env.MP_ACCESS_TOKEN ||
+      ''
+  ).trim();
+}
+
+/** BRL com no máximo 2 casas (exigência comum da API do Mercado Pago). */
+function toMoney2(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return 0;
+  return Math.round(n * 100) / 100;
+}
+
+function jsonError(res, status, code, message, extra) {
+  const o = { ok: false, code: code, error: message };
+  if (extra && typeof extra === 'object') {
+    Object.keys(extra).forEach(function (k) {
+      if (extra[k] !== undefined) o[k] = extra[k];
+    });
+  }
+  res.status(status).json(o);
+}
+
+function sanitizeMpError(mpJson) {
+  if (!mpJson || typeof mpJson !== 'object') return { message: 'unknown' };
+  const out = {
+    message: String(mpJson.message || mpJson.error || 'mercadopago_error')
+  };
+  if (mpJson.status != null) out.http_status = mpJson.status;
+  if (Array.isArray(mpJson.cause) && mpJson.cause.length) {
+    out.causes = mpJson.cause.slice(0, 8).map(function (c) {
+      return {
+        code: c && c.code != null ? String(c.code) : undefined,
+        description: c && c.description != null ? String(c.description).slice(0, 240) : undefined
+      };
+    });
+  }
+  return out;
+}
+
+/** area_code + number (sem 55) para payer.phone do MP. */
+function brPhoneForMp(digits) {
+  let d = String(digits || '').replace(/\D/g, '');
+  if (d.startsWith('55') && d.length >= 12) d = d.slice(2);
+  if (d.length === 11) return { area_code: d.slice(0, 2), number: d.slice(2) };
+  if (d.length === 10) return { area_code: d.slice(0, 2), number: d.slice(2) };
+  return null;
+}
 
 function lineUnitPrice(product, photo) {
   if (!product) return 0;
@@ -27,7 +79,7 @@ async function fetchFreightAmount(cfg, cepDigits, subtotal) {
   if (!rowRes.ok || !Array.isArray(rowRes.data) || !rowRes.data[0]) {
     return { delivered: false, amount: 0 };
   }
-  let freight = parseFloat(rowRes.data[0].freight_amount) || 0;
+  let freight = toMoney2(parseFloat(rowRes.data[0].freight_amount) || 0);
   const freeRes = await restGet(
     cfg,
     '/rest/v1/site_settings?key=eq.delivery_info&select=value&limit=1'
@@ -95,18 +147,18 @@ module.exports = async function handler(req, res) {
   if (handleOptions(req, res)) return;
 
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+    jsonError(res, 405, 'METHOD_NOT_ALLOWED', 'Method not allowed');
     return;
   }
 
   const key = rateLimitKey(req, 'mp-pref');
   if (!allow(key, 20, 60000)) {
-    res.status(429).json({ error: 'Muitas tentativas. Aguarde um minuto.' });
+    jsonError(res, 429, 'RATE_LIMIT', 'Muitas tentativas. Aguarde um minuto.');
     return;
   }
 
   const cfg = adminConfig();
-  const accessToken = (process.env.MERCADO_PAGO_ACCESS_TOKEN || '').trim();
+  const accessToken = resolveMercadoPagoAccessToken();
   const appUrl = resolvePublicBaseUrl(req);
   if (!cfg.ok || !accessToken || !appUrl) {
     var missing = [];
@@ -114,9 +166,14 @@ module.exports = async function handler(req, res) {
       if (!(process.env.SUPABASE_URL || '').trim()) missing.push('SUPABASE_URL');
       if (!(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim()) missing.push('SUPABASE_SERVICE_ROLE_KEY');
     }
-    if (!accessToken) missing.push('MERCADO_PAGO_ACCESS_TOKEN');
+    if (!accessToken) {
+      missing.push('MERCADO_PAGO_ACCESS_TOKEN');
+      missing.push('(ou MERCADOPAGO_ACCESS_TOKEN / MP_ACCESS_TOKEN)');
+    }
     if (!appUrl) missing.push('APP_URL');
     res.status(503).json({
+      ok: false,
+      code: 'SERVER_CONFIG',
       error: 'Pagamento não configurado no servidor.',
       missing: missing
     });
@@ -127,18 +184,20 @@ module.exports = async function handler(req, res) {
   const jwt = auth.replace(/^Bearer\s+/i, '').trim();
   const user = await verifySupabaseUserJwt(jwt);
   if (!user) {
-    res.status(401).json({ error: 'Sessao invalida ou expirada.' });
+    jsonError(res, 401, 'UNAUTHORIZED', 'Sessao invalida ou expirada.');
     return;
   }
 
-  const body = parseBody(req.body);
+  const body = await readJsonBody(req);
   const shippingAddressId = String(body.shipping_address_id || '').trim();
   const idempotencyKey = String(req.headers['x-idempotency-key'] || body.idempotency_key || '')
     .trim()
     .slice(0, 128);
 
   if (!shippingAddressId) {
-    res.status(400).json({ error: 'Selecione um endereço de entrega.' });
+    jsonError(res, 400, 'NO_SHIPPING_ADDRESS', 'Selecione um endereço de entrega.', {
+      hint: 'Envie JSON: {"shipping_address_id":"<uuid do endereco>"}'
+    });
     return;
   }
 
@@ -166,7 +225,9 @@ module.exports = async function handler(req, res) {
         const prefId = row.provider_preference_id || raw.preference_id;
         if (initPoint && prefId && String(ordChk.data[0].payment_status || '') !== 'paid') {
           res.status(200).json({
+            ok: true,
             init_point: initPoint,
+            sandbox_init_point: raw.sandbox_init_point || null,
             preference_id: prefId,
             order_id: oid,
             order_number: ordChk.data[0].order_number,
@@ -183,7 +244,9 @@ module.exports = async function handler(req, res) {
     '/rest/v1/carts?user_id=eq.' + encodeURIComponent(user.id) + '&select=id&limit=1'
   );
   if (!cartQ.ok || !Array.isArray(cartQ.data) || !cartQ.data[0]) {
-    res.status(400).json({ error: 'Carrinho vazio.' });
+    jsonError(res, 400, 'CART_EMPTY', 'Carrinho vazio.', {
+      hint: 'Adicione itens ao carrinho logado; o servidor usa o carrinho do Supabase deste usuario.'
+    });
     return;
   }
   const cartId = cartQ.data[0].id;
@@ -193,7 +256,7 @@ module.exports = async function handler(req, res) {
     '/rest/v1/cart_items?cart_id=eq.' + encodeURIComponent(cartId) + '&select=id,product_id,photo_id,quantity'
   );
   if (!itemsRes.ok || !Array.isArray(itemsRes.data) || itemsRes.data.length === 0) {
-    res.status(400).json({ error: 'Carrinho vazio.' });
+    jsonError(res, 400, 'CART_EMPTY', 'Carrinho vazio.');
     return;
   }
 
@@ -220,29 +283,34 @@ module.exports = async function handler(req, res) {
     const row = rawRows[i];
     const qty = parseInt(row.quantity, 10) || 0;
     if (qty < 1 || qty > 99) {
-      res.status(400).json({ error: 'Quantidade invalida em um item do carrinho.' });
+      jsonError(res, 400, 'INVALID_CART_QTY', 'Quantidade invalida em um item do carrinho.');
       return;
     }
     const prod = prodMap[String(row.product_id)] || null;
     const photo = row.photo_id ? photoMap[String(row.photo_id)] || null : null;
     if (!prod || prod.active === false) {
-      res.status(400).json({ error: 'Produto indisponível: ' + (prod && prod.name ? String(prod.name) : 'item') });
+      jsonError(
+        res,
+        400,
+        'PRODUCT_UNAVAILABLE',
+        'Produto indisponível: ' + (prod && prod.name ? String(prod.name) : 'item')
+      );
       return;
     }
     if (photo && photo.is_video) {
-      res.status(400).json({ error: 'Item invalido no carrinho.' });
+      jsonError(res, 400, 'INVALID_CART_ITEM', 'Item invalido no carrinho.');
       return;
     }
-    const unit = lineUnitPrice(prod, photo);
+    const unit = toMoney2(lineUnitPrice(prod, photo));
     if (unit <= 0) {
-      res.status(400).json({ error: 'Preco invalido no servidor.' });
+      jsonError(res, 400, 'INVALID_PRICE', 'Preco invalido no servidor.');
       return;
     }
     const stock = prod.stock != null ? parseInt(prod.stock, 10) : null;
     const so = photo && photo.stock_override != null ? parseInt(photo.stock_override, 10) : null;
     const effStock = so != null && !isNaN(so) ? so : stock;
     if (effStock != null && !isNaN(effStock) && effStock < qty) {
-      res.status(400).json({ error: 'Estoque insuficiente para: ' + String(prod.name || 'produto') });
+      jsonError(res, 400, 'OUT_OF_STOCK', 'Estoque insuficiente para: ' + String(prod.name || 'produto'));
       return;
     }
     lines.push({
@@ -264,26 +332,30 @@ module.exports = async function handler(req, res) {
       '&select=zip_code,cep&limit=1'
   );
   if (!addr.ok || !Array.isArray(addr.data) || !addr.data[0]) {
-    res.status(400).json({ error: 'Endereco de entrega invalido.' });
+    jsonError(res, 400, 'INVALID_SHIPPING_ADDRESS', 'Endereco de entrega invalido.');
     return;
   }
   const z = addr.data[0].zip_code != null ? addr.data[0].zip_code : addr.data[0].cep;
   cep = normalizeBrazilCepDigits(z);
   if (!cep) {
-    res.status(400).json({ error: 'CEP inválido no endereço selecionado.' });
+    jsonError(res, 400, 'INVALID_ADDRESS_CEP', 'CEP inválido no endereço selecionado.');
     return;
   }
 
-  const subtotal = lines.reduce(function (a, l) {
-    return a + l.unit_price * l.quantity;
-  }, 0);
+  const subtotal = toMoney2(
+    lines.reduce(function (a, l) {
+      return a + l.unit_price * l.quantity;
+    }, 0)
+  );
   const fr = await fetchFreightAmount(cfg, cep, subtotal);
   if (!fr.delivered) {
-    res.status(400).json({ error: 'CEP fora da area de entrega.' });
+    jsonError(res, 400, 'CEP_OUT_OF_DELIVERY_AREA', 'CEP fora da area de entrega.', {
+      hint: 'Cadastre o CEP em delivery_cep_rates no painel (CEP / Frete).'
+    });
     return;
   }
-  const shipping = fr.delivered ? fr.amount : 0;
-  const total = Math.round((subtotal + shipping) * 100) / 100;
+  const shipping = toMoney2(fr.delivered ? fr.amount : 0);
+  const total = toMoney2(subtotal + shipping);
 
   const orderNumber = 'CF' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
 
@@ -302,7 +374,7 @@ module.exports = async function handler(req, res) {
 
   const insOrder = await restPost(cfg, 'orders', orderRow);
   if (!insOrder.ok || !Array.isArray(insOrder.data) || !insOrder.data[0]) {
-    res.status(500).json({ error: 'Nao foi possivel criar o pedido.' });
+    res.status(500).json({ ok: false, code: 'ORDER_INSERT_FAILED', error: 'Nao foi possivel criar o pedido.' });
     return;
   }
   const order = insOrder.data[0];
@@ -351,10 +423,13 @@ module.exports = async function handler(req, res) {
       .replace(/\D/g, '')
       .slice(0, 14);
     const payer = {
-      email: user.email || undefined,
       first_name: firstName.slice(0, 50),
       surname: surname.slice(0, 60)
     };
+    const emailTrim = String((user && user.email) || '').trim();
+    if (emailTrim) payer.email = emailTrim;
+    const phoneMp = brPhoneForMp(user.phone);
+    if (phoneMp) payer.phone = { area_code: phoneMp.area_code, number: phoneMp.number };
     if (docDigits.length === 11) {
       payer.identification = { type: 'CPF', number: docDigits };
     } else if (docDigits.length === 14) {
@@ -362,27 +437,31 @@ module.exports = async function handler(req, res) {
     }
 
     const mpItems = lines.map(function (l) {
+      const title = String(l.name || 'Produto').trim().slice(0, 127) || 'Produto';
       return {
         id: String(l.product_id),
-        title: l.name.slice(0, 127),
-        quantity: l.quantity,
+        title: title,
+        quantity: parseInt(l.quantity, 10) || 1,
         currency_id: 'BRL',
-        unit_price: l.unit_price
+        unit_price: Number(toMoney2(l.unit_price))
       };
     });
-    if (shipping > 0) {
+    const shipLine = toMoney2(shipping);
+    if (shipLine > 0) {
       mpItems.push({
         id: 'frete',
         title: 'Frete',
         quantity: 1,
         currency_id: 'BRL',
-        unit_price: shipping
+        unit_price: Number(shipLine)
       });
     }
 
     const idem = idempotencyKey || orderId;
     const statement = String(process.env.MERCADO_PAGO_STATEMENT_DESCRIPTOR || 'CONFORTA').slice(0, 22);
-    const maxInst = Math.min(12, parseInt(process.env.MERCADO_PAGO_MAX_INSTALLMENTS || '12', 10) || 12);
+    let maxInst = parseInt(process.env.MERCADO_PAGO_MAX_INSTALLMENTS || '12', 10);
+    if (!isFinite(maxInst) || maxInst < 1) maxInst = 12;
+    maxInst = Math.min(12, Math.max(1, maxInst));
 
     const prefBody = {
       items: mpItems,
@@ -397,7 +476,7 @@ module.exports = async function handler(req, res) {
       external_reference: orderId,
       statement_descriptor: statement,
       payment_methods: { installments: maxInst },
-      metadata: { order_number: orderNumber, user_id: user.id }
+      metadata: { order_id: orderId, order_number: orderNumber, user_id: user.id }
     };
 
     const mpRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -413,12 +492,23 @@ module.exports = async function handler(req, res) {
       return {};
     });
     if (!mpRes.ok) {
-      throw new Error(mpJson.message || 'mercadopago_preference_failed');
+      const details = sanitizeMpError(mpJson);
+      console.error('[mercadopago-create-preference] MP preference HTTP', mpRes.status, JSON.stringify(details));
+      const mpErr = new Error('mp_preference_http');
+      mpErr.mpDetails = details;
+      mpErr.mpHttpStatus = mpRes.status;
+      throw mpErr;
     }
 
     const initPoint = mpJson.init_point || mpJson.sandbox_init_point;
     const prefId = mpJson.id;
-    if (!initPoint || !prefId) throw new Error('init_point_missing');
+    if (!initPoint || !prefId) {
+      const details = sanitizeMpError(mpJson);
+      console.error('[mercadopago-create-preference] MP missing init_point', JSON.stringify(details));
+      const mpErr = new Error('init_point_missing');
+      mpErr.mpDetails = details;
+      throw mpErr;
+    }
 
     await fetch(cfg.base + '/rest/v1/payments?order_id=eq.' + encodeURIComponent(orderId), {
       method: 'PATCH',
@@ -439,13 +529,30 @@ module.exports = async function handler(req, res) {
     }).catch(function () {});
 
     res.status(200).json({
+      ok: true,
       init_point: initPoint,
+      sandbox_init_point: mpJson.sandbox_init_point || null,
       preference_id: prefId,
       order_id: orderId,
       order_number: orderNumber
     });
   } catch (err) {
     await deleteOrderCascade(cfg, orderId);
-    res.status(502).json({ error: 'Nao foi possivel iniciar o pagamento. Tente novamente.' });
+    if (err && err.mpDetails) {
+      res.status(502).json({
+        ok: false,
+        code: 'MERCADOPAGO_API_ERROR',
+        error: 'Falha ao criar preferência no Mercado Pago. Tente novamente.',
+        details: err.mpDetails,
+        mp_http_status: err.mpHttpStatus != null ? err.mpHttpStatus : undefined
+      });
+      return;
+    }
+    console.error('[mercadopago-create-preference]', err && err.message ? err.message : err);
+    res.status(502).json({
+      ok: false,
+      code: 'CHECKOUT_FAILED',
+      error: 'Nao foi possivel iniciar o pagamento. Tente novamente.'
+    });
   }
 };
