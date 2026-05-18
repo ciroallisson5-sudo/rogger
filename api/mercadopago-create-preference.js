@@ -114,6 +114,113 @@ function postgrestErrorDetails(data) {
   return Object.keys(out).length ? out : null;
 }
 
+
+function stringifySafe(value) {
+  try {
+    return JSON.stringify(value || {});
+  } catch (_) {
+    return String(value || '');
+  }
+}
+
+function detectMissingColumn(data) {
+  const text = stringifySafe(data);
+  const patterns = [
+    /Could not find the '([^']+)' column/i,
+    /column\s+"([^"]+)"\s+of relation/i,
+    /column\s+"([^"]+)"\s+does not exist/i,
+    /schema cache.*'([^']+)'/i
+  ];
+  for (let i = 0; i < patterns.length; i++) {
+    const m = text.match(patterns[i]);
+    if (m && m[1]) return String(m[1]).trim();
+  }
+  return '';
+}
+
+function detectNotNullColumn(data) {
+  const text = stringifySafe(data);
+  const patterns = [
+    /null value in column\s+"([^"]+)"/i,
+    /violates not-null constraint.*column\s+"([^"]+)"/i
+  ];
+  for (let i = 0; i < patterns.length; i++) {
+    const m = text.match(patterns[i]);
+    if (m && m[1]) return String(m[1]).trim();
+  }
+  return '';
+}
+
+function valueForCompatibilityColumn(col, row) {
+  const c = String(col || '').toLowerCase();
+  const qty = parseInt(row.quantity, 10) || 1;
+  const unit = toMoney2(row.unit_price != null ? row.unit_price : row.price);
+  const total = toMoney2(unit * qty);
+  if (c === 'total_price' || c === 'subtotal' || c === 'line_total' || c === 'total') return total;
+  if (c === 'price') return unit;
+  if (c === 'name' || c === 'title') return row.product_name || row.name || 'Produto';
+  if (c === 'payment_method') return 'mercadopago';
+  if (c === 'method') return 'mercadopago';
+  if (c === 'provider') return 'mercadopago';
+  if (c === 'currency' || c === 'currency_id') return 'BRL';
+  return undefined;
+}
+
+async function restPostSchemaTolerant(cfg, table, row, opts) {
+  const protectedKeys = (opts && opts.protectedKeys) || ['order_id'];
+  const current = Object.assign({}, row);
+  const attempts = [];
+  for (let i = 0; i < 14; i++) {
+    const r = await restPost(cfg, table, current);
+    if (r.ok) {
+      return { ok: true, status: r.status, data: r.data, sentKeys: Object.keys(current), attempts: attempts };
+    }
+
+    const pg = postgrestErrorDetails(r.data);
+    attempts.push({ status: r.status, pg: pg, sentKeys: Object.keys(current) });
+
+    const missing = detectMissingColumn(r.data);
+    if (missing && Object.prototype.hasOwnProperty.call(current, missing) && protectedKeys.indexOf(missing) === -1) {
+      delete current[missing];
+      continue;
+    }
+
+    const notNull = detectNotNullColumn(r.data);
+    if (notNull && !Object.prototype.hasOwnProperty.call(current, notNull)) {
+      const compatValue = valueForCompatibilityColumn(notNull, current);
+      if (compatValue !== undefined) {
+        current[notNull] = compatValue;
+        continue;
+      }
+    }
+
+    return { ok: false, status: r.status, data: r.data, sentKeys: Object.keys(current), attempts: attempts };
+  }
+  return { ok: false, status: 0, data: { message: 'schema_tolerant_insert_max_attempts' }, sentKeys: Object.keys(current), attempts: attempts };
+}
+
+function makeCheckoutStageError(stage, response, message, extra) {
+  const e = new Error(message || stage || 'checkout_stage_failed');
+  e.checkoutStage = stage || 'CHECKOUT_STAGE_FAILED';
+  e.httpStatus = response && response.status;
+  e.pgDetails = postgrestErrorDetails(response && response.data);
+  e.sentKeys = response && response.sentKeys;
+  e.attempts = response && response.attempts;
+  if (extra && typeof extra === 'object') {
+    Object.keys(extra).forEach(function (k) {
+      e[k] = extra[k];
+    });
+  }
+  return e;
+}
+
+function publicStageErrorMessage(stage) {
+  if (stage === 'ORDER_ITEM_INSERT_FAILED') return 'Nao foi possivel salvar os itens do pedido no banco.';
+  if (stage === 'PAYMENT_INSERT_FAILED') return 'Nao foi possivel criar o registro de pagamento no banco.';
+  if (stage === 'MERCADOPAGO_FETCH_FAILED') return 'Nao foi possivel conectar ao Mercado Pago a partir do servidor.';
+  return 'Nao foi possivel iniciar o pagamento. Tente novamente.';
+}
+
 /** Produção na Vercel: nunca usar APP_URL localhost nem HTTP inseguro. */
 function isVercelProductionDeploy() {
   return String(process.env.VERCEL || '').trim() === '1';
@@ -677,6 +784,7 @@ module.exports = async function handler(req, res) {
   try {
     for (let j = 0; j < lines.length; j++) {
       const l = lines[j];
+      const lineTotal = toMoney2(l.unit_price * l.quantity);
       const it = {
         order_id: orderId,
         product_id: l.product_id,
@@ -685,22 +793,40 @@ module.exports = async function handler(req, res) {
         photo_url: null,
         quantity: l.quantity,
         unit_price: l.unit_price,
-        color_name: null
+        color_name: null,
+        total_price: lineTotal,
+        subtotal: lineTotal,
+        line_total: lineTotal,
+        price: l.unit_price
       };
-      const ir = await restPost(cfg, 'order_items', it);
-      if (!ir.ok) throw new Error('order_items');
+      const ir = await restPostSchemaTolerant(cfg, 'order_items', it, {
+        protectedKeys: ['order_id']
+      });
+      if (!ir.ok) {
+        throw makeCheckoutStageError('ORDER_ITEM_INSERT_FAILED', ir, 'order_items');
+      }
     }
 
-    const payIns = await restPost(cfg, 'payments', {
-      order_id: orderId,
-      provider: 'mercadopago',
-      status: 'pending',
-      amount: total,
-      external_reference: orderId,
-      idempotency_key: idempotencyKey || null,
-      raw_provider_payload: {}
-    });
-    if (!payIns.ok) throw new Error('payments');
+    const payIns = await restPostSchemaTolerant(
+      cfg,
+      'payments',
+      {
+        order_id: orderId,
+        provider: 'mercadopago',
+        payment_method: 'mercadopago',
+        method: 'mercadopago',
+        status: 'pending',
+        amount: total,
+        currency: 'BRL',
+        external_reference: orderId,
+        idempotency_key: idempotencyKey || null,
+        raw_provider_payload: {}
+      },
+      { protectedKeys: ['order_id'] }
+    );
+    if (!payIns.ok) {
+      throw makeCheckoutStageError('PAYMENT_INSERT_FAILED', payIns, 'payments');
+    }
 
     const fullName = String(
       (profileRow && profileRow.full_name) || user.email || payerEmailForMp || 'Cliente'
@@ -801,15 +927,26 @@ module.exports = async function handler(req, res) {
       })()
     });
 
-    const mpRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + accessToken,
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': idem
-      },
-      body: JSON.stringify(prefBody)
-    });
+    let mpRes;
+    try {
+      mpRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': idem
+        },
+        body: JSON.stringify(prefBody)
+      });
+    } catch (fetchErr) {
+      console.error(
+        '[mercadopago-create-preference] fetch MP failed',
+        fetchErr && fetchErr.message ? fetchErr.message : fetchErr
+      );
+      throw makeCheckoutStageError('MERCADOPAGO_FETCH_FAILED', null, 'mercadopago_fetch_failed', {
+        networkMessage: fetchErr && fetchErr.message ? String(fetchErr.message).slice(0, 300) : undefined
+      });
+    }
     const mpJson = await mpRes.json().catch(function () {
       return {};
     });
@@ -876,10 +1013,34 @@ module.exports = async function handler(req, res) {
       });
       return;
     }
+    if (err && err.checkoutStage) {
+      console.error(
+        '[mercadopago-create-preference] stage failed',
+        err.checkoutStage,
+        err.httpStatus || '',
+        JSON.stringify(err.pgDetails || {}),
+        err.networkMessage || ''
+      );
+      res.status(502).json({
+        ok: false,
+        code: err.checkoutStage,
+        stage: err.checkoutStage,
+        error: publicStageErrorMessage(err.checkoutStage),
+        pg: err.pgDetails || undefined,
+        http_status: err.httpStatus != null ? err.httpStatus : undefined,
+        sent_keys: err.sentKeys || undefined,
+        hint:
+          err.checkoutStage === 'ORDER_ITEM_INSERT_FAILED' || err.checkoutStage === 'PAYMENT_INSERT_FAILED'
+            ? 'Compare as colunas do Supabase com o payload retornado em sent_keys/pg. Execute as migrations em database/ antes de testar pagamento.'
+            : undefined
+      });
+      return;
+    }
     console.error('[mercadopago-create-preference]', err && err.message ? err.message : err);
     res.status(502).json({
       ok: false,
       code: 'CHECKOUT_FAILED',
+      stage: err && err.message ? String(err.message).slice(0, 80) : 'unknown',
       error: 'Nao foi possivel iniciar o pagamento. Tente novamente.'
     });
   }
