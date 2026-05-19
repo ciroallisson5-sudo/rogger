@@ -5,7 +5,7 @@
  * POST { mode: "plan" | "execute", ... }
  *
  * plan: { message, messages?, image_base64?, image_mime? } → { reply, actions }
- * execute: { actions, image_base64?, ... } — produtos, fotos, fretes por CEP (delivery_cep_rates).
+ * execute: { actions, image_base64?, ... } — produtos, fotos e configurações; entrega por estado (Espírito Santo).
  *   - Opcional: envia a mesma imagem do plano → upload bucket `public/imagens/ai-assistant/*` + insert em product_photos.
  *   - attach_image_to: uuid do produto | omitir → usa ultimo insert do lote ou unico update_product.
  */
@@ -234,11 +234,6 @@ async function fetchAdminContext() {
     '/rest/v1/products?select=id,name,slug,base_price,stock,active&order=updated_at.desc&limit=100',
     null
   );
-  const ceps = await supabaseRest(
-    'GET',
-    '/rest/v1/delivery_cep_rates?select=id,cep,freight_amount,label&order=cep.asc&limit=60',
-    null
-  );
   const bnr = await supabaseRest(
     'GET',
     '/rest/v1/banners?select=id,title,sort_order,active&order=sort_order.asc&limit=40',
@@ -246,7 +241,7 @@ async function fetchAdminContext() {
   );
   const categories = cats.ok && Array.isArray(cats.json) ? cats.json : [];
   const products = prods.ok && Array.isArray(prods.json) ? prods.json : [];
-  const deliveryCeps = ceps.ok && Array.isArray(ceps.json) ? ceps.json : [];
+  const deliveryCeps = [];
   const banners = bnr.ok && Array.isArray(bnr.json) ? bnr.json : [];
   return { categories, products, deliveryCeps, banners };
 }
@@ -429,16 +424,14 @@ function buildPlannerSystem(ctx) {
   const prodLines = ctx.products.map(function (p) {
     return '- id: ' + p.id + ' | ' + (p.name || '') + ' | slug ' + (p.slug || '') + ' | R$' + (p.base_price != null ? p.base_price : '?');
   });
-  const cepLines = (ctx.deliveryCeps || []).map(function (r) {
-    return '- id: ' + r.id + ' | CEP ' + (r.cep || '') + ' | frete R$' + (r.freight_amount != null ? r.freight_amount : '?') + (r.label ? ' | ' + r.label : '');
-  });
+  const cepLines = ['Entrega por estado ativa: Espírito Santo (CEPs 29000-000 a 29999-999), frete padrão R$150,00.'];
   const bannerLines = (ctx.banners || []).map(function (b) {
     return '- id: ' + b.id + ' | ' + (b.title || '(sem titulo)') + ' | ordem ' + (b.sort_order != null ? b.sort_order : '?');
   });
   const siteKeysHint = Array.from(SITE_SETTING_KEYS).join(', ');
   return (
     'Voce e o assistente COMPLETO do painel administrativo Conforta (o que o admin faz no site, voce ajuda via JSON). Seja RAPIDO e LOGICO.\n\n' +
-    'Raciocinio: (1) Intencao — produto, categoria, banner, frete CEP, pedido/consulta, configuracao site. ' +
+    'Raciocinio: (1) Intencao — produto, categoria, banner, entrega por estado, pedido/consulta, configuracao site. ' +
     '(2) "historico do cliente / pedidos da conta X" = use CONSULTAS abaixo com email ou id. ' +
     '(2b) JSON de catalogo com URLs/preços reais (WhatsApp, n8n, fotos leves) = aba Estudio IA no painel; nao use actions para isso. ' +
     '(3) Menos actions, mais precisao.\n\n' +
@@ -464,10 +457,8 @@ function buildPlannerSystem(ctx) {
     '{"type":"insert_banner","banner":{image_url,title?,subtitle?,link_url?,product_id?}}\n' +
     '{"type":"update_banner","id":"<uuid>","patch":{...}}\n' +
     '{"type":"delete_banner","id":"<uuid>"}\n\n' +
-    '--- FRETE CEP (cep sempre 8 digitos; 7 digitos completam com zero a esquerda; use ponto no JSON para numeros) ---\n' +
-    '{"type":"upsert_delivery_cep","cep":"01310100","freight_amount":29.9,"label":"Regiao centro"}\n' +
-    '{"type":"update_delivery_cep","id":"<uuid da lista>","freight_amount":29.9,"cep"?,"label"?}\n' +
-    '{"type":"delete_delivery_cep","id":"<uuid>"} ou {"type":"delete_delivery_cep","cep":"01310100"}\n\n' +
+    '--- ENTREGA ---\n' +
+    'Frete por CEP individual está desativado. A loja atende por estado: Espírito Santo (ES), CEPs 29000-000 a 29999-999, frete padrão R$150,00. Não gere actions para cadastrar CEP.\n\n' +
     '--- PEDIDOS (mutacao; use com cuidado) ---\n' +
     '{"type":"update_order_status","id":"<uuid pedido>","status":"pending|confirmed|preparing|shipped|delivered|cancelled"}\n' +
     '{"type":"delete_order","id":"<uuid pedido>"}\n\n' +
@@ -479,7 +470,7 @@ function buildPlannerSystem(ctx) {
     (prodLines.length ? prodLines.join('\n') : '(nenhum)') +
     '\n\nBanners:\n' +
     (bannerLines.length ? bannerLines.join('\n') : '(nenhum)') +
-    '\n\nCEPs frete:\n' +
+    '\n\nEntrega:\n' +
     (cepLines.length ? cepLines.join('\n') : '(nenhum)')
   );
 }
@@ -786,82 +777,12 @@ function pickBannerPatch(obj) {
 }
 
 /**
- * Normaliza acoes de frete por CEP vindas do modelo (campos e nomes de tipo variam).
+ * Mantido por compatibilidade: ações antigas de frete por CEP não devem ser executadas.
  * O banco exige cep com 8 digitos (check constraint); alinhar com api/_cep.js.
  */
 function extractDeliveryCepUpsert(a) {
-  if (!a || typeof a !== 'object') return null;
-  const t = String(a.type || '')
-    .trim()
-    .toLowerCase();
-  if (t === 'update_delivery_cep' || t === 'delete_delivery_cep') return null;
-  const upsertNames = new Set([
-    'upsert_delivery_cep',
-    'insert_delivery_cep',
-    'add_delivery_cep',
-    'insert_delivery_cep_rate',
-    'delivery_cep_upsert',
-    'set_delivery_cep',
-    'frete_cep',
-    'set_frete_cep'
-  ]);
-  const isUpsert =
-    upsertNames.has(t) ||
-    (t.indexOf('delivery') >= 0 && t.indexOf('cep') >= 0 && (t.indexOf('upsert') >= 0 || t.indexOf('add') >= 0));
-
-  let cep =
-    a.cep != null && a.cep !== ''
-      ? a.cep
-      : a.zip_code != null && a.zip_code !== ''
-        ? a.zip_code
-        : a.zip != null && a.zip !== ''
-          ? a.zip
-          : null;
-  if (cep == null && a.rate && typeof a.rate === 'object') cep = a.rate.cep != null ? a.rate.cep : a.rate.zip_code;
-  if (cep == null && a.row && typeof a.row === 'object') cep = a.row.cep;
-  if (cep == null && a.delivery && typeof a.delivery === 'object') cep = a.delivery.cep;
-  cep = normalizeBrazilCepDigits(cep);
-
-  let amt =
-    a.freight_amount != null && a.freight_amount !== ''
-      ? a.freight_amount
-      : a.amount != null && a.amount !== ''
-        ? a.amount
-        : a.freight != null && a.freight !== ''
-          ? a.freight
-          : a.valor_frete;
-  if (amt == null && a.rate && typeof a.rate === 'object') {
-    amt =
-      a.rate.freight_amount != null && a.rate.freight_amount !== ''
-        ? a.rate.freight_amount
-        : a.rate.amount;
-  }
-  if (amt == null && a.row && typeof a.row === 'object') amt = a.row.freight_amount;
-  if (amt == null && a.delivery && typeof a.delivery === 'object') {
-    amt =
-      a.delivery.freight_amount != null && a.delivery.freight_amount !== ''
-        ? a.delivery.freight_amount
-        : a.delivery.amount;
-  }
-
-  const n = parseFloat(amt);
-  if (!cep || isNaN(n) || n < 0) return null;
-
-  let lab = a.label;
-  if (lab == null && a.rate && typeof a.rate === 'object') lab = a.rate.label;
-  if (lab == null && a.row && typeof a.row === 'object') lab = a.row.label;
-  if (lab == null && a.delivery && typeof a.delivery === 'object') lab = a.delivery.label;
-
-  const freightNum = Math.round(n * 100) / 100;
-  const labelStr = lab != null ? String(lab).trim().slice(0, 120) : '';
-
-  if (!isUpsert) return null;
-  return {
-    type: 'upsert_delivery_cep',
-    cep: cep,
-    freight_amount: freightNum,
-    label: labelStr || null
-  };
+  void a;
+  return null;
 }
 
 function validateActions(actions) {
@@ -893,23 +814,6 @@ function validateActions(actions) {
         sort_order: isNaN(sort) ? 0 : Math.max(0, sort),
         alt_text: a.alt_text != null ? String(a.alt_text).slice(0, 500) : ''
       });
-    } else if (t === 'update_delivery_cep' && isUuid(a.id)) {
-      const amt = parseFloat(a.freight_amount);
-      if (isNaN(amt) || amt < 0) continue;
-      const item = { type: 'update_delivery_cep', id: a.id, freight_amount: amt };
-      if (a.label !== undefined) {
-        item.label = a.label === null ? null : String(a.label).trim().slice(0, 120) || null;
-      }
-      const nc = normalizeBrazilCepDigits(a.cep);
-      if (nc) item.cep = nc;
-      clean.push(item);
-    } else if (t === 'delete_delivery_cep') {
-      if (isUuid(a.id)) {
-        clean.push({ type: 'delete_delivery_cep', id: a.id });
-      } else {
-        const cep = normalizeBrazilCepDigits(a.cep);
-        if (cep) clean.push({ type: 'delete_delivery_cep', cep: cep });
-      }
     } else if (t === 'insert_category') {
       const c = pickCategoryInsert(a.category);
       if (c) clean.push({ type: 'insert_category', category: c });
@@ -1007,110 +911,17 @@ async function executeActions(actions) {
       } else {
         results.push({ ok: true, type: 'insert_product_photo', id: r.json[0].id, product_id: pid });
       }
-    } else if (a.type === 'upsert_delivery_cep' || a.type === 'insert_delivery_cep') {
-      const row = {
-        cep: a.cep,
-        freight_amount: Math.round(Number(a.freight_amount) * 100) / 100,
-        label: a.label != null ? a.label : null
-      };
-      const find = await supabaseRest(
-        'GET',
-        '/rest/v1/delivery_cep_rates?select=id,cep&cep=eq.' + encodeURIComponent(row.cep),
-        null
-      );
-      const existing = find.ok && Array.isArray(find.json) && find.json[0] ? find.json[0] : null;
-      let r;
-      let rowData = null;
-      if (existing && existing.id) {
-        r = await supabaseRest(
-          'PATCH',
-          '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(existing.id),
-          { freight_amount: row.freight_amount, label: row.label },
-          'return=representation'
-        );
-        if (r.ok) {
-          if (Array.isArray(r.json) && r.json[0]) rowData = r.json[0];
-          else if (r.json && r.json.id) rowData = r.json;
-          else
-            rowData = {
-              id: existing.id,
-              cep: row.cep,
-              freight_amount: row.freight_amount,
-              label: row.label
-            };
-        }
-      } else {
-        r = await supabaseRest('POST', '/rest/v1/delivery_cep_rates', row, 'return=representation');
-        if (r.ok) {
-          rowData = Array.isArray(r.json) ? r.json[0] : r.json && r.json.id ? r.json : null;
-        }
-      }
-      if (!r.ok || !rowData) {
-        results.push({
-          ok: false,
-          type: 'upsert_delivery_cep',
-          cep: a.cep,
-          error: (r.json && (r.json.message || r.json.hint || r.json.error_description || r.json.details)) || 'upsert CEP falhou',
-          status: r.status
-        });
-      } else {
-        results.push({
-          ok: true,
-          type: 'upsert_delivery_cep',
-          id: rowData.id,
-          cep: rowData.cep || row.cep,
-          freight_amount: rowData.freight_amount != null ? rowData.freight_amount : row.freight_amount
-        });
-      }
-    } else if (a.type === 'update_delivery_cep') {
-      const patch = { freight_amount: a.freight_amount };
-      if (a.label !== undefined) patch.label = a.label;
-      if (a.cep) patch.cep = a.cep;
-      const r = await supabaseRest('PATCH', '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(a.id), patch);
-      if (!r.ok) {
-        results.push({
-          ok: false,
-          type: 'update_delivery_cep',
-          id: a.id,
-          error: (r.json && (r.json.message || r.json.hint)) || 'update CEP falhou',
-          status: r.status
-        });
-      } else {
-        results.push({ ok: true, type: 'update_delivery_cep', id: a.id });
-      }
-    } else if (a.type === 'delete_delivery_cep') {
-      let delId = a.id;
-      if (!delId && a.cep) {
-        const find = await supabaseRest(
-          'GET',
-          '/rest/v1/delivery_cep_rates?select=id&cep=eq.' + encodeURIComponent(a.cep),
-          null
-        );
-        if (find.ok && Array.isArray(find.json) && find.json[0] && find.json[0].id) {
-          delId = find.json[0].id;
-        }
-      }
-      if (!isUuid(String(delId || ''))) {
-        results.push({ ok: false, type: 'delete_delivery_cep', error: 'CEP ou id não encontrado' });
-      } else {
-        const r = await supabaseRest(
-          'DELETE',
-          '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(delId),
-          null,
-          'return=minimal'
-        );
-        if (!r.ok) {
-          results.push({
-            ok: false,
-            type: 'delete_delivery_cep',
-            id: delId,
-            error: (r.json && r.json.message) || 'delete CEP falhou',
-            status: r.status
-          });
-        } else {
-          results.push({ ok: true, type: 'delete_delivery_cep', id: delId });
-        }
-      }
+    } else if (
+      a.type === 'upsert_delivery_cep' ||
+      a.type === 'insert_delivery_cep' ||
+      a.type === 'update_delivery_cep' ||
+      a.type === 'delete_delivery_cep'
+    ) {
+      results.push({
+        ok: false,
+        type: a.type,
+        error: 'Frete por CEP individual foi desativado. A entrega agora é por estado: Espírito Santo.'
+      });
     } else if (a.type === 'insert_category') {
       const r = await supabaseRest('POST', '/rest/v1/categories', a.category);
       if (!r.ok || !Array.isArray(r.json) || !r.json[0]) {

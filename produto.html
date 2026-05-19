@@ -774,7 +774,7 @@
       }
 
       function renderDeliveryBlock() {
-        return '<section class="delivery-card"><h2>Disponibilidade pelo CEP</h2><p class="delivery-message">Confirme prazo e disponibilidade com nossa equipe pelo WhatsApp.</p><div class="cep-row"><input type="text" id="cepInput" inputmode="numeric" placeholder="Digite seu CEP" aria-label="Digite seu CEP"><button class="btn btn-outline" type="button" id="cepBtn" aria-label="Consultar CEP">Calcular</button></div><p class="delivery-message" id="cepMessage">Fale conosco para confirmar prazo e disponibilidade.</p></section>';
+        return '<section class="delivery-card"><h2>Entrega no Espírito Santo</h2><p class="delivery-message">Informe seu CEP para confirmar se o endereço está dentro da área atendida no Espírito Santo.</p><div class="cep-row"><input type="text" id="cepInput" inputmode="numeric" placeholder="Digite seu CEP" aria-label="Digite seu CEP"><button class="btn btn-outline" type="button" id="cepBtn" aria-label="Consultar entrega">Calcular</button></div><p class="delivery-message" id="cepMessage">Atendemos CEPs do Espírito Santo. O frete padrão é validado automaticamente.</p></section>';
       }
 
       function renderActions(unavailable) {
@@ -989,10 +989,10 @@
         if (d.length >= 1 && d.length < 8) d = d.padStart(8, '0');
         var cep = d.length === 8 && /^[0-9]{8}$/.test(d) ? d : '';
         if (!cep) {
-          msg.textContent = 'Digite um CEP valido (8 digitos).';
+          msg.textContent = 'Digite um CEP válido com 8 dígitos.';
           return;
         }
-        msg.textContent = 'Consultando frete...';
+        msg.textContent = 'Validando entrega...';
         var subtotal = 0;
         try {
           var photo = currentPhoto();
@@ -1013,27 +1013,27 @@
             return {};
           });
           if (!r.ok && j.error) {
-            msg.textContent = 'Não foi possível consultar o CEP agora. Tente novamente em instantes.';
+            msg.textContent = 'Não foi possível validar a entrega agora. Tente novamente em instantes.';
             return;
           }
           if (j.delivered === false) {
-            msg.textContent = j.message || 'Infelizmente não atendemos este CEP no momento.';
+            msg.textContent = j.message || 'No momento, entregamos apenas para endereços no Espírito Santo.';
             return;
           }
           if (j.delivered) {
             var fr = parseFloat(j.freight_amount) || 0;
             var parts = [];
-            if (fr <= 0) parts.push('Frete gratis para este valor.');
+            if (fr <= 0) parts.push('Frete grátis para este valor.');
             else parts.push('Frete estimado: ' + formatPrice(fr));
             if (j.label) parts.push(j.label);
-            if (j.free_shipping_applied) parts.push('(pedido acima do minimo para frete gratis)');
+            if (j.free_shipping_applied) parts.push('(pedido acima do mínimo para frete grátis)');
             msg.textContent = parts.join(' ');
             return;
           }
           msg.textContent = 'Resposta incompleta. Tente novamente.';
         } catch (e) {
           void e;
-          msg.textContent = 'Erro de rede ao consultar o CEP.';
+          msg.textContent = 'Erro de rede ao validar a entrega.';
         }
       }
 

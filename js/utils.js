@@ -432,8 +432,6 @@ async function configureGlobalWhatsappLinks() {
     if (emergencyDigits) window.CONFORTA_WHATSAPP_EMERGENCY_URL = `https://wa.me/${emergencyDigits}`;
   } catch { /* silent */ }
 
-  injectMobileWhatsappFab();
-
   function bindWaLinks(selector, url, fallbackMessage) {
     document.querySelectorAll(selector).forEach(function(link) {
       if (link.dataset.ccWaGlobalBound === '1') return;
@@ -456,22 +454,6 @@ async function configureGlobalWhatsappLinks() {
 
   bindWaLinks('.js-global-whatsapp', window.CONFORTA_WHATSAPP_URL, 'Olá! Quero atendimento da Conforta Colchões.');
   bindWaLinks('.js-global-whatsapp-emergency', window.CONFORTA_WHATSAPP_EMERGENCY_URL, 'Olá! Preciso de atendimento urgente na Conforta Colchões.');
-}
-
-function injectMobileWhatsappFab() {
-  const page = getCurrentPageName();
-  if (page === 'checkout.html' || page === 'checkout-retorno.html' || page === 'admin.html') return;
-  if (document.querySelector('.cc-wa-fab')) return;
-  const fab = document.createElement('a');
-  fab.className = 'cc-wa-fab js-global-whatsapp';
-  fab.setAttribute('data-message', 'Olá! Preciso de ajuda para escolher o colchão ideal (tamanho ou densidade).');
-  fab.setAttribute('aria-label', 'Falar no WhatsApp com a Conforta Colchões');
-  fab.href = '#';
-  fab.innerHTML =
-    '<span class="cc-wa-fab-inner" aria-hidden="true">' +
-    '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.3.3-1 .9-1 2.3s1 2.7 1.1 2.9c.1.2 2 3 4.7 4.2 1.6.7 2.3.7 3.1.6.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20m5.5-15.5A7.7 7.7 0 0 0 12 4a7.7 7.7 0 0 0-7.8 7.8c0 1.4.4 2.7 1.1 3.9L4.2 20l4.4-1.1c1.2.7 2.5 1 3.9 1a7.7 7.7 0 0 0 7.8-7.8c0-2-.8-4-2.3-5.6"/></svg>' +
-    '</span>';
-  document.body.appendChild(fab);
 }
 
 function injectConfortaPolishStyles() {
@@ -536,38 +518,14 @@ function injectConfortaPolishStyles() {
       .cc-mobile-bottom-nav .active { color:#1a56db; background:#eff6ff; }
       .cc-mobile-bottom-nav .cart-count { position:absolute; top:4px; right:calc(50% - 24px); min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#dc2626; color:#fff; font-size:.65rem; font-weight:900; display:none; align-items:center; justify-content:center; }
       .cc-mobile-bottom-nav .cart-count.visible { display:flex; }
-      body.cc-polished .chat-widget { bottom:86px !important; right:14px !important; }
-      body.cc-page-produto .chat-widget { bottom:154px !important; }
+      body.cc-polished .chat-widget { bottom:22px !important; right:14px !important; }
+      body.cc-page-produto .chat-widget { bottom:96px !important; }
       body.cc-page-checkout .chat-widget { bottom:18px !important; }
       body.cc-polished .footer { padding-bottom:28px !important; }
       body.cc-polished .footer-contacts { flex-direction:column; gap:10px !important; }
       body.cc-polished .footer-brand-mini img { height:68px !important; }
       body.cc-page-produtos .catalog-hero { margin-top:0 !important; padding-top:24px !important; padding-bottom:20px !important; }
     }
-    .cc-wa-fab {
-      position: fixed;
-      right: 16px;
-      bottom: calc(92px + env(safe-area-inset-bottom, 0px));
-      z-index: 860;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: #16a34a;
-      color: #fff !important;
-      box-shadow: 0 10px 30px rgba(22, 163, 74, 0.42);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none !important;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .cc-wa-fab:hover { transform: scale(1.04); box-shadow: 0 12px 34px rgba(22, 163, 74, 0.5); }
-    .cc-wa-fab-inner { display: flex; align-items: center; justify-content: center; }
-    @media (min-width: 769px) {
-      .cc-wa-fab { bottom: 22px; }
-    }
-    body.cc-page-produto .cc-wa-fab { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
-    body.cc-page-checkout .cc-wa-fab { display: none !important; }
     .cc-header-profile-aux { opacity: 0.78 !important; transform: scale(0.92); min-width: 38px !important; width: 38px !important; }
     .mobile-menu a.cc-mobile-menu-secondary { opacity: 0.88; font-size: 0.88rem; }
     @media (max-width: 430px) {

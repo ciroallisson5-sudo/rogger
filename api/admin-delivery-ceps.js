@@ -2,20 +2,6 @@
 
 const { verifySupabaseAdmin } = require('./_supabase-admin');
 const { applyBrowserCors, handleOptions } = require('./_http');
-const { normalizeBrazilCepDigits } = require('./_cep');
-
-function parseBody(raw) {
-  if (raw == null) return {};
-  if (Buffer.isBuffer(raw)) raw = raw.toString('utf8');
-  if (typeof raw === 'string') {
-    try {
-      return JSON.parse(raw || '{}');
-    } catch (_) {
-      return {};
-    }
-  }
-  return typeof raw === 'object' ? raw : {};
-}
 
 module.exports = async function handler(req, res) {
   applyBrowserCors(req, res);
@@ -27,7 +13,6 @@ module.exports = async function handler(req, res) {
 
     let adminOk = jwt && await verifySupabaseAdmin(jwt);
     if (!adminOk) {
-      /** Fallback dev: ADMIN_EMAIL_ALLOW se RPC get_admin_emails falhar ou email nao listado */
       const dev = process.env.ADMIN_EMAIL_ALLOW || '';
       if (dev && jwt) {
         const userRes = await fetch((process.env.SUPABASE_URL || '').replace(/\/$/, '') + '/auth/v1/user', {
@@ -43,132 +28,33 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const svc = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    const base = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-    if (!jwt || !adminOk || !svc || !base) {
+    if (!jwt || !adminOk) {
       res.status(!adminOk && jwt ? 403 : 401).json({
-        error: 'Acesso restrito ao admin. Confirme login e permissao.'
+        error: 'Acesso restrito ao admin. Confirme login e permissão.'
       });
       return;
     }
-
-    const useSvc = svc;
 
     if (req.method === 'GET') {
-      const fetchRes = await fetch(base + '/rest/v1/delivery_cep_rates?select=*&order=cep.asc', {
-        headers: { apikey: useSvc, Authorization: 'Bearer ' + useSvc }
-      });
-      const list = await fetchRes.json().catch(function () {
-        return [];
-      });
-      const arr = fetchRes.ok && Array.isArray(list) ? list : [];
-      if (!fetchRes.ok) {
-        res.status(fetchRes.status >= 400 && fetchRes.status < 600 ? fetchRes.status : 502).json({
-          error: 'Tabela delivery_cep_rates pode nao existir. Rode database/delivery_cep_rates.sql.',
-          detail: typeof list === 'object' ? list : []
-        });
-        return;
-      }
-      res.status(200).json({ rows: arr });
-      return;
-    }
-
-    if (req.method === 'POST') {
-      const body = parseBody(req.body);
-      const cep = normalizeBrazilCepDigits(body.cep);
-      const amt = parseFloat(body.freight_amount);
-      if (!cep || isNaN(amt) || amt < 0) {
-        res.status(400).json({ error: 'cep (8 digitos) e freight_amount validos obrigatorios' });
-        return;
-      }
-      const row = {
-        cep: cep,
-        freight_amount: amt,
-        label: typeof body.label === 'string' ? body.label.trim().slice(0, 120) || null : null
-      };
-
-      const r = await fetch(base + '/rest/v1/delivery_cep_rates', {
-        method: 'POST',
-        headers: {
-          apikey: useSvc,
-          Authorization: 'Bearer ' + useSvc,
-          'Content-Type': 'application/json',
-          Prefer: 'return=representation,resolution=merge-duplicates'
+      res.status(200).json({
+        rows: [],
+        policy: {
+          mode: 'state',
+          allowed_state: 'ES',
+          allowed_state_name: 'Espírito Santo',
+          cep_range: '29000-000 a 29999-999',
+          freight_amount: Number(process.env.ES_FREIGHT_AMOUNT || process.env.DELIVERY_ES_FREIGHT_AMOUNT || 150)
         },
-        body: JSON.stringify(row)
-      }).catch(function () {
-        return null;
+        message: 'Frete por CEP individual desativado. A entrega agora é validada por estado: Espírito Santo.'
       });
-      const data = r ? await r.json().catch(function () { return null; }) : null;
-      const ok = r && r.ok;
-      if (!ok) {
-        res.status(r ? r.status : 503).json({
-          error: 'Falha ao inserir. CEP pode ja existir.',
-          detail: data
-        });
-        return;
-      }
-      res.status(201).json({ row: Array.isArray(data) ? data[0] : data });
       return;
     }
 
-    if (req.method === 'PATCH') {
-      const body = parseBody(req.body);
-      const id = String(body.id || '').trim();
-      const amt = parseFloat(body.freight_amount);
-      if (!id || isNaN(amt) || amt < 0) {
-        res.status(400).json({ error: 'id e freight_amount validos sao obrigatorios' });
-        return;
-      }
-      const patch = {
-        freight_amount: amt,
-        label: typeof body.label === 'string' ? body.label.trim().slice(0, 120) || null : null
-      };
-      const newCep = normalizeBrazilCepDigits(body.cep);
-      if (newCep) {
-        patch.cep = newCep;
-      }
-      const r = await fetch(base + '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(id), {
-        method: 'PATCH',
-        headers: {
-          apikey: useSvc,
-          Authorization: 'Bearer ' + useSvc,
-          'Content-Type': 'application/json',
-          Prefer: 'return=representation'
-        },
-        body: JSON.stringify(patch)
-      }).catch(function () {
-        return null;
+    if (req.method === 'POST' || req.method === 'PATCH' || req.method === 'DELETE') {
+      res.status(410).json({
+        error: 'Frete por CEP individual foi desativado. Use a regra por estado: Espírito Santo.',
+        code: 'DELIVERY_BY_STATE_ONLY'
       });
-      const data = r ? await r.json().catch(function () { return null; }) : null;
-      if (!r || !r.ok) {
-        res.status(r ? r.status : 503).json({
-          error: 'Falha ao atualizar. CEP pode estar duplicado ou id inválido.',
-          detail: data
-        });
-        return;
-      }
-      const row = Array.isArray(data) ? data[0] : data;
-      res.status(200).json({ row: row || { id } });
-      return;
-    }
-
-    if (req.method === 'DELETE') {
-      const body = parseBody(req.body);
-      const id = String(body.id || '').trim();
-      if (!id) {
-        res.status(400).json({ error: 'id obrigatorio' });
-        return;
-      }
-      await fetch(base + '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(id), {
-        method: 'DELETE',
-        headers: {
-          apikey: useSvc,
-          Authorization: 'Bearer ' + useSvc,
-          Prefer: 'return=minimal'
-        }
-      });
-      res.status(200).json({ ok: true });
       return;
     }
 
@@ -176,7 +62,7 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     console.error('[admin-delivery-ceps]', err);
     res.status(500).json({
-      error: 'Erro interno na API de CEP. Verifique os logs do servidor.',
+      error: 'Erro interno na API de entrega por estado.',
       detail: process.env.VERCEL_ENV === 'development' ? String(err && err.message) : undefined
     });
   }

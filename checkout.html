@@ -477,6 +477,11 @@
         return normalizeBrazilCepDigits(z);
       }
 
+      function getAddressState(addr) {
+        if (!addr) return '';
+        return String(addr.state || addr.uf || '').trim().toUpperCase().slice(0, 2);
+      }
+
       function checkoutGrandTotal() {
         var sub = checkoutTotal();
         if (!checkoutFreightDelivered) return sub;
@@ -515,7 +520,7 @@
         checkoutFreightMsg = '';
         if (addr && !cep) {
           checkoutFreightDelivered = false;
-          checkoutFreightMsg = 'CEP inválido ou incompleto. Confira o endereço no checkout.';
+          checkoutFreightMsg = 'CEP inválido ou incompleto. Informe um CEP do Espírito Santo no checkout.';
           updateCheckoutFreightDom();
           return;
         }
@@ -527,7 +532,7 @@
           var r = await fetch('/api/cep-freight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cep: cep, subtotal: checkoutTotal() })
+            body: JSON.stringify({ cep: cep, state: getAddressState(addr), subtotal: checkoutTotal() })
           });
           var j = await r.json().catch(function () {
             return {};
@@ -542,7 +547,7 @@
           }
           if (j && j.delivered === false) {
             checkoutFreightDelivered = false;
-            checkoutFreightMsg = j.message || 'CEP fora da área de entrega.';
+            checkoutFreightMsg = j.message || 'Entrega disponível apenas para o Espírito Santo.';
           } else if (j && j.delivered) {
             checkoutFreightAmount = parseFloat(j.freight_amount) || 0;
           }
@@ -1498,7 +1503,7 @@
           (addresses.length > 0
             ? '<div class="address-preview" id="addressPreview"><strong>Entrega selecionada</strong><br>' +
               escHtml(addressLine(addr)) +
-              '<br><span>O frete é recalculado ao salvar ou trocar o CEP.</span></div>'
+              '<br><span>O frete é validado pelo estado do endereço: Espírito Santo.</span></div>'
             : '<p class="section-copy" style="margin-bottom:8px">Nenhum endereço cadastrado. Toque em <strong>Novo endereço</strong> e preencha os campos.</p>' +
               '<div class="address-preview" id="addressPreview" style="display:none"></div>');
 
@@ -1588,7 +1593,7 @@
           preview.innerHTML =
             '<strong>Entrega selecionada</strong><br>' +
             escHtml(addressLine(addr)) +
-            '<br><span>O frete é recalculado ao salvar ou trocar o CEP.</span>';
+            '<br><span>O frete é validado pelo estado do endereço: Espírito Santo.</span>';
         }
         refreshCheckoutAddressRowSubtitle();
         var rb = document.getElementById('reviewBox');
@@ -1953,7 +1958,7 @@
         var sub = checkoutTotal();
         var fr = checkoutFreightDelivered
           ? (checkoutFreightAmount <= 0 ? 'Frete: Grátis' : 'Frete: ' + formatPrice(checkoutFreightAmount))
-          : 'Frete: não disponível para este CEP';
+          : 'Frete: não disponível para este endereço';
         var tot = checkoutFreightDelivered ? checkoutGrandTotal() : sub;
         return (
           '<strong>Resumo final</strong><br>' +
@@ -2084,7 +2089,7 @@
           }
 
           if (!checkoutFreightDelivered && getAddressCep(selectedAddress())) {
-            showToast(checkoutFreightMsg || 'CEP fora da área de entrega.', 'error');
+            showToast(checkoutFreightMsg || 'Entrega disponível apenas para o Espírito Santo.', 'error');
             return;
           }
 

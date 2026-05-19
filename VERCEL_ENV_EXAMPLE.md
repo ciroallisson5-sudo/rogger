@@ -98,3 +98,15 @@ database/guest_checkout_no_login.sql
 ```
 
 Esse ajuste permite `orders.user_id = null` para pedido visitante e salva os dados do cliente no pedido/pagamento.
+
+
+## Entrega por Estado
+
+A loja não usa mais tabela de CEPs individuais. O checkout valida automaticamente se o CEP pertence ao Espírito Santo.
+
+| Variável | Uso |
+|---|---|
+| `DELIVERY_ALLOWED_STATE` | Deixe `ES`. |
+| `ES_FREIGHT_AMOUNT` | Valor padrão do frete para Espírito Santo. Padrão: `150`. |
+
+Regra atual: CEPs de `29000-000` a `29999-999` podem seguir para o checkout do Mercado Pago. CEPs fora dessa faixa são bloqueados com a mensagem configurada no painel.

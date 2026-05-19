@@ -2,20 +2,52 @@
 
 const { applyBrowserCors, handleOptions, parseBody } = require('./_http');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
-const { normalizeBrazilCepDigits } = require('./_cep');
+const { normalizeBrazilCepDigits, normalizeBrazilState, resolveEspiritoSantoDelivery } = require('./_cep');
+
+function toMoney2(value) {
+  const n = Number(value);
+  if (!isFinite(n) || n < 0) return 0;
+  return Math.round(n * 100) / 100;
+}
+
+function defaultEsFreightAmount() {
+  return toMoney2(
+    process.env.ES_FREIGHT_AMOUNT ||
+      process.env.DELIVERY_ES_FREIGHT_AMOUNT ||
+      process.env.FREIGHT_ES_AMOUNT ||
+      150
+  );
+}
 
 async function fetchSettingSingle(key, base, service) {
+  if (!base || !service) return null;
   const res = await fetch(
     base + '/rest/v1/site_settings?key=eq.' + encodeURIComponent(key) + '&select=value&limit=1',
     {
       headers: { apikey: service, Authorization: 'Bearer ' + service }
     }
-  );
+  ).catch(function () {
+    return null;
+  });
+  if (!res || !res.ok) return null;
   const rows = await res.json().catch(function () {
     return [];
   });
   if (!Array.isArray(rows) || !rows.length) return null;
   return rows[0].value;
+}
+
+function parseDeliveryInfo(value) {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) || {};
+    } catch (_) {
+      return {};
+    }
+  }
+  return {};
 }
 
 module.exports = async function handler(req, res) {
@@ -30,82 +62,57 @@ module.exports = async function handler(req, res) {
 
   const key = rateLimitKey(req, 'cep-freight');
   if (!allow(key, 45, 60000)) {
-    res.status(429).json({ error: 'Muitas consultas de CEP. Aguarde um minuto.' });
+    res.status(429).json({ error: 'Muitas consultas de entrega. Aguarde um minuto.' });
     return;
   }
 
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   const base = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-  if (!service || !base) {
-    res.status(503).json({ error: 'Supabase não configurado no servidor.' });
-    return;
-  }
-
   const body = parseBody(req.body);
-  const cepNorm = normalizeBrazilCepDigits(body.cep);
+  const cepNorm = normalizeBrazilCepDigits(body.cep || body.zip_code || body.zipCode || '');
+  const stateNorm = normalizeBrazilState(body.state || body.uf || '');
   const subtotal = parseFloat(body.subtotal) || 0;
 
   if (!cepNorm) {
-    res.status(400).json({ delivered: false, message: 'CEP inválido. Informe 8 digitos.' });
+    res.status(400).json({
+      ok: false,
+      delivered: false,
+      message: 'CEP inválido ou incompleto. Informe um CEP do Espírito Santo.'
+    });
     return;
   }
 
   try {
+    const deliveryInfoRaw = await fetchSettingSingle('delivery_info', base, service);
+    const deliveryInfo = parseDeliveryInfo(deliveryInfoRaw);
     const noMsgRaw = await fetchSettingSingle('cep_no_delivery_message', base, service);
     const defaultNoMsg =
-      'Infelizmente não realizamos entrega para este CEP no momento. Fale com a loja pelo WhatsApp para consultar alternativas.';
+      'No momento, entregamos apenas para endereços no Espírito Santo. Fale com a loja pelo WhatsApp para consultar alternativas.';
     const noMessage =
       typeof noMsgRaw === 'string' && noMsgRaw.trim() ? String(noMsgRaw).trim() : defaultNoMsg;
 
-    const lookupRes = await fetch(
-      base +
-        '/rest/v1/delivery_cep_rates?cep=eq.' +
-        encodeURIComponent(cepNorm) +
-        '&select=id,cep,freight_amount,label,lookup_count&limit=1',
-      { headers: { apikey: service, Authorization: 'Bearer ' + service } }
-    );
-    const rows = await lookupRes.json().catch(function () {
-      return [];
-    });
-    const row = Array.isArray(rows) && rows[0];
-
-    if (!row) {
+    const coverage = resolveEspiritoSantoDelivery({ cep: cepNorm, state: stateNorm });
+    if (!coverage.allowed) {
       res.status(200).json({
         ok: true,
         delivered: false,
         cep: cepNorm,
+        state: stateNorm || null,
+        delivery_rule: 'espirito_santo_only',
         message: noMessage
       });
       return;
     }
 
-    const newCount = (row.lookup_count || 0) + 1;
-    await fetch(base + '/rest/v1/delivery_cep_rates?id=eq.' + encodeURIComponent(row.id), {
-      method: 'PATCH',
-      headers: {
-        apikey: service,
-        Authorization: 'Bearer ' + service,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal'
-      },
-      body: JSON.stringify({ lookup_count: newCount })
-    }).catch(function () {});
-
-    let freight = Number(row.freight_amount);
-    if (isNaN(freight)) freight = 0;
-
-    const deliveryInfo = await fetchSettingSingle('delivery_info', base, service);
-    let freeFrom = 0;
-    try {
-      if (deliveryInfo && typeof deliveryInfo === 'object') {
-        freeFrom = parseFloat(deliveryInfo.free_from) || 0;
-      } else if (deliveryInfo && typeof deliveryInfo === 'string') {
-        const di = JSON.parse(deliveryInfo);
-        freeFrom = parseFloat(di.free_from) || 0;
-      }
-    } catch (_) {
-      /**/
+    let freight = defaultEsFreightAmount();
+    if (deliveryInfo && deliveryInfo.es_freight_amount != null && deliveryInfo.es_freight_amount !== '') {
+      freight = toMoney2(deliveryInfo.es_freight_amount);
+    } else if (deliveryInfo && deliveryInfo.freight_amount != null && deliveryInfo.freight_amount !== '') {
+      freight = toMoney2(deliveryInfo.freight_amount);
     }
+
+    let freeFrom = 0;
+    if (deliveryInfo && deliveryInfo.free_from != null) freeFrom = parseFloat(deliveryInfo.free_from) || 0;
 
     let finalFreight = freight;
     if (freeFrom > 0 && subtotal >= freeFrom) {
@@ -116,13 +123,15 @@ module.exports = async function handler(req, res) {
       ok: true,
       delivered: true,
       cep: cepNorm,
+      state: 'ES',
+      delivery_rule: 'espirito_santo_only',
       freight_amount: finalFreight,
       base_freight: freight,
       free_shipping_applied: finalFreight === 0 && freight > 0 && freeFrom > 0 && subtotal >= freeFrom,
-      label: row.label || null
+      label: 'Espírito Santo'
     });
   } catch (err) {
-    void err;
-    res.status(500).json({ error: 'Erro ao consultar CEP' });
+    console.error('[cep-freight]', err && err.message ? err.message : err);
+    res.status(500).json({ error: 'Erro ao validar a entrega.' });
   }
 };

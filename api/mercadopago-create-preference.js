@@ -4,7 +4,7 @@ const { applyBrowserCors, handleOptions, readJsonBody, parseBody } = require('./
 const { verifySupabaseUserJwt } = require('./_supabase-user');
 const { rateLimitKey, allow, prune } = require('./_rate-limit');
 const { adminConfig, restGet, restPost, resolvePublicBaseUrl } = require('./mercadopago-sync');
-const { normalizeBrazilCepDigits } = require('./_cep');
+const { normalizeBrazilCepDigits, normalizeBrazilState, resolveEspiritoSantoDelivery } = require('./_cep');
 
 function resolveMercadoPagoAccessToken() {
   return String(
@@ -506,20 +506,26 @@ function lineUnitPrice(product, photo) {
   return (photoSale || photoBase || prodSale || prodBase || 0) || 0;
 }
 
-async function fetchFreightAmount(cfg, cepDigits, subtotal) {
-  const cepNorm = normalizeBrazilCepDigits(cepDigits);
-  if (!cepNorm) return { delivered: false, amount: 0 };
-  const rowRes = await restGet(
-    cfg,
-    '/rest/v1/delivery_cep_rates?cep=eq.' + encodeURIComponent(cepNorm) + '&select=freight_amount&limit=1'
+function defaultEsFreightAmount() {
+  return toMoney2(
+    process.env.ES_FREIGHT_AMOUNT ||
+      process.env.DELIVERY_ES_FREIGHT_AMOUNT ||
+      process.env.FREIGHT_ES_AMOUNT ||
+      150
   );
-  if (!rowRes.ok) {
-    return { delivered: false, amount: 0, freightQueryFailed: true, freightHttpStatus: rowRes.status };
+}
+
+async function fetchFreightAmount(cfg, cepDigits, subtotal, stateValue) {
+  const cepNorm = normalizeBrazilCepDigits(cepDigits);
+  const stateNorm = normalizeBrazilState(stateValue || '');
+  if (!cepNorm) return { delivered: false, amount: 0, reason: 'invalid_cep' };
+
+  const coverage = resolveEspiritoSantoDelivery({ cep: cepNorm, state: stateNorm });
+  if (!coverage.allowed) {
+    return { delivered: false, amount: 0, reason: 'outside_espirito_santo' };
   }
-  if (!Array.isArray(rowRes.data) || !rowRes.data[0]) {
-    return { delivered: false, amount: 0 };
-  }
-  let freight = toMoney2(toNumber(rowRes.data[0].freight_amount));
+
+  let freight = defaultEsFreightAmount();
   const freeRes = await restGet(
     cfg,
     '/rest/v1/site_settings?key=eq.delivery_info&select=value&limit=1'
@@ -530,12 +536,17 @@ async function fetchFreightAmount(cfg, cepDigits, subtotal) {
       const v = freeRes.data[0].value;
       const di = typeof v === 'string' ? JSON.parse(v) : v;
       freeFrom = toNumber(di.free_from);
+      if (di && di.es_freight_amount != null && di.es_freight_amount !== '') {
+        freight = toMoney2(toNumber(di.es_freight_amount));
+      } else if (di && di.freight_amount != null && di.freight_amount !== '') {
+        freight = toMoney2(toNumber(di.freight_amount));
+      }
     } catch (_) {
       /**/
     }
   }
   if (freeFrom > 0 && subtotal >= freeFrom) freight = 0;
-  return { delivered: true, amount: freight };
+  return { delivered: true, amount: freight, label: 'Espírito Santo' };
 }
 
 async function deleteOrderCascade(cfg, orderId) {
@@ -972,7 +983,7 @@ module.exports = async function handler(req, res) {
     cep = guestShippingAddress.cep;
   }
   if (isPixPaymentMode && !cep) {
-    jsonError(res, 400, 'INVALID_ADDRESS_CEP', 'CEP inválido no endereço selecionado.');
+    jsonError(res, 400, 'INVALID_ADDRESS_CEP', 'Informe um CEP válido do Espírito Santo no endereço selecionado.');
     return;
   }
 
@@ -983,17 +994,17 @@ module.exports = async function handler(req, res) {
   );
   let shipping = 0;
   if (cep) {
-    const fr = await fetchFreightAmount(cfg, cep, subtotal);
+    const fr = await fetchFreightAmount(cfg, cep, subtotal, checkoutAddressRow && (checkoutAddressRow.state || checkoutAddressRow.uf));
     if (fr.freightQueryFailed) {
       jsonError(res, 503, 'FREIGHT_DB_ERROR', 'Não foi possível consultar o frete no servidor. Tente novamente.', {
-        hint: 'Verifique Supabase (service role) e a tabela delivery_cep_rates.',
+        hint: 'Verifique a configuração de frete por estado no servidor.',
         status: fr.freightHttpStatus
       });
       return;
     }
     if (!fr.delivered) {
-      jsonError(res, 400, 'CEP_OUT_OF_DELIVERY_AREA', 'CEP fora da área de entrega.', {
-        hint: 'Cadastre o CEP em delivery_cep_rates no painel (CEP / Frete).'
+      jsonError(res, 400, 'CEP_OUT_OF_DELIVERY_AREA', 'Entrega disponível apenas para o Espírito Santo.', {
+        hint: 'No momento, a entrega está liberada apenas para CEPs do Espírito Santo.'
       });
       return;
     }
